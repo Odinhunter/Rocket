@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+.claude/
+FUTURE_IDEAS.md
+learnings.md
+runs/
