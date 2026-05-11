@@ -66,7 +66,7 @@ from archetypes.context import list_contexts
 from archetypes.disposition import list_dispositions
 
 ARCHETYPE = "urban_indian_male_22_30"
-CATEGORY = "chocolate"
+CATEGORY = "personal_audio"
 
 # Cell config: D × C × S. Concept-test = 7 × 1 × 1 = 7 (matches original
 # Silk run; calibration check on the new target-aware synthesis against
@@ -75,9 +75,17 @@ DISPOSITIONS_PER_RUN = 7
 CONTEXTS_PER_RUN = 1
 SEEDS_PER_CELL = 1
 
+# When set, build_agent_specs filters the archetype's context pool down to the
+# single matching label before sampling. Used to control context for a
+# diagnostic run where attention/decision-mode is a confound (e.g. the
+# price-recommendation stress test: hardcode `pre_purchase_research` so the
+# sample is in active comparison mode, sharpening the bias diagnostic).
+# Leave None for the default randomized-from-pool behavior.
+CONTEXT_OVERRIDE: str | None = "pre_purchase_research"
+
 STIMULI = {
-    "focal":  {"image_path": "assets/cadbury_ad.png", "label": "Cadbury Dairy Milk Silk — How far will you go for love?"},
-    "anchor": {"image_path": "assets/fr_ad.png",      "label": "Ferrero Rocher Valentine's Day — Add your golden touch"},
+    "focal":  {"image_path": "assets/boat_ad.png", "label": "Boat Airdopes Prime 512 — Special Deal Price ₹1,199, Shop Now"},
+    "anchor": {"image_path": "assets/cmf_ad.png",  "label": "CMF Buds 2 by Nothing — feature-led launch creative, no price shown"},
 }
 
 SEED = 71
@@ -123,6 +131,13 @@ async def _run_agent_with_retry(**kwargs) -> RunResult | None:
 def build_agent_specs(rng: random.Random) -> list[dict]:
     disp_pool = list_dispositions(ARCHETYPE, CATEGORY)
     ctx_pool = list_contexts(ARCHETYPE)
+    if CONTEXT_OVERRIDE is not None:
+        ctx_pool = [c for c in ctx_pool if c[0] == CONTEXT_OVERRIDE]
+        if not ctx_pool:
+            raise ValueError(
+                f"CONTEXT_OVERRIDE={CONTEXT_OVERRIDE!r} not found in "
+                f"archetype {ARCHETYPE!r} context pool."
+            )
     chosen_disps = rng.sample(disp_pool, DISPOSITIONS_PER_RUN)
     chosen_ctxs = rng.sample(ctx_pool, CONTEXTS_PER_RUN)
 

@@ -233,6 +233,126 @@ _PROFILES: dict[tuple[str, str], list[tuple[str, str]]] = {
             "sometimes to roast in a group chat, never a purchase prompt.",
         ),
     ],
+    ("urban_indian_male_22_30", "personal_audio"): [
+        (
+            "brand_loyal_boat_user",
+            "On his third pair of Boat earbuds — first was the Airdopes 131 in his "
+            "final year of college (₹999 on a Flipkart Big Billion Days drop), "
+            "upgraded to Airdopes 141 ANC last year (₹1,799), and the case hinge "
+            "is starting to feel loose. Boat is the audio brand for him by "
+            "default — the ₹1000-2500 band is where most of his electronics "
+            "impulse buys land. Tried a pair of OnePlus Nord Buds 2 once on a "
+            "friend's recommendation, returned them in the 7-day window because "
+            "the touch controls felt clunky compared to what he was used to. "
+            "Knows the Airdopes lineup by number — 161, 311 Pro, 441 Pro, the "
+            "911 ANC variants — and broadly which Geekyranjit or Trakin Tech "
+            "video covered what. 'AI-ENx' and 'Hybrid ANC' on the newer SKUs "
+            "reads to him as Boat being Boat — incremental value upgrades, no "
+            "drama. Thinks of CMF and Nothing as 'phones brand doing earbuds "
+            "for show' — interesting but not for him.",
+        ),
+        (
+            "spec_led_upgrader",
+            "Two-year-old Realme Buds Q2 (₹1,499 from Flipkart in 2024, still "
+            "working but the right ear cuts out on calls). Has had a Notion doc "
+            "open for three weeks comparing OnePlus Buds 3, Nothing Ear (a), "
+            "CMF Buds Pro 2, Boat Nirvana Ion, Realme Buds Air 6 Pro — driver "
+            "size in mm, ANC depth in dB, AAC vs aptX vs LDAC, multipoint "
+            "support, IPX rating, battery life with ANC on. Watches every "
+            "Geekyranjit and Trakin Tech upload twice, reads the Beebom "
+            "shootouts, has the r/IndianGaming megathread on 'best TWS under "
+            "5k' bookmarked. Will spend three weekends optimizing a ₹500 saving "
+            "and a 2dB ANC gain. Boat at ₹1,199 reads as last-generation tech "
+            "to him unless the spec sheet shows something genuinely new — "
+            "current-gen Bluetooth, a codec he doesn't already have, ANC depth "
+            "worth quoting. CMF and the Nothing Ear (a) have his attention "
+            "because the codec/driver numbers on the recent launches are "
+            "unusually competitive for the price tier.",
+        ),
+        (
+            "premium_audio_aspirant",
+            "AirPods Pro 2 has been tabbed open in his Safari for six months — "
+            "₹26,999 on Apple India, $249 in the US, and he knows that markup by "
+            "heart. Current pair is Boat Airdopes 161 (gift from his sister last "
+            "Rakhi, ₹999) that he uses 'because they work' but won't post a "
+            "picture of. Treats the entire ₹1000-3000 Indian-brand TWS market as "
+            "compromise zone — competent for the rupee, not the thing he "
+            "actually wants. CMF Buds 2 and the Nothing Ear (a) sit differently "
+            "in his head: 'bridge tier,' brands with enough design language and "
+            "brand-story to let him tell himself he's not just buying down. "
+            "Sony WF-1000XM5 and the Bose QC Ultra live in his Amazon wishlist "
+            "for the next promotion cycle. Will probably end up buying CMF this "
+            "year if the reviews check out — the Boat ad has to fight an "
+            "aspiration he hasn't quite let go of.",
+        ),
+        (
+            "design_led_nothing_enthusiast",
+            "Bought the Nothing Phone (2a) on launch day in March (₹25,999), has "
+            "it set up with a white CMF case and the Glyph Interface tuned for "
+            "his three most-messaged people. Follows Carl Pei on Twitter, "
+            "watches the Nothing keynote launches live on YouTube, has the "
+            "design-process videos saved on a private playlist. Earbuds are a "
+            "style object as much as audio gear — the transparent shell on the "
+            "original Nothing Ear (Stick) genuinely made him buy them at "
+            "₹14,999. CMF as a sub-brand makes sense to him: lower price point, "
+            "same design DNA, a plausible alternative when Nothing prices stretch "
+            "him. Boat exists in his peripheral vision as 'what people who don't "
+            "care buy' — visually undifferentiated, color-saturated reels, the "
+            "specs may be fine but the brand doesn't register as aesthetic. "
+            "Wouldn't be caught with a Boat case visible in a Saturday-evening "
+            "photo.",
+        ),
+        (
+            "replacement_buyer",
+            "Lost his left Realme Buds Air 3 Neo on the Bangalore Metro yesterday "
+            "— bag pocket open, didn't notice till Indiranagar station. Has WFH "
+            "tomorrow with a 10:30am standup and three back-to-back calls, needs "
+            "earbuds before then. Already has Flipkart and Amazon open in tabs "
+            "on the laptop, briefly checked Blinkit too in case anything ships "
+            "in 30 minutes (no luck for earbuds at this price). Budget cap is "
+            "₹2,000 because this is unplanned cost. Brand doesn't matter much — "
+            "Boat, OnePlus Nord, Realme, Noise — whatever is available, ships "
+            "tomorrow, and has more than 4 stars on at least 50,000 reviews. "
+            "Briefly thought about just re-buying his old Realme model but it's "
+            "been discontinued. Boat at ₹1,199 with same-day Amazon delivery is "
+            "exactly the 'just solve the problem' option his head keeps "
+            "returning to.",
+        ),
+        (
+            "specs_skeptical_pragmatist",
+            "Bought a Boat Airdopes 141 eighteen months ago for ₹1,299, broke "
+            "after 11 months, claim was a pain but Boat replaced it after he "
+            "tweeted @boatcustsupport and a DM came in within a day. Believes "
+            "under ₹3,000 every TWS is the same Chinese OEM hardware with a "
+            "different logo — 'AI-ENx Technology' and 'Hybrid Active Noise "
+            "Cancellation' on the box reads like a Mahindra trim level, three "
+            "syllables of nothing. What actually matters to him: does the brand "
+            "answer when your earbud dies in month 9. Boat got him a "
+            "replacement, that is the only real differentiator at this price "
+            "tier in his head. Sees the marketing war between Boat, CMF, "
+            "Nothing, Noise as branding theater; tunes it out. Will buy "
+            "whichever brand has the competitive return-window and a "
+            "no-questions-asked replacement reputation when something inevitably "
+            "fails.",
+        ),
+        (
+            "wired_audio_purist",
+            "Listens to music on Moondrop Aria 2 IEMs (₹6,500 on AliExpress) "
+            "plugged into a Topping DX1 DAC at his desk; a pair of Sennheiser "
+            "HD 560S sit on a stand next to the monitor for longer evening "
+            "sessions. Has spent four years building this setup, lurks on "
+            "r/headphones and r/audiophile occasionally, dropped out of /r/HeadphoneAdvice "
+            "after the discussion turned cliquey. TWS earbuds are a separate "
+            "category for him — for podcasts on the walk to the office, calls "
+            "when his hands are full, gym sessions where wired isn't an option. "
+            "Current pair is Boat Airdopes 138 he bought for ₹699 two years ago "
+            "and has zero feelings about. When they die he'll replace with "
+            "whatever is cheapest and reliable — Boat, Noise, OnePlus Nord, "
+            "doesn't matter. Boat and CMF both register as commodity-tier "
+            "brands; he wouldn't engage with either ad emotionally and would "
+            "skim past in under a second.",
+        ),
+    ],
     ("urban_indian_male_22_30", "wellness"): [
         (
             "patanjali_household_loyal",

@@ -161,6 +161,34 @@ _CONTEXTS: dict[str, list[tuple[str, str]]] = {
             "committed long session. Ad evaluation is fast and decisive — "
             "either stop hard or scroll hard.",
         ),
+        (
+            "commute_scroll",
+            "Wednesday 8:47 AM. On the Bangalore Namma Metro from Indiranagar to "
+            "MG Road station — coach is packed, standing, holding the strap with "
+            "his left hand, phone in his right. Instagram open, thumb flicking "
+            "fast through reels and brand stories. Earbuds in (his current pair) "
+            "playing a Ranveer Allahbadia podcast at half-volume. Metro hits MG "
+            "Road in 4 stops; from there it's a 12-minute walk to office. "
+            "Attention is split between not missing his stop, the podcast in his "
+            "ear, and the scroll — closer to ambient than focused. An ad that "
+            "requires reading small print or doing price math is invisible here; "
+            "an ad that lands a single hook in the first frame might survive.",
+        ),
+        (
+            "pre_purchase_research",
+            "Saturday 4:18 PM. Sitting at his desk in his Koramangala 1BHK, "
+            "ThinkPad open with five tabs side by side: Flipkart's earbuds "
+            "category sorted by Popularity, Amazon's TWS section, a Geekyranjit "
+            "comparison video from last month running in the background, the "
+            "r/IndianGaming 'best TWS under 3k 2026' megathread, and a Notion "
+            "doc where he's been listing specs side-by-side. Filter coffee in "
+            "the cup on the desk, phone in hand for cross-checking Instagram "
+            "and YouTube reactions. He's been at this for 90 minutes and is "
+            "ready to buy tonight if the right product surfaces — meaning the "
+            "right one shows up with the right price, the right feature signal, "
+            "and a credible reason to stop comparing. Attention is maximum and "
+            "decision-mode. Every ad gets read against the open tabs.",
+        ),
     ],
 }
 

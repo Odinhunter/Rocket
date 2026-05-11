@@ -793,7 +793,7 @@ def synthesize_strategic_critique(
             client,
             layer="strategist",
             model=model,
-            max_tokens=2000,
+            max_tokens=4000,
             thinking={"type": "disabled"},
             system=_STRATEGIST_SYSTEM,
             tools=[_STRATEGIST_TOOL_SCHEMA],
