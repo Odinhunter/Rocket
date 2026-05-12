@@ -1,45 +1,76 @@
 # Rocket
 
-A simulated-audience pipeline for ad evaluation. Synthetic agents — primed with archetype, disposition, and viewing context — react to an ad image across a 6-round protocol. A population-level synthesis layer turns the reactions into a strategist memo: target classification, consensus/disagreement, and a single-biggest-friction read.
+A pre-publish synthetic-audience Creative Read for paid-social ads. Upload one finished ad creative; the engine returns a structured strategic memo — verdict, target match, top 3 changes, context-fit map, strengths, verbatim consumer quotes — in under 5 minutes, for ~$1-2 of API cost on the default matrix.
 
-## What it does
+Designed to fit a D2C performance marketer's Monday-morning workflow: triage new ad variants before they ship to Meta, kill the bottom half, save the wasted exploration spend.
 
-Given a focal ad image (and an anchor ad for comparison), the pipeline:
+## Architecture
 
-1. **Samples a population** of agents across `D dispositions × C contexts × S seeds` cells for one archetype (e.g. `urban_indian_male_22_30`).
-2. **Runs the 6-round protocol** against each (agent × stimulus) as an independent conversation:
-   - R1 — gut reaction (4-field structured output: attention/time/action/signal)
-   - R2 — comprehension audit (what claim is the brand making, do you buy it)
-   - R3 — emotional mapping (relevance/trust/curiosity/irritation/aspiration, 1–10 + reason, strict JSON)
-   - R4 — stickiness, two days later (free text)
-   - R5 — social calculus: screenshot / mention / public post (free text)
-   - R6 — purchase-friction map: condition for shortlist + single biggest friction (free text)
-3. **Synthesizes a population report** (4 Opus tool-use calls, one per free-text round) covering within-cell vs across-cell variance, focal-vs-anchor deltas, consensus, disagreement axes, and outliers.
-4. **Classifies disposition × target fit** from the focal image (separate vision call — does not see reactions).
-5. **Generates a strategist memo** (WORKING / MIXED / FAILING verdict, anchored on the within-target subset).
+Four hierarchical synthesis layers, anchored on a locked report schema:
+
+- **L1 — Bundled agent panel**: each agent = one `(disposition, context, seed)` cell. Two API calls per agent (Encoding R1+R2+R3, Reflection R4+R5+R6) on Sonnet 4.6 with prompt caching on the persona+image prefix (~3,099 tokens cached, 90% read discount on Reflection).
+- **L2 — Per-disposition aggregation**: one Sonnet call per disposition. Compresses raw L1 transcripts into a within-disposition read with representative quotes per round.
+- **L3 — Population synthesis**: one Sonnet call. Reads L2 summaries; emits robust themes, within-target vs outside-target findings, per-context fit, and a global quote pool.
+- **L4 — Strategic memo**: one Opus call. Reads L3 + target classification; emits the locked 7-field report schema as JSON in the response body (no tool-use mode).
+- **Target classification**: one Opus vision call, runs parallel to L2/L3. Classifies each disposition in the pool as within / outside / ambiguous against the ad's inferred target.
+
+Default mode is **single-asset + context envelope** — one creative, evaluated across multiple attention states (commute scroll, pre-purchase research, late-evening unwind). The "comparison" texture comes from intra-creative across contexts, not from a competitor anchor.
+
+See `docs/ARCHITECTURE.md` for the full design.
 
 ## Repo layout
 
 ```
-agent/             agent runtime
-  prompt.py        system-prompt assembly from archetype + disposition + context
-  runner.py        run_agent: per-round prompts, JSON retry loop for R3
-  telemetry.py     call_with_telemetry: wraps Anthropic calls with logging
-  persistence.py   run_id, checkpoints, run.json on disk
-  synthesis.py     population report + target classification + strategist memo
-archetypes/        archetype priming
-  demographics.py  who they are
-  culture.py       cultural reference points
-  behavior.py      behavioral patterns
-  voice.py         speech register
-  disposition.py   sample_disposition(archetype, category)
-  context.py       sample_context(archetype) — viewing situation
-assets/            ad images (focal + anchors)
-main.py            single-agent walkthrough (one archetype, one ad, all 6 rounds)
-batch_run.py       population protocol v2 (parallel, throttled, checkpointed)
-replay_synthesis.py  re-run synthesis on a saved run.json (or legacy stdout log)
-eval.py            evaluation harness
-compare_models.py  side-by-side model comparison
+agent/                       core pipeline
+  schema.py                  locked Report + AgentTranscript dataclasses + validate_report
+  config.py                  RunConfig (matrix size, models, versions, tenant ids)
+  prompt.py                  system-prompt assembly (persona prefix, cacheable)
+  runtime.py                 L1 bundled-call runtime (Encoding + Reflection, idempotent)
+  synthesis_l2.py            L2 per-disposition (Sonnet, tool-use)
+  synthesis_l3.py            L3 population synthesis (Sonnet, tool-use)
+  synthesis_l4.py            L4 strategic memo (Opus, response-body JSON)
+  synthesis_types.py         L2Summary, L3Summary, TargetClassification (intermediate types)
+  target_id.py               Opus vision call — single-asset target classification
+  run_service.py             RunService orchestrator: wires all layers
+  telemetry.py               per-call cost/latency/cache telemetry + multi-tenant run_dir
+archetypes/                  archetype priming (untouched)
+  demographics.py            who they are
+  culture.py                 cultural reference points
+  behavior.py                behavioral patterns
+  voice.py                   speech register
+  disposition.py             hand-mapped, per (archetype × category)
+  context.py                 attention-state contexts per archetype
+assets/                      ad images
+tests/                       smoke tests for each layer
+  test_schema_roundtrip.py   schema lock
+  test_run_config.py         RunConfig + multi-tenant paths
+  test_l1_smoke.py           L1 bundled runtime, cache, idempotent resume
+  test_l2_smoke.py           L2 -> L3 -> L4 end-to-end on real adapted transcripts
+  test_l3_smoke.py           L3 + L4 on hand-typed L2 fixtures
+  test_l4_smoke.py           L4 isolation on hand-typed L3 fixture
+  test_target_id_smoke.py    Target classification on boat_ad.png
+  test_run_service_minimal.py  Full RunService on a 1x1x1 = 1 agent run
+  fixtures/                  hand-typed L2/L3/target_classification fixtures
+scripts/
+  adapt_checkpoint_to_transcripts.py  one-shot: legacy checkpoint.json -> AgentTranscript[]
+  cache_validation_test.py            v1 cache validation (initial baseline)
+  cache_validation_test_v2.py         v2: strict-prompt bundled rounds (validated 2026-05-12)
+batch_run.py                 CLI entry point (argparse -> RunConfig -> RunService.run)
+replay_synthesis.py          L2->L3->L4 replay on a stored run (skip L1)
+docs/
+  ARCHITECTURE.md            forward-looking design doc (the contract)
+runs/<account_id>/<brand_profile_id>/<run_id>/    multi-tenant run artifacts
+  run.json                   config + final Report
+  telemetry.jsonl            per-call observability
+  transcripts.json           AgentTranscript[]
+  l2_summaries.json          L2Summary[]
+  l3_summary.json            L3Summary
+  l4 in run.json             (the consumer-facing Report)
+  target_classification.json
+  invariants.json            cache/output/cost assertions
+  agent_calls/               per-bundled-call artifacts for idempotent resume
+    NNNN__encoding.json
+    NNNN__reflection.json
 ```
 
 ## Setup
@@ -53,29 +84,49 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
 
 ## Run
 
-Single agent walkthrough on the Blue Tokai Drop ad:
+Single-asset Creative Read on the default 5 × 3 × 1 = 15-agent matrix:
 
 ```bash
-python main.py
+python batch_run.py --asset assets/boat_ad.png
 ```
 
-Population batch run (samples specs, runs 6 rounds × N conversations in parallel, persists checkpoints + final `runs/<run_id>/run.json`):
+Smaller smoke / cheaper iteration:
 
 ```bash
-python batch_run.py
-# resume an interrupted run:
-python batch_run.py --resume <run_id>
+python batch_run.py --asset assets/boat_ad.png --dispositions 3 --contexts 2 --seeds 1
 ```
 
-Replay synthesis on a completed run (skips the 4 free-text Opus calls — use this for fast iteration on the strategist prompt):
+Resume a partially-completed run (per-bundled-call idempotency means existing artifacts are loaded from disk, only missing calls fire):
 
 ```bash
-python replay_synthesis.py --run-id <run_id>
+python batch_run.py --asset assets/boat_ad.png --resume <run_id>
+```
+
+Replay L2→L3→L4 on a stored run (skip the agent layer entirely — fast iteration on synthesis prompts):
+
+```bash
+python replay_synthesis.py runs/internal/default/<run_id>
+```
+
+## Smoke tests
+
+Each synthesis layer is independently testable against a fixture from the layer below.
+
+```bash
+python tests/test_schema_roundtrip.py        # no API cost
+python tests/test_run_config.py              # no API cost
+python tests/test_l4_smoke.py --once         # ~$0.30 (Opus)
+python tests/test_l3_smoke.py                # ~$0.35
+python tests/test_l2_smoke.py                # ~$0.50 (uses real adapted L1 transcripts)
+python tests/test_l1_smoke.py                # ~$0.03 (one agent, validates cache)
+python tests/test_target_id_smoke.py         # ~$0.10
+python tests/test_run_service_minimal.py     # ~$0.50 (one full 1x1x1 run end-to-end)
 ```
 
 ## Notes
 
-- Concurrency is hand-tuned to a 30K ITPM ceiling: `SEMAPHORE=2`, `INTER_ROUND_SLEEP_S=30`. At ~189-agent scale these need recomputing against measured tokens-per-call; per-conversation transcripts and synthesis chunking become mandatory at that scale.
-- `seed_idx` is a label for pairing/replication, not a deterministic control — the Anthropic SDK has no `seed` parameter, so within-cell variance comes from `temperature=1.0` stochasticity at runtime.
-- Round 3 has a 3-attempt JSON retry loop; on full failure the conversation is dropped and logged rather than crashing the batch.
-- R2/R4/R5/R6 variance is currently Jaccard over LLM-extracted themes. Embedding-cosine on a separate-from-generation embedder is the principled v2 (sidesteps asking the same model to judge its own homogenization) — flagged in `agent/synthesis.py`.
+- **Concurrency default = 4** (`max_concurrent_agents`). At the 30K ITPM Anthropic tier, each Encoding+Reflection pair costs ~6.8K ITPM tokens; 4 concurrent stays within the per-minute budget. Raise once you measure your tier ceiling. The cache prefix is single-marker on the system block + image block; no secondary marker on Reflection.
+- **Dispositions cap at 7** per Brand Profile (L2 fan-out scales linearly; the cap is part of the cost lock).
+- `seed_idx` is a label, not a deterministic control — Anthropic SDK has no `seed` parameter, so within-cell variance is API stochasticity at temperature=1.0.
+- **Idempotent per-call resume**: every successful Encoding/Reflection writes `agent_calls/<aid>__<phase>.json`. On `--resume`, completed calls are loaded from disk and skipped. Replays inside the cache TTL (5 min) hit the cache cheaply.
+- **Protocol lock**: any prompt change to the agent layer or L2-L4 means bumping `PROTOCOL_VERSION` in `agent/config.py` — every run that survived past the change becomes a different benchmark.

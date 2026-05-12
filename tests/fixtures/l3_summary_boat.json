@@ -1,0 +1,115 @@
+{
+  "robust_themes": [
+    {
+      "statement": "The ₹1,199 'Special Deal Price' reads as suspicious without an anchor price; within-target buyers want to know what it was before the deal.",
+      "cited_by": ["brand_loyal_boat_user", "price_sensitive_minimalist"],
+      "rounds": [3, 6]
+    },
+    {
+      "statement": "The 'Prime' badge reads as cosmetic premium signaling rather than a real tier or feature upgrade.",
+      "cited_by": ["brand_loyal_boat_user", "d2c_skeptical_fast_scroller", "price_sensitive_minimalist"],
+      "rounds": [2, 4]
+    },
+    {
+      "statement": "Closed case alone leaves the product visually unfelt; comprehension of what's new drops without buds-in-ear or case-open imagery.",
+      "cited_by": ["brand_loyal_boat_user", "price_sensitive_minimalist", "d2c_skeptical_fast_scroller"],
+      "rounds": [2, 4]
+    }
+  ],
+  "fragile_themes": [
+    {
+      "statement": "The 'Shop Now' CTA places conversion pressure that feels mistimed for a deal-led claim — like the ad doesn't trust its own discount to do the work.",
+      "cited_by": ["d2c_skeptical_fast_scroller"],
+      "rounds": [5]
+    }
+  ],
+  "within_target_findings": [
+    {
+      "statement": "Within the value-conscious Boat-repeat buyer target, the ad gets attention via the price hook but loses comprehension immediately afterward — the price is doing all the work, and there's nothing else to anchor on.",
+      "cited_by": ["brand_loyal_boat_user", "price_sensitive_minimalist"],
+      "rounds": [1, 2, 4]
+    },
+    {
+      "statement": "The discount mechanic (₹1,199 'Special Deal Price' with no anchor) lands as cheap-feeling brand signaling rather than a real saving; the within-target voice is 'these were probably 800 last week and Boat just slapped Prime on the box'.",
+      "cited_by": ["brand_loyal_boat_user", "price_sensitive_minimalist"],
+      "rounds": [3, 6]
+    }
+  ],
+  "outside_target_findings": [
+    {
+      "statement": "Specialty audiophile dispositions read the ad as confirmation that Boat plays in a tier they have already exited; not damaging, but reinforces brand-extension headwinds.",
+      "cited_by": ["specialty_coffee_enthusiast"],
+      "rounds": [5, 6]
+    }
+  ],
+  "context_fit": {
+    "commute_scroll": {
+      "verdict": "mixed",
+      "friction_summary": "Price hook earns a pause; absence of a real product differentiator means the scroll resumes within a second or two."
+    },
+    "pre_purchase_research": {
+      "verdict": "working",
+      "friction_summary": "Active comparison-shoppers anchor on the deal price and open into Flipkart/Amazon to verify — the ad does its directional job, even if the trust gap remains."
+    },
+    "late_night_wind_down": {
+      "verdict": "failing",
+      "friction_summary": "Low-attention scroll: product never registers, brand recall is the only takeaway, no purchase intent surfaces."
+    }
+  },
+  "representative_quotes": [
+    {
+      "quote": "₹1,199 for what — these were 800 last week?",
+      "disposition": "price_sensitive_minimalist",
+      "round": 6,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "Prime sticker is doing more work than the product",
+      "disposition": "brand_loyal_boat_user",
+      "round": 2,
+      "context": "commute_scroll"
+    },
+    {
+      "quote": "I'd at least want to see them in someone's ear before I believe this is a real upgrade",
+      "disposition": "brand_loyal_boat_user",
+      "round": 4,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "If I'm buying earbuds tonight I'll search this — but in 5 minutes I'll forget",
+      "disposition": "brand_loyal_boat_user",
+      "round": 4,
+      "context": "late_night_wind_down"
+    },
+    {
+      "quote": "Not screenshotting, not telling anyone — there's no story here",
+      "disposition": "d2c_skeptical_fast_scroller",
+      "round": 5,
+      "context": "commute_scroll"
+    },
+    {
+      "quote": "At least the price is there, no fishing for the number",
+      "disposition": "price_sensitive_minimalist",
+      "round": 1,
+      "context": "commute_scroll"
+    },
+    {
+      "quote": "Boat does Boat, this is what it is — not for me but I don't hate it",
+      "disposition": "specialty_coffee_enthusiast",
+      "round": 5,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "Shop Now is doing the work the brand isn't willing to do — show me why I'd want these",
+      "disposition": "d2c_skeptical_fast_scroller",
+      "round": 6,
+      "context": "pre_purchase_research"
+    }
+  ],
+  "confidence_signals": {
+    "within_target_disposition_count": 2,
+    "contexts_in_agreement": 1,
+    "total_contexts": 3,
+    "homogenization_flag_count": 0
+  }
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "disposition_label": "brand_loyal_boat_user",
+    "summary_paragraph": "The brand-loyal Boat repeat buyer reads this ad as familiar but uninspiring. The ₹1,199 price hook earns initial attention because he's already shopping in this category and tier, but the 'Prime' badge reads as marketing veneer rather than a real upgrade. The closed case leaves him unable to picture the product in use, which matters because he treats earbuds as utility-grade and wants visible signal on what's new. By R6 he flags that the deal price is doing all the work and the absence of an anchor MRP makes him suspicious — the brand has trained him to expect this kind of staged discount mechanic, and it's wearing thin.",
+    "within_cell_variance": "spread",
+    "outlier_note": null,
+    "representative_quotes": {
+      "1": {"quote": "Boat doing Boat — Special Deal Price, here we go", "disposition": "brand_loyal_boat_user", "round": 1, "context": "commute_scroll"},
+      "2": {"quote": "Prime sticker is doing more work than the product", "disposition": "brand_loyal_boat_user", "round": 2, "context": "commute_scroll"},
+      "3": {"quote": "Honestly I just feel mild fatigue — I've seen this exact frame from them three times this month", "disposition": "brand_loyal_boat_user", "round": 3, "context": "pre_purchase_research"},
+      "4": {"quote": "I'd at least want to see them in someone's ear before I believe this is a real upgrade", "disposition": "brand_loyal_boat_user", "round": 4, "context": "pre_purchase_research"},
+      "5": {"quote": "Not screenshotting — what would I send it for? My friend already knows about Boat", "disposition": "brand_loyal_boat_user", "round": 5, "context": "commute_scroll"},
+      "6": {"quote": "If I'm buying earbuds tonight I'll search this, but in 5 minutes I'll forget — and 'these were 800 last week' is the doubt I'm carrying", "disposition": "brand_loyal_boat_user", "round": 6, "context": "late_night_wind_down"}
+    },
+    "emotional_read": "Familiarity-fatigue with a tinge of suspicion about the discount mechanic. Not active rejection — more 'I know this game.'",
+    "friction_summary": "Wants to see the buds in use; suspicious of the unanchored deal price; brand recall is the only thing surviving the scroll."
+  },
+  {
+    "disposition_label": "price_sensitive_minimalist",
+    "summary_paragraph": "The price-sensitive minimalist gives the ad its longest pause because the ₹1,199 number is upfront and that's exactly what she wants to see. But the second beat collapses: she has no idea what the product actually is or why it's priced where it is. The 'Special Deal Price' framing actively raises her suspicion — to her, a deal claim without an MRP anchor is the inflated-MRP game she's learned to spot. By R6, she'd buy at ₹1,199 if convinced of the value, but the ad has not earned that yet, and the closed case visual means she can't even tell what she'd be buying.",
+    "within_cell_variance": "spread",
+    "outlier_note": null,
+    "representative_quotes": {
+      "1": {"quote": "At least the price is there, no fishing for the number", "disposition": "price_sensitive_minimalist", "round": 1, "context": "commute_scroll"},
+      "2": {"quote": "What ARE these — the name says Prime 512 but show me a buds-in-ear shot please", "disposition": "price_sensitive_minimalist", "round": 2, "context": "pre_purchase_research"},
+      "3": {"quote": "Curiosity 5 because of the price, trust 3 because of the asterisk-free deal claim — that's never not a flag", "disposition": "price_sensitive_minimalist", "round": 3, "context": "pre_purchase_research"},
+      "4": {"quote": "I remember the number ₹1,199 and the word Prime — nothing else", "disposition": "price_sensitive_minimalist", "round": 4, "context": "late_night_wind_down"},
+      "5": {"quote": "I might tell my brother since he's been complaining about his Airpods clones but I'd preface it with 'don't know if these are good'", "disposition": "price_sensitive_minimalist", "round": 5, "context": "commute_scroll"},
+      "6": {"quote": "₹1,199 for what — these were probably 800 last week and they slapped Prime on the box?", "disposition": "price_sensitive_minimalist", "round": 6, "context": "pre_purchase_research"}
+    },
+    "emotional_read": "Pragmatic price-anchor pull, then immediate skepticism on the discount mechanic. She's been trained to spot inflated-MRP framing.",
+    "friction_summary": "Price hook works, MRP-anchor absence breaks trust, closed case leaves the product unseen."
+  },
+  {
+    "disposition_label": "d2c_skeptical_fast_scroller",
+    "summary_paragraph": "The D2C-skeptical fast scroller bounces off the ad in under a second. The 'Shop Now' CTA reads to him as the brand admitting it doesn't trust its own product to do the work of conversion. He doesn't carry strong feelings about Boat one way or the other; this scroll is one of dozens that day and the ad doesn't earn an exception. By R6 his read is that the ad is loud where it should be specific — and that the brand is performing budget urgency rather than communicating product value.",
+    "within_cell_variance": "tight",
+    "outlier_note": null,
+    "representative_quotes": {
+      "1": {"quote": "Scrolled past — another Shop Now urgency banner", "disposition": "d2c_skeptical_fast_scroller", "round": 1, "context": "commute_scroll"},
+      "2": {"quote": "The message is 'buy now,' which isn't a message about the product — just about the moment", "disposition": "d2c_skeptical_fast_scroller", "round": 2, "context": "pre_purchase_research"},
+      "3": {"quote": "Irritation 6 — the urgency frame is doing the work the product copy isn't, and that's a tell", "disposition": "d2c_skeptical_fast_scroller", "round": 3, "context": "commute_scroll"},
+      "4": {"quote": "Not a thing left in my head from this — maybe the colour of the case?", "disposition": "d2c_skeptical_fast_scroller", "round": 4, "context": "late_night_wind_down"},
+      "5": {"quote": "Not screenshotting, not telling anyone — there's no story here", "disposition": "d2c_skeptical_fast_scroller", "round": 5, "context": "commute_scroll"},
+      "6": {"quote": "Shop Now is doing the work the brand isn't willing to do — show me why I'd want these, then ask me to shop", "disposition": "d2c_skeptical_fast_scroller", "round": 6, "context": "pre_purchase_research"}
+    },
+    "emotional_read": "Aggregated D2C-marketing fatigue rather than specific reaction. The ad triggers a category-wide pattern in him, not a brand-specific feeling.",
+    "friction_summary": "Performative urgency over product communication; the CTA is doing structural work the visual copy refuses to do."
+  },
+  {
+    "disposition_label": "specialty_coffee_enthusiast",
+    "summary_paragraph": "The specialty-coffee enthusiast — outside target for personal_audio — reads this as confirmation that Boat plays in a tier he already moved past. His audio kit is small-but-considered (Sony LinkBuds, his older Sennheisers from college), and this ad reinforces that Boat is the volume play, not the considered play. He's not irritated; he's barely engaged. By R6 his read is that the ad does what it sets out to do for someone else, and his presence in the pool is informational about brand-extension headwinds, not a verdict on the ad itself.",
+    "within_cell_variance": "tight",
+    "outlier_note": null,
+    "representative_quotes": {
+      "1": {"quote": "Boat — sub-second, not in my consideration set", "disposition": "specialty_coffee_enthusiast", "round": 1, "context": "commute_scroll"},
+      "2": {"quote": "It's a price-led upgrade pitch — clear enough, not for me", "disposition": "specialty_coffee_enthusiast", "round": 2, "context": "pre_purchase_research"},
+      "3": {"quote": "Relevance 2 trust 5 — they're not lying, they're just not selling to me", "disposition": "specialty_coffee_enthusiast", "round": 3, "context": "pre_purchase_research"},
+      "4": {"quote": "Nothing stuck — fair enough, I'm not the buyer", "disposition": "specialty_coffee_enthusiast", "round": 4, "context": "late_night_wind_down"},
+      "5": {"quote": "Boat does Boat, this is what it is — not for me but I don't hate it", "disposition": "specialty_coffee_enthusiast", "round": 5, "context": "pre_purchase_research"},
+      "6": {"quote": "No condition for consideration — this brand isn't going to make my shortlist regardless of the deal", "disposition": "specialty_coffee_enthusiast", "round": 6, "context": "commute_scroll"}
+    },
+    "emotional_read": "Settled indifference. He has clear preferences in the category and the ad doesn't engage them.",
+    "friction_summary": "Cross-segment exposure — the friction isn't in the ad, it's in the brand-tier mismatch with his preference structure."
+  },
+  {
+    "disposition_label": "convenience_optimizer",
+    "summary_paragraph": "The convenience optimizer is ambiguous-target — the ad's price-led mass-market framing might land OR backfire depending on his current price-tier preference. He pauses on the price but doesn't open into Flipkart/Amazon to verify; he's not in active comparison mode for audio. By R6 his read is that the ad is fine, the brand is fine, but nothing about it moves him toward serious consideration unless someone he trusts surfaces the SKU. The ad doesn't fail with him; it just doesn't move him.",
+    "within_cell_variance": "spread",
+    "outlier_note": null,
+    "representative_quotes": {
+      "1": {"quote": "Pause for the price, then keep going — no urgency to act", "disposition": "convenience_optimizer", "round": 1, "context": "commute_scroll"},
+      "2": {"quote": "Standard earbud refresh — they want me to know the deal exists", "disposition": "convenience_optimizer", "round": 2, "context": "pre_purchase_research"},
+      "3": {"quote": "Curiosity 4 — I'd look if I were in the market today, but I'm not", "disposition": "convenience_optimizer", "round": 3, "context": "late_night_wind_down"},
+      "4": {"quote": "I remember the price and the Boat name — that's about it", "disposition": "convenience_optimizer", "round": 4, "context": "commute_scroll"},
+      "5": {"quote": "Not the kind of thing I share — I'd just buy it if I needed it", "disposition": "convenience_optimizer", "round": 5, "context": "pre_purchase_research"},
+      "6": {"quote": "The biggest friction is I'm not buying earbuds — the ad can't fix the fact that I don't need them this week", "disposition": "convenience_optimizer", "round": 6, "context": "pre_purchase_research"}
+    },
+    "emotional_read": "Neutral pragmatism. The ad reaches him but doesn't activate a category need that isn't there.",
+    "friction_summary": "Timing friction more than creative friction — the ad assumes a need state that isn't present."
+  }
+]

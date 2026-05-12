@@ -45,7 +45,7 @@ Net call count per run: ~400 agent calls (200 × 2 bundled) + ~8 synthesis calls
 
 ```
 {
-  verdict: WORKING | MIXED | FAILING,
+  verdict: WORKING | MIXED | FAILING | METHODOLOGY_GAP,
   confidence: 0-100,
   target_match: { reached, missed },
   top_3_changes: [{ change, why, evidence_quotes, within_target_corroboration }],
@@ -54,6 +54,8 @@ Net call count per run: ~400 agent calls (200 × 2 bundled) + ~8 synthesis calls
   verbatim_consumer_voice: [{ quote, disposition, round, context }]
 }
 ```
+
+`METHODOLOGY_GAP` fires when no dispositions in the run pool match the ad's inferred target (or all are classified ambiguous). The verdict is honest about what the run can and cannot say: the brand should retest against a different archetype before reading effectiveness. `top_3_changes` is empty in this case; `confidence` is low; the strategist memo pivots to a methodology paragraph.
 
 Schema is locked before any agent or synthesis code is written. L4 writes to it, L3 produces what L4 needs, L2 produces what L3 needs, L1 produces what L2 needs. Architecture flows backward from the deliverable.
 

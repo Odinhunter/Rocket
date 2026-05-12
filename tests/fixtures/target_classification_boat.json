@@ -1,0 +1,33 @@
+{
+  "inferred_target_description": "Value-conscious 22-30 urban Indian male who already owns or has owned Boat earbuds and is open to a price-led upgrade or replacement; treats personal_audio as a utility-grade impulse buy, not a category to research deeply.",
+  "target_reasoning": "The visual leans on a deal-led price hook (₹1,199 Special Deal Price), a 'Shop Now' CTA, and a closed-case product shot — no model, no use occasion, no lifestyle frame. This signals a quick-decision mass-market online purchase, not a premium audiophile pitch. The 'Prime 512' SKU naming and the 'Prime' badge cosmetic premium signal lean toward existing Boat customers who'd recognize the lineage; the deal price and CTA-led structure suggest the brand is courting price-sensitive repeat buyers and impulse-grade upgraders.",
+  "disposition_classifications": [
+    {
+      "disposition_label": "brand_loyal_boat_user",
+      "classification": "within",
+      "reasoning": "Existing Boat customer, value-conscious, treats earbuds as utility-grade. Hits all the load-bearing dimensions of the inferred target."
+    },
+    {
+      "disposition_label": "price_sensitive_minimalist",
+      "classification": "within",
+      "reasoning": "Value-conscious, decides on price-led claims, doesn't research category deeply. Fits the impulse-buy framing."
+    },
+    {
+      "disposition_label": "d2c_skeptical_fast_scroller",
+      "classification": "ambiguous",
+      "reasoning": "Demographically a fit, but his skepticism of D2C marketing language and impulse buys puts him in a position where the deal framing might land OR backfire. Could go either way."
+    },
+    {
+      "disposition_label": "specialty_coffee_enthusiast",
+      "classification": "outside",
+      "reasoning": "Premium-oriented buyer with established preferences in adjacent category; reads this kind of price-led D2C as below his consideration tier."
+    },
+    {
+      "disposition_label": "convenience_optimizer",
+      "classification": "ambiguous",
+      "reasoning": "Cares about convenience and price, but Boat's price-led mass-market positioning may not match his utility-vs-prestige preference structure."
+    }
+  ],
+  "ambiguity_note": null,
+  "no_match_note": null
+}

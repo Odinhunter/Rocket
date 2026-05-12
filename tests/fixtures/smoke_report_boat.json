@@ -1,0 +1,190 @@
+{
+  "verdict": "FAILING",
+  "confidence": 78,
+  "target_match": {
+    "reached": [
+      {
+        "disposition": "brand_loyal_boat_user",
+        "classification": "within"
+      },
+      {
+        "disposition": "replacement_buyer",
+        "classification": "within"
+      },
+      {
+        "disposition": "spec_led_upgrader",
+        "classification": "within"
+      }
+    ],
+    "missed": [
+      {
+        "disposition": "design_led_nothing_enthusiast",
+        "classification": "outside"
+      },
+      {
+        "disposition": "wired_audio_purist",
+        "classification": "outside"
+      },
+      {
+        "disposition": "premium_audio_aspirant",
+        "classification": "ambiguous"
+      },
+      {
+        "disposition": "specs_skeptical_pragmatist",
+        "classification": "ambiguous"
+      }
+    ]
+  },
+  "top_3_changes": [
+    {
+      "change": "Replace 'AI-ENx™ Technology' with a verifiable, benchmarked claim — e.g., '-32dB call-noise reduction, tested against [named competitor]' — or drop the trademarked acronym entirely.",
+      "why": "All three within-target dispositions decode 'AI-ENx™' as trademark soup that actively triggers the exit-to-Reddit reflex before exit-to-cart, accelerating the very third-party detour the ad needs to short-circuit.",
+      "evidence_quotes": [
+        {
+          "quote": "\"AI-ENx™ Technology\" for mics is pure marketing wrapper — that's just their trademarked name for noise suppression they haven't actually benchmarked against anything I can verify.",
+          "disposition": "spec_led_upgrader",
+          "round": 2,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "when they say 50 hours I'm already mentally halving it, and that skepticism means I exit to the r/IndianGaming thread or a Geekyranjit timestamp before I exit to cart, and I don't always come back. This ad did nothing to reduce that friction — it leaned harder into the premium aesthetic and the trademarked tech name, which are exactly the signals I've learned to discount, when the one thing that might have actually moved me is a raw third-party validation number or a real-world call-quality claim I could verify in thirty seconds.",
+          "disposition": "replacement_buyer",
+          "round": 6,
+          "context": "pre_purchase_research"
+        }
+      ],
+      "within_target_corroboration": "3 of 3 within-target dispositions named the trademarked spec claim as the trigger that routes them away from cart and toward uncontrolled review channels."
+    },
+    {
+      "change": "Collapse the stacked discount architecture into a single honest price frame — show the strike-through MRP next to ₹1,199 with no asterisk, no promo code, no 'Special Deal Price' label.",
+      "why": "The brand_loyal_boat_user explicitly flagged that the three-layer discount stack triggers a defection to Amazon to find the 'real' price, and stated they would have tapped through with a clean price construction.",
+      "evidence_quotes": [
+        {
+          "quote": "the 'Special Deal Price' framing with an asterisk and a promo code on the same ad is classic Boat — feels like three discount signals stacked on top of each other to manufacture urgency, which I see through but it still half-works on me.",
+          "disposition": "brand_loyal_boat_user",
+          "round": 3,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "if they'd just said \"₹1,199, no code needed, here's what it was before,\" I'd have tapped through instead of screenshotting and drifting back to my tabs.",
+          "disposition": "brand_loyal_boat_user",
+          "round": 6,
+          "context": "pre_purchase_research"
+        }
+      ],
+      "within_target_corroboration": "1 of 3 within-target dispositions (the brand_loyal_boat_user) explicitly diagnosed the discount stack as a conversion-loss mechanism and prescribed the fix verbatim."
+    },
+    {
+      "change": "Drop the leather-textured case styling and 'Prime' badge from the hero composition; lead with a flat utility frame (specs sheet, real-world call-quality demo, or a single named third-party data point).",
+      "why": "Within-target dispositions read the premium-aesthetic layer as Boat overreaching its brand permission at this price tier, generating tone mismatch for utility buyers and signaling spec-hiding to comparison shoppers.",
+      "evidence_quotes": [
+        {
+          "quote": "the leather-ball case and the brown colourway are doing styling work that this category doesn't really need — I'm buying this for my 10:30 standup tomorrow, not to flex it at a café, so the aesthetic effort almost feels like it's trying too hard to distract from the fact that it's still a Boat.",
+          "disposition": "replacement_buyer",
+          "round": 2,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "The leather-look case styling and the 'Prime' badge are doing a lot of heavy lifting to imply premium without actually earning it, and that gap between the vibe they're selling and the specs they're not showing is a little patronising when you know the category.",
+          "disposition": "spec_led_upgrader",
+          "round": 3,
+          "context": "pre_purchase_research"
+        }
+      ],
+      "within_target_corroboration": "3 of 3 within-target dispositions flagged the premium-aesthetic layer as either tone-mismatched (replacement_buyer), spec-distraction (spec_led_upgrader), or urgency-theatre adjacent (brand_loyal_boat_user)."
+    }
+  ],
+  "strengths_to_preserve": [
+    {
+      "strength": "The ₹1,199 price point itself is correctly calibrated — it slots cleanly into pre-existing comparison brackets and earns a screenshot from within-target researchers; do not raise it or hide it behind a promo gate.",
+      "evidence_quotes": [
+        {
+          "quote": "screenshot — 1199 boat, already have tabs open",
+          "disposition": "brand_loyal_boat_user",
+          "round": 1,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "search — ₹1,199 Boat is already in my head",
+          "disposition": "replacement_buyer",
+          "round": 1,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "screenshot — ₹1,199 Boat but no ANC dB listed",
+          "disposition": "spec_led_upgrader",
+          "round": 1,
+          "context": "pre_purchase_research"
+        }
+      ]
+    }
+  ],
+  "context_fit_map": {
+    "pre_purchase_research": {
+      "verdict": "failing",
+      "friction_summary": "The ad earns a price screenshot from in-market researchers but its own language (trademarked specs, stacked discount, premium-cosplay aesthetic) actively triggers the exit-to-Reddit reflex, handing the conversion to third-party channels where defection to CMF or Nothing is explicitly named."
+    }
+  },
+  "verbatim_consumer_voice": [
+    {
+      "quote": "screenshot — 1199 boat, already have tabs open",
+      "disposition": "brand_loyal_boat_user",
+      "round": 1,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "screenshot — ₹1,199 Boat but no ANC dB listed",
+      "disposition": "spec_led_upgrader",
+      "round": 1,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "that asterisk next to the price is quietly doing suspicious work.",
+      "disposition": "brand_loyal_boat_user",
+      "round": 2,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "\"AI-ENx™ Technology\" for mics is pure marketing wrapper — that's just their trademarked name for noise suppression they haven't actually benchmarked against anything I can verify.",
+      "disposition": "spec_led_upgrader",
+      "round": 2,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "The leather ball case and 'Prime' badge are doing a lot of aspirational heavy lifting for what is ultimately a replacement for my ₹800 Realme buds I lost on the metro. I don't need to feel good about buying Boat — I need to hear clearly on a standup call tomorrow, and brand association in this category genuinely does not factor into that.",
+      "disposition": "replacement_buyer",
+      "round": 3,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "The price stuck because it matched the number I was already carrying in my head from the Amazon tab, so it wasn't really the ad doing the work, it was confirmation of something I'd already anchored to. The leather ball case is completely gone, the 50-hour claim is gone, \"AI-ENx\" never even registered — none of the stuff they spent design budget on made it past the same night.",
+      "disposition": "replacement_buyer",
+      "round": 4,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "if they'd just said \"₹1,199, no code needed, here's what it was before,\" I'd have tapped through instead of screenshotting and drifting back to my tabs.",
+      "disposition": "brand_loyal_boat_user",
+      "round": 6,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "The single biggest friction isn't price — ₹1,199 is fine — it's that there's no trustworthy third-party signal attached to this product yet, and in a category where I've already built a comparison grid, \"no one I follow has vouched for this\" is a harder wall than any spec gap.",
+      "disposition": "spec_led_upgrader",
+      "round": 6,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "the leather case and the \"Prime\" badge are trying to signal premiumness, but they landed as Boat cosplaying as a brand I'd actually want, which made the identity gap more visible, not less",
+      "disposition": "premium_audio_aspirant",
+      "round": 6,
+      "context": "pre_purchase_research"
+    },
+    {
+      "quote": "This ad actually made that friction slightly worse, not better — the AI-ENx™ trademark and the leather aesthetic are clearly trying to signal \"we've moved up,\" but without a single concrete proof point I can verify, it just looks like repositioning theatre, and now I'm more aware of the gap between what they're claiming and what I can confirm than I was before I saw it.",
+      "disposition": "wired_audio_purist",
+      "round": 6,
+      "context": "pre_purchase_research"
+    }
+  ]
+}

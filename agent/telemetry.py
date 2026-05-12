@@ -39,16 +39,42 @@ RUNS_DIR = Path("runs")
 current_run_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "current_run_id", default=None,
 )
+# Multi-tenant scaffolding (Week 1 = filesystem-only stubs; full Account /
+# BrandProfile entities arrive Week 2/3). Set by RunService at the start of
+# every run alongside current_run_id; defaults preserve the flat layout for
+# scripts that run outside RunService (cache_validation tests, etc.).
+current_account_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "current_account_id", default=None,
+)
+current_brand_profile_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "current_brand_profile_id", default=None,
+)
 
 
-def make_run_id(seed: int, focal_label: str) -> str:
-    """<YYYYmmdd_HHMMSS>_seed<N>_<focal_slug>."""
+def make_run_id(seed: int, asset_label: str) -> str:
+    """<YYYYmmdd_HHMMSS>_seed<N>_<asset_slug>."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    slug = re.sub(r"[^a-z0-9]+", "_", focal_label.lower()).strip("_")[:30]
+    slug = re.sub(r"[^a-z0-9]+", "_", asset_label.lower()).strip("_")[:30]
     return f"{timestamp}_seed{seed}_{slug}"
 
 
-def run_dir(run_id: str) -> Path:
+def run_dir(
+    run_id: str,
+    *,
+    account_id: str | None = None,
+    brand_profile_id: str | None = None,
+) -> Path:
+    """Return runs/<account_id>/<brand_profile_id>/<run_id>/.
+
+    account_id / brand_profile_id default to the values set in the context
+    vars (RunService sets these at run start). If both are unset, falls back
+    to the flat layout `runs/<run_id>/` — preserves compatibility with
+    cache-validation scripts and any standalone use outside RunService.
+    """
+    aid = account_id if account_id is not None else current_account_id.get()
+    bpid = brand_profile_id if brand_profile_id is not None else current_brand_profile_id.get()
+    if aid is not None and bpid is not None:
+        return RUNS_DIR / aid / bpid / run_id
     return RUNS_DIR / run_id
 
 
@@ -139,9 +165,14 @@ def call_with_telemetry(
     return response
 
 
-def telemetry_summary(run_id: str) -> str:
+def telemetry_summary(
+    run_id: str,
+    *,
+    account_id: str | None = None,
+    brand_profile_id: str | None = None,
+) -> str:
     """Human-readable summary table of a run's telemetry sidecar."""
-    path = run_dir(run_id) / "telemetry.jsonl"
+    path = run_dir(run_id, account_id=account_id, brand_profile_id=brand_profile_id) / "telemetry.jsonl"
     if not path.exists():
         return "(no telemetry recorded)"
     events = [
@@ -155,15 +186,16 @@ def telemetry_summary(run_id: str) -> str:
         by_layer.setdefault(ev["layer"], []).append(ev)
 
     # Per-million-token cost estimates (USD); update as pricing changes.
+    # (in_rate, out_rate, cache_read_rate, cache_write_5m_rate)
     rates = {
-        "claude-sonnet-4-6": (3.0, 15.0),
-        "claude-opus-4-7": (15.0, 75.0),
+        "claude-sonnet-4-6": (3.0, 15.0, 0.3, 3.75),
+        "claude-opus-4-7": (15.0, 75.0, 1.5, 18.75),
     }
 
     lines = ["=" * 78, "TELEMETRY SUMMARY", "=" * 78]
     grand_in, grand_out, grand_cost = 0, 0, 0.0
     grand_retries, grand_failed = 0, 0
-    for layer in ("agent", "per_round_synthesis", "target_id", "strategist"):
+    for layer in ("agent", "l2", "l3", "target_id", "strategist"):
         layer_events = by_layer.get(layer, [])
         if not layer_events:
             continue
@@ -183,8 +215,18 @@ def telemetry_summary(run_id: str) -> str:
         cost = 0.0
         for e in layer_events:
             r = rates.get(e["model"])
-            if r and e.get("input_tokens") and e.get("output_tokens"):
-                cost += (e["input_tokens"] / 1e6) * r[0] + (e["output_tokens"] / 1e6) * r[1]
+            if r is None:
+                continue
+            in_t = e.get("input_tokens") or 0
+            out_t = e.get("output_tokens") or 0
+            cr = e.get("cache_read_tokens") or 0
+            cw = e.get("cache_creation_tokens") or 0
+            cost += (
+                in_t * r[0]
+                + out_t * r[1]
+                + cr * r[2]
+                + cw * r[3]
+            ) / 1_000_000
         grand_in += in_tot
         grand_out += out_tot
         grand_cost += cost
