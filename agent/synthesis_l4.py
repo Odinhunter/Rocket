@@ -74,12 +74,7 @@ _REPORT_SCHEMA_TEMPLATE = """\
     {"quote": "<verbatim>", "disposition": "<label>", "round": <1-6>, "context": "<label>"},
     ... (5-10 quotes, drawn from the L3 representative_quotes pool, sampled across within-target AND outside-target dispositions, sampled across rounds)
   ],
-  "methodology_flags": [
-    "<flag string>", ...
-    (zero or more from: "pool_archetype_mismatch", "target_unsignaled",
-     "no_within_target_evidence", "single_within_target",
-     "homogenization_high", "single_context_only")
-  ]
+  "methodology_flags": ["<flag string>", ...]
 }
 """
 
@@ -328,10 +323,10 @@ _PARSE_RETRY_SUFFIX_TEMPLATE = (
 
 
 # Cap on how much prior raw output we replay back. The L4 response is
-# bounded by max_tokens=4000 (~16K chars worst case); 6000 chars keeps the
+# bounded by max_tokens=8000 (~32K chars worst case); 8000 chars keeps the
 # retry message bounded while preserving enough context to locate most
 # parse defects (the CMF JSONDecodeError was at line 91 col 172).
-_PRIOR_RAW_MAX_CHARS = 6000
+_PRIOR_RAW_MAX_CHARS = 8000
 
 
 def _truncate_prior_raw(raw: str) -> str:
@@ -392,7 +387,7 @@ def synthesize_memo(
             layer="strategist",
             model=model,
             retries=attempt,
-            max_tokens=4000,
+            max_tokens=8000,
             system=prompt,
             messages=[{"role": "user", "content": user_text}],
         )
