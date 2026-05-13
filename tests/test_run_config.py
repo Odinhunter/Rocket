@@ -11,7 +11,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from agent.config import RunConfig, AssetSpec, PROTOCOL_VERSION
+from agent.config import (
+    RunConfig,
+    AssetSpec,
+    PROTOCOL_VERSION,
+    DEFAULT_TEMPERATURES,
+)
 from agent.telemetry import (
     run_dir,
     current_account_id,
@@ -170,8 +175,43 @@ def test_to_dict_serializable() -> None:
     )
     s = json.dumps(cfg.to_dict())
     assert "boat_ad.png" in s
-    assert "rocket-1.0.0" in s
+    assert PROTOCOL_VERSION in s
+    assert "temperatures" in s
     print("  OK  to_dict JSON-serializable")
+
+
+def test_default_temperatures_match_advisor_schedule() -> None:
+    """The 1.1.0 temperature schedule is load-bearing for verdict stability
+    and L4 voice fidelity. Changing any of these is a methodology shift
+    that requires re-validating the benchmark library — gate it with a
+    test so a casual edit can't move the values silently.
+    """
+    expected = {
+        "agent":     1.0,   # consumer voice diversity is the product
+        "l2":        0.5,
+        "l3":        0.5,
+        "l4":        None,  # claude-opus-4-7 deprecated temperature
+        "target_id": None,  # claude-opus-4-7 deprecated temperature
+    }
+    assert DEFAULT_TEMPERATURES == expected, (
+        f"DEFAULT_TEMPERATURES drift: expected {expected}, "
+        f"got {DEFAULT_TEMPERATURES}"
+    )
+    print(f"  OK  DEFAULT_TEMPERATURES = {DEFAULT_TEMPERATURES}")
+
+
+def test_temperatures_round_trip_through_to_dict() -> None:
+    cfg = RunConfig(
+        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        archetype="urban_indian_male_22_30",
+        category="personal_audio",
+    )
+    d = cfg.to_dict()
+    assert d["temperatures"] == DEFAULT_TEMPERATURES
+    # mutating the dict on the config doesn't leak back into the default
+    cfg.temperatures["l4"] = 0.9
+    assert DEFAULT_TEMPERATURES["l4"] is None, "DEFAULT_TEMPERATURES leaked"
+    print("  OK  temperatures round-trip + default isolation")
 
 
 def main() -> None:
@@ -187,6 +227,8 @@ def main() -> None:
     test_flat_fallback_when_unset()
     test_disposition_version_hash()
     test_to_dict_serializable()
+    test_default_temperatures_match_advisor_schedule()
+    test_temperatures_round_trip_through_to_dict()
     print("PASS — RunConfig + multi-tenant paths.")
 
 

@@ -219,6 +219,9 @@ def identify_target(
         },
     ]
 
+    # No temperature: claude-opus-4-7 deprecated the parameter. The intent
+    # for target_id is near-deterministic classification; that lives in
+    # `config.temperatures["target_id"]` as None to document the constraint.
     response = call_with_telemetry(
         client,
         layer="target_id",

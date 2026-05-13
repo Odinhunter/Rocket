@@ -170,6 +170,7 @@ def run_agent_bundled(
             agent_id=spec.agent_id,
             round_num=1,  # bundled call A covers rounds 1-3
             max_tokens=_MAX_TOKENS,
+            temperature=config.temperatures["agent"],
             system=system,
             messages=[{"role": "user", "content": encoding_user_content}],
         )
@@ -200,6 +201,7 @@ def run_agent_bundled(
             agent_id=spec.agent_id,
             round_num=4,  # bundled call B covers rounds 4-6
             max_tokens=_MAX_TOKENS,
+            temperature=config.temperatures["agent"],
             system=system,
             messages=[
                 {"role": "user", "content": encoding_user_content},

@@ -33,11 +33,16 @@ def _base64_encoded_size(raw_bytes: int) -> int:
     return ((raw_bytes + 2) // 3) * 4
 
 
-# Protocol version bumps when any agent or synthesis prompt changes.
+# Protocol version bumps when any agent or synthesis prompt changes OR
+# when the temperature schedule changes — both are benchmark-invalidating.
 # Required because the long-term moat (benchmark library, predictive
-# in-market calibration) depends on protocol stability — every prompt
-# change re-zeros prior runs as comparison data.
-PROTOCOL_VERSION = "rocket-1.0.0"
+# in-market calibration) depends on protocol stability.
+#
+# 1.1.0: introduce DEFAULT_TEMPERATURES (target_id=0.0, l4=0.3, l2/l3=0.5,
+#        agent=1.0). Pre-1.1.0 runs all ran at temperature=1.0 across every
+#        layer, which produced verdict-bucket flips at the target_id
+#        classification boundary and marketing-deck drift in L4.
+PROTOCOL_VERSION = "rocket-1.1.0"
 
 
 # Default model assignments per layer. Locked after 2026-05-12 telemetry +
@@ -50,6 +55,31 @@ DEFAULT_MODEL_VERSIONS: dict[str, str] = {
     "l3": "claude-sonnet-4-6",          # L3 population
     "l4": "claude-opus-4-7",            # L4 strategic memo
     "target_id": "claude-opus-4-7",     # Opus vision target classification
+}
+
+
+# Per-layer sampling temperature. Set in 1.1.0 after the 3-run bru
+# stress-test revealed target_id classification stochasticity was the
+# proximate cause of verdict bucket flips on identical input
+# (METHODOLOGY_GAP@15 vs MIXED@45). L4 marketing-deck drift was the
+# second symptom of unconstrained sampling on a single-shot strategist call.
+#
+# Constraint: claude-opus-4-7 has DEPRECATED the `temperature`, `top_p`,
+# and `top_k` parameters — passing any of them returns 400. Opus 4.7
+# replaces them with `thinking={"type": "adaptive", "effort": ...}`.
+# So target_id and l4 entries are None here (we do not pass temperature
+# at all on Opus calls); a separate `thinking_effort` knob is the right
+# place to control their stochasticity if/when we wire it. Sonnet 4.6
+# layers (agent/l2/l3) still accept temperature normally.
+#
+# L1 (agent) stays at 1.0 — consumer voice diversity is the product.
+# Aggregation layers (L2/L3) drop to 0.5: stable synthesis, not generative.
+DEFAULT_TEMPERATURES: dict[str, float | None] = {
+    "agent":     1.0,
+    "l2":        0.5,
+    "l3":        0.5,
+    "l4":        None,   # claude-opus-4-7: temperature deprecated, omit
+    "target_id": None,   # claude-opus-4-7: temperature deprecated, omit
 }
 
 
@@ -121,10 +151,13 @@ class RunConfig:
     model_versions: dict[str, str] = field(
         default_factory=lambda: dict(DEFAULT_MODEL_VERSIONS)
     )
+    temperatures: dict[str, float | None] = field(
+        default_factory=lambda: dict(DEFAULT_TEMPERATURES)
+    )
 
     # Sampling seed for which dispositions / contexts get drawn from the pool.
     # Anthropic SDK has no `seed` parameter, so within-cell variance is API
-    # stochasticity at temperature=1.0, not deterministic.
+    # stochasticity at the configured per-layer temperature, not deterministic.
     seed: int = 71
 
     def total_agents(self) -> int:
@@ -177,6 +210,7 @@ class RunConfig:
             "protocol_version": self.protocol_version,
             "disposition_version": self.disposition_version,
             "model_versions": dict(self.model_versions),
+            "temperatures": dict(self.temperatures),
             "seed": self.seed,
             "total_agents": self.total_agents(),
         }

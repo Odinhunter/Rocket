@@ -227,6 +227,7 @@ def synthesize_population(
         layer="l3",
         model=model,
         max_tokens=4000,
+        temperature=config.temperatures["l3"],
         system=_L3_SYSTEM,
         messages=[{"role": "user", "content": user_payload}],
         tools=[_L3_TOOL],

@@ -249,6 +249,7 @@ def synthesize_disposition(
         layer="l2",
         model=model,
         max_tokens=2000,
+        temperature=config.temperatures["l2"],
         system=_L2_SYSTEM,
         messages=[{"role": "user", "content": user_payload}],
         tools=[_L2_TOOL],

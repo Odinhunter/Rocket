@@ -326,6 +326,9 @@ def synthesize_memo(
         else:
             user_text = user_payload
 
+        # No temperature: claude-opus-4-7 deprecated the parameter. The
+        # intent for L4 is "stable strategic memo, low marketing-deck drift";
+        # config.temperatures["l4"] is None to document the constraint.
         response = call_with_telemetry(
             client,
             layer="strategist",
