@@ -49,8 +49,10 @@ def main() -> None:
     parser.add_argument("--account", default="internal", help="Account ID (multi-tenant). Default 'internal'.")
     parser.add_argument("--brand-profile", default="default",
                         help="Brand Profile ID. Default 'default'.")
-    parser.add_argument("--max-concurrent", type=int, default=20,
-                        help="Max parallel agents. Default 20.")
+    parser.add_argument("--max-concurrent", type=int, default=4,
+                        help="Max parallel agents. Default 4 (matches RunConfig and "
+                             "the 30K ITPM Anthropic tier). Bump only after measuring "
+                             "your actual tier ceiling.")
     parser.add_argument("--seed", type=int, default=71,
                         help="Sampling seed for which dispositions/contexts are drawn.")
     parser.add_argument("--resume", metavar="RUN_ID", default=None,

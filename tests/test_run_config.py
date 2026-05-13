@@ -35,7 +35,7 @@ def test_default_config_is_valid() -> None:
 
 def test_validate_rejects_over_ceiling() -> None:
     cfg = RunConfig(
-        asset=AssetSpec(image_path="x", label="y"),
+        asset=AssetSpec(image_path="assets/boat_ad.png", label="y"),
         archetype="a", category="c",
         dispositions_per_run=7, contexts_per_run=5, seeds_per_cell=10,
     )
@@ -50,7 +50,7 @@ def test_validate_rejects_over_ceiling() -> None:
 
 def test_validate_rejects_too_many_dispositions() -> None:
     cfg = RunConfig(
-        asset=AssetSpec(image_path="x", label="y"),
+        asset=AssetSpec(image_path="assets/boat_ad.png", label="y"),
         archetype="a", category="c",
         dispositions_per_run=9,
     )
@@ -61,6 +61,64 @@ def test_validate_rejects_too_many_dispositions() -> None:
         print("  OK  >7 dispositions rejected:", e)
         return
     raise AssertionError("Should reject >7 dispositions")
+
+
+def test_validate_rejects_missing_asset() -> None:
+    cfg = RunConfig(
+        asset=AssetSpec(image_path="assets/__nonexistent__.png", label="y"),
+        archetype="a", category="c",
+    )
+    try:
+        cfg.validate()
+    except ValueError as e:
+        assert "not found" in str(e)
+        print("  OK  missing asset rejected:", e)
+        return
+    raise AssertionError("Should reject missing asset")
+
+
+def test_validate_rejects_unsupported_extension() -> None:
+    # dabur ad.webp exists; create a sibling stub-name with bad extension via tmp
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".gif", delete=False) as tf:
+        tf.write(b"\x47\x49\x46\x38\x39\x61")  # GIF89a
+        bogus_path = tf.name
+    cfg = RunConfig(
+        asset=AssetSpec(image_path=bogus_path, label="y"),
+        archetype="a", category="c",
+    )
+    try:
+        cfg.validate()
+    except ValueError as e:
+        assert "unsupported extension" in str(e)
+        print("  OK  unsupported extension rejected:", e)
+        return
+    finally:
+        Path(bogus_path).unlink(missing_ok=True)
+    raise AssertionError("Should reject unsupported extension")
+
+
+def test_validate_rejects_oversize_image() -> None:
+    """A PNG larger than 3.93 MB will base64-encode past Anthropic's 5 MB."""
+    import tempfile
+    # 4.2 MB of zeros, named .png — extension check passes; size check fails.
+    payload = b"\x00" * int(4.2 * 1024 * 1024)
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
+        tf.write(payload)
+        big_path = tf.name
+    cfg = RunConfig(
+        asset=AssetSpec(image_path=big_path, label="y"),
+        archetype="a", category="c",
+    )
+    try:
+        cfg.validate()
+    except ValueError as e:
+        assert "5 MB" in str(e) and "post-base64" in str(e)
+        print("  OK  oversize image rejected:", e)
+        return
+    finally:
+        Path(big_path).unlink(missing_ok=True)
+    raise AssertionError("Should reject oversize image")
 
 
 def test_multi_tenant_run_dir() -> None:
@@ -90,7 +148,7 @@ def test_flat_fallback_when_unset() -> None:
 
 def test_disposition_version_hash() -> None:
     cfg = RunConfig(
-        asset=AssetSpec(image_path="x", label="y"),
+        asset=AssetSpec(image_path="assets/boat_ad.png", label="y"),
         archetype="a", category="c",
     )
     pool = [("d1", "desc1"), ("d2", "desc2")]
@@ -121,6 +179,9 @@ def main() -> None:
     test_default_config_is_valid()
     test_validate_rejects_over_ceiling()
     test_validate_rejects_too_many_dispositions()
+    test_validate_rejects_missing_asset()
+    test_validate_rejects_unsupported_extension()
+    test_validate_rejects_oversize_image()
     test_multi_tenant_run_dir()
     test_explicit_args_override_context_vars()
     test_flat_fallback_when_unset()

@@ -14,7 +14,23 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal
+
+
+# Anthropic API enforces 5 MB *after* base64 encoding. Base64 inflates by
+# 4/3 + padding, so the max raw file size that survives is ~3.93 MB on disk.
+# Verified empirically: patanjali_ad.png at 4.4 MB raw encoded to 5.9 MB and
+# crashed with 400 BadRequestError after 15 agent specs were built.
+_MAX_B64_BYTES = 5 * 1024 * 1024
+_SUPPORTED_IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+
+
+def _base64_encoded_size(raw_bytes: int) -> int:
+    """Exact byte count of standard base64 output (with padding) for a raw
+    byte stream of length raw_bytes. No line breaks assumed.
+    """
+    return ((raw_bytes + 2) // 3) * 4
 
 
 # Protocol version bumps when any agent or synthesis prompt changes.
@@ -41,6 +57,27 @@ DEFAULT_MODEL_VERSIONS: dict[str, str] = {
 class AssetSpec:
     image_path: str
     label: str                          # human caption used in headers and quotes
+
+    def validate(self) -> None:
+        path = Path(self.image_path)
+        if not path.exists():
+            raise ValueError(f"asset file not found: {self.image_path}")
+        if path.suffix.lower() not in _SUPPORTED_IMAGE_SUFFIXES:
+            raise ValueError(
+                f"asset {self.image_path} has unsupported extension "
+                f"{path.suffix!r}; supported: {sorted(_SUPPORTED_IMAGE_SUFFIXES)}"
+            )
+        raw_bytes = path.stat().st_size
+        b64_bytes = _base64_encoded_size(raw_bytes)
+        if b64_bytes > _MAX_B64_BYTES:
+            raw_mb = raw_bytes / (1024 * 1024)
+            b64_mb = b64_bytes / (1024 * 1024)
+            raise ValueError(
+                f"asset {self.image_path} exceeds Anthropic 5 MB post-base64 "
+                f"limit: {raw_mb:.2f} MB raw → {b64_mb:.2f} MB encoded. "
+                f"Re-export under ~3.75 MB raw (e.g. convert .png to .jpg, "
+                f"or downscale)."
+            )
 
 
 @dataclass
@@ -94,6 +131,7 @@ class RunConfig:
         return self.dispositions_per_run * self.contexts_per_run * self.seeds_per_cell
 
     def validate(self) -> None:
+        self.asset.validate()
         if self.total_agents() > 200:
             raise ValueError(
                 f"Total agents {self.total_agents()} exceeds 200-agent ceiling. "

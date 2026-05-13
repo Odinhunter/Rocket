@@ -254,16 +254,46 @@ preamble, no explanation, no fences."""
 
 _PARSE_RETRY_SUFFIX_TEMPLATE = (
     "\n\nYour previous response could not be parsed as the required JSON "
-    "schema. Return EXACTLY one JSON object matching the schema, starting "
-    "with an opening brace and ending with a closing brace. No prose "
-    "before or after. No markdown fences. No commentary. The schema is "
-    "non-negotiable.\n\n"
-    "Validation feedback from the prior attempt: __FEEDBACK__"
+    "schema. Below is the EXACT text you returned, followed by the "
+    "validation error.\n\n"
+    "--- BEGIN PRIOR OUTPUT ---\n"
+    "__PRIOR_RAW__\n"
+    "--- END PRIOR OUTPUT ---\n\n"
+    "Validation error: __FEEDBACK__\n\n"
+    "Locate the specific defect in the prior output and emit a corrected "
+    "JSON object. Do not regenerate from scratch — keep the analysis you "
+    "already produced and fix the structural issue. Return EXACTLY one "
+    "JSON object, starting with an opening brace and ending with a closing "
+    "brace. No prose before or after. No markdown fences. No commentary. "
+    "The schema is non-negotiable."
 )
 
 
-def _retry_suffix(feedback: str) -> str:
-    return _PARSE_RETRY_SUFFIX_TEMPLATE.replace("__FEEDBACK__", feedback)
+# Cap on how much prior raw output we replay back. The L4 response is
+# bounded by max_tokens=4000 (~16K chars worst case); 6000 chars keeps the
+# retry message bounded while preserving enough context to locate most
+# parse defects (the CMF JSONDecodeError was at line 91 col 172).
+_PRIOR_RAW_MAX_CHARS = 6000
+
+
+def _truncate_prior_raw(raw: str) -> str:
+    """Trim raw to <= _PRIOR_RAW_MAX_CHARS, keeping head+tail with a marker
+    in the middle. Most JSON parse defects happen mid-document; preserving
+    both ends helps the model see opening and closing structure.
+    """
+    if len(raw) <= _PRIOR_RAW_MAX_CHARS:
+        return raw
+    head = _PRIOR_RAW_MAX_CHARS * 2 // 3
+    tail = _PRIOR_RAW_MAX_CHARS - head
+    return f"{raw[:head]}\n... [TRUNCATED {len(raw) - head - tail} chars] ...\n{raw[-tail:]}"
+
+
+def _retry_suffix(feedback: str, prior_raw: str) -> str:
+    return (
+        _PARSE_RETRY_SUFFIX_TEMPLATE
+        .replace("__PRIOR_RAW__", _truncate_prior_raw(prior_raw))
+        .replace("__FEEDBACK__", feedback)
+    )
 
 
 # ---- Public entry point ----
@@ -292,7 +322,7 @@ def synthesize_memo(
     for attempt in range(max_attempts):
         prompt = _L4_SYSTEM
         if attempt > 0:
-            user_text = user_payload + _retry_suffix(last_feedback)
+            user_text = user_payload + _retry_suffix(last_feedback, last_raw)
         else:
             user_text = user_payload
 
