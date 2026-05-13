@@ -105,6 +105,19 @@ def main() -> None:
         assert 5 <= len(report.verbatim_consumer_voice) <= 12, (
             f"run {i}: verbatim_consumer_voice len {len(report.verbatim_consumer_voice)}"
         )
+        # 1.2.0: methodology_flags is a list; can be empty when data is clean.
+        # When verdict is METHODOLOGY_GAP, at least one trigger flag must be set
+        # (pool_archetype_mismatch or target_unsignaled) since those are the
+        # only two conditions that produce GAP under the new logic.
+        assert isinstance(report.methodology_flags, list), (
+            f"run {i}: methodology_flags must be a list"
+        )
+        if report.verdict == "METHODOLOGY_GAP":
+            gap_triggers = {"pool_archetype_mismatch", "target_unsignaled"}
+            assert any(f in gap_triggers for f in report.methodology_flags), (
+                f"run {i}: METHODOLOGY_GAP without a trigger flag in "
+                f"methodology_flags={report.methodology_flags}"
+            )
     print("\nPASS — L4 produces valid Reports.")
 
 

@@ -73,6 +73,12 @@ _REPORT_SCHEMA_TEMPLATE = """\
   "verbatim_consumer_voice": [
     {"quote": "<verbatim>", "disposition": "<label>", "round": <1-6>, "context": "<label>"},
     ... (5-10 quotes, drawn from the L3 representative_quotes pool, sampled across within-target AND outside-target dispositions, sampled across rounds)
+  ],
+  "methodology_flags": [
+    "<flag string>", ...
+    (zero or more from: "pool_archetype_mismatch", "target_unsignaled",
+     "no_within_target_evidence", "single_within_target",
+     "homogenization_high", "single_context_only")
   ]
 }
 """
@@ -104,24 +110,48 @@ explanation. Just the JSON.
 
 The target classification is authoritative. Apply the framework against \
 the classification as given. Within-target reactions are load-bearing \
-for the verdict; outside-target reactions are informational context.
+for the verdict; outside-target reactions are informational context. \
+The verdict expresses creative effectiveness; `methodology_flags` \
+expresses data-quality caveats as a SEPARATE axis.
 
-- If `no_match_note` is set OR every within-target list is empty (no \
-dispositions classified "within"): set verdict = "METHODOLOGY_GAP". The \
-run cannot land an effectiveness verdict because the disposition pool \
-tested does not include the ad's apparent target. top_3_changes MUST be \
-an empty list []. confidence MUST be <= 20.
+Resolve in this strict priority order — first matching condition wins:
 
-- If every disposition is "ambiguous" (no "within", no "outside"): \
-set verdict = "METHODOLOGY_GAP". The creative does not signal target \
-sharply enough for the pool to be classified. top_3_changes = [], \
-confidence <= 20.
+1. **`no_match_note` is set on the target classification** → verdict = \
+"METHODOLOGY_GAP". The target classifier explicitly said no archetype \
+or disposition in the pool fits this ad's target; an effectiveness \
+verdict is not available. top_3_changes = []. confidence <= 20. \
+methodology_flags MUST include "pool_archetype_mismatch".
 
-- If only one disposition is "within": the verdict lands but confidence \
-MUST be <= 50. The brand needs broader within-target coverage before \
-the recommendation is load-bearing.
+2. **`ambiguity_note` is set AND every disposition is classified \
+"ambiguous"** → verdict = "METHODOLOGY_GAP". The ad does not signal a \
+target sharply enough for the pool to be classified at all. \
+top_3_changes = []. confidence <= 20. methodology_flags MUST include \
+"target_unsignaled".
 
-Otherwise, evaluate against the within-target subset.
+3. **Zero dispositions are "within" but neither (1) nor (2) fires** → \
+verdict still lands. The pool is reading the ad but no disposition is \
+unambiguously inside the target. Land MIXED or FAILING based on what \
+ambiguous and outside reactions say about durability of damage vs \
+execution friction. confidence MUST be <= 35. methodology_flags MUST \
+include "no_within_target_evidence". top_3_changes are still required \
+(the brand needs to know what to do); derive them from ambiguous \
+findings primarily, outside findings cautiously, and trace every \
+change to specific quoted evidence. Do NOT inflate confidence to \
+sound decisive — the thin within-target signal is exactly what the \
+confidence number is for.
+
+4. **Exactly one disposition is "within"** → verdict lands. confidence \
+MUST be <= 50. methodology_flags MUST include "single_within_target". \
+Evaluate primarily against that one within-target disposition.
+
+5. **Two or more "within"** → evaluate against the within-target subset \
+without restriction.
+
+A reminder: METHODOLOGY_GAP in 1.2.0 only fires at conditions (1) and \
+(2). Pre-1.2.0 it also fired at zero-within; that behavior was brittle \
+on boundary cases where target_id stochasticity produced 0 vs 1 vs 2 \
+within-target counts on identical input. The graded confidence floor \
+under condition (3) replaces that hard cliff.
 
 # Verdict framework
 
@@ -169,17 +199,24 @@ execution friction is common and recoverable.
 # Confidence anchors (use these to land the number, not a vibes scale)
 
 - **90-100**: robust within-target consensus across >= 3 dispositions; \
-all contexts in agreement; no homogenization flags; no METHODOLOGY_GAP \
-triggers; the verdict is unambiguous.
+all contexts in agreement; no homogenization flags; no methodology_flags; \
+the verdict is unambiguous.
 - **70-89**: solid within-target signal across 2-3 dispositions; most \
 contexts agree; minor caveats.
 - **50-69**: mixed within-target signal, or 2 dispositions disagree on \
 the verdict mode, or single-context-only corroboration of the headline \
 finding.
-- **30-49**: single within-target disposition only, OR significant \
-internal disagreement, OR multiple homogenization flags.
-- **0-19**: METHODOLOGY_GAP territory — pool mismatch, target ambiguity, \
-or no within-target dispositions.
+- **35-49**: single-within-target case (one disposition carrying the \
+within-target load), OR significant internal disagreement, OR multiple \
+homogenization flags. Verdict still lands; the brand should weigh it \
+with the methodology_flags context.
+- **20-34**: zero within-target evidence (but no explicit pool mismatch). \
+The verdict reflects what ambiguous and outside reactions imply; it is \
+directional, not definitive. methodology_flags carries \
+"no_within_target_evidence" so the brand sees the caveat.
+- **0-19**: METHODOLOGY_GAP territory — explicit `no_match_note` (pool \
+archetype mismatch) or `ambiguity_note` + all-ambiguous \
+(target_unsignaled). No verdict available; only the caveat.
 
 # Field-by-field rules
 
@@ -227,6 +264,27 @@ voice and the report should include them). Each quote MUST be an exact \
 verbatim from the input; do not paraphrase, do not invent. If the input \
 quote pool has fewer than 5 entries, copy them all. **Empty array is \
 never acceptable when the input pool has quotes.**
+
+- `methodology_flags`: list of zero or more strings flagging data-quality \
+caveats. Valid values ONLY:
+  - `"pool_archetype_mismatch"` — set when `no_match_note` on the target \
+classification is non-null. Verdict is METHODOLOGY_GAP.
+  - `"target_unsignaled"` — set when `ambiguity_note` is non-null AND \
+every disposition is classified ambiguous. Verdict is METHODOLOGY_GAP.
+  - `"no_within_target_evidence"` — set when zero dispositions are \
+"within" but neither of the above two conditions fires. Verdict still \
+lands (MIXED or FAILING); confidence is <= 35.
+  - `"single_within_target"` — set when exactly one disposition is \
+"within". Confidence <= 50.
+  - `"homogenization_high"` — set when `confidence_signals.\
+homogenization_flag_count >= 2` in the L3 input. Independent of the \
+target axis; can co-occur with other flags.
+  - `"single_context_only"` — set when the L3 `context_fit` has only \
+one entry. Independent of the target axis.
+
+  Include EVERY flag whose trigger applies. Empty list is correct when \
+the data is clean. The flags are how the brand sees what we trust about \
+the run; do not omit a flag to make the run look stronger than it is.
 
 # Anti-patterns — automatic rewrite if you find yourself doing these
 

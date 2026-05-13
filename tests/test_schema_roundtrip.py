@@ -133,6 +133,7 @@ def _make_fixture_report() -> Report:
                 context="commute_scroll",
             ),
         ],
+        methodology_flags=[],
     )
 
 
@@ -193,6 +194,7 @@ def test_methodology_gap_allows_zero_changes() -> None:
     r.verdict = "METHODOLOGY_GAP"
     r.top_3_changes = []
     r.confidence = 0
+    r.methodology_flags = ["pool_archetype_mismatch"]
     validate_report(r)
     print("  OK  METHODOLOGY_GAP with 0 changes accepted")
 
@@ -208,6 +210,47 @@ def test_methodology_gap_rejects_changes() -> None:
         print("  OK  METHODOLOGY_GAP with changes rejected:", e)
         return
     raise AssertionError("METHODOLOGY_GAP with changes should be rejected")
+
+
+def test_methodology_flags_accept_valid_values() -> None:
+    r = _make_fixture_report()
+    r.methodology_flags = [
+        "no_within_target_evidence",
+        "single_within_target",
+        "homogenization_high",
+        "single_context_only",
+    ]
+    validate_report(r)
+    print("  OK  methodology_flags accepts valid enum values")
+
+
+def test_methodology_flags_rejects_unknown_value() -> None:
+    r = _make_fixture_report()
+    r.methodology_flags = ["bogus_flag"]
+    try:
+        validate_report(r)
+    except SchemaError as e:
+        assert "methodology_flags" in str(e)
+        print("  OK  methodology_flags rejects unknown enum value:", e)
+        return
+    raise AssertionError("methodology_flags should reject unknown enum value")
+
+
+def test_methodology_flags_round_trip() -> None:
+    """A flag set must round-trip byte-identically through to_json/from_json
+    and survive validate_report on both ends. Brand-facing render reads
+    methodology_flags directly; silent drop would be a quality bug."""
+    r = _make_fixture_report()
+    r.methodology_flags = ["no_within_target_evidence", "single_context_only"]
+    s1 = r.to_json()
+    r2 = Report.from_json(s1)
+    s2 = r2.to_json()
+    assert s1 == s2, "methodology_flags round-trip not byte-identical"
+    assert r2.methodology_flags == [
+        "no_within_target_evidence", "single_context_only"
+    ], f"flags drift: {r2.methodology_flags}"
+    validate_report(r2)
+    print("  OK  methodology_flags round-trip preserves the list")
 
 
 def test_agent_transcript_roundtrip() -> None:
@@ -234,6 +277,9 @@ def main() -> None:
     test_validate_rejects_non_three_changes_on_non_methodology()
     test_methodology_gap_allows_zero_changes()
     test_methodology_gap_rejects_changes()
+    test_methodology_flags_accept_valid_values()
+    test_methodology_flags_rejects_unknown_value()
+    test_methodology_flags_round_trip()
     test_agent_transcript_roundtrip()
     print("PASS — schema is locked.")
 

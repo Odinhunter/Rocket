@@ -99,6 +99,11 @@ def main() -> None:
     print(f"VERDICT: {report.verdict}   confidence: {report.confidence}/100")
     print("=" * 78)
 
+    if report.methodology_flags:
+        print(f"\nMETHODOLOGY FLAGS ({len(report.methodology_flags)}):")
+        for flag in report.methodology_flags:
+            print(f"  ⚑ {flag}")
+
     print(f"\nTarget reach:")
     for d in report.target_match.reached:
         print(f"  ✓ {d.disposition}  ({d.classification})")

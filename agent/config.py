@@ -42,7 +42,15 @@ def _base64_encoded_size(raw_bytes: int) -> int:
 #        agent=1.0). Pre-1.1.0 runs all ran at temperature=1.0 across every
 #        layer, which produced verdict-bucket flips at the target_id
 #        classification boundary and marketing-deck drift in L4.
-PROTOCOL_VERSION = "rocket-1.1.0"
+# 1.2.0: soft-threshold L4 verdict logic. Remove the hard "0 within → GAP"
+#        and "all-ambiguous → GAP" branches from the L4 prompt (they
+#        collapsed legitimate verdicts into METHODOLOGY_GAP@<=20 on boundary
+#        cases). METHODOLOGY_GAP now only fires on explicit `no_match_note`
+#        from target_id. New `methodology_flags` list on Report carries the
+#        data-quality caveats (pool_archetype_mismatch, target_unsignaled,
+#        no_within_target_evidence, single_within_target, …) as a separate
+#        axis from the creative-effectiveness verdict.
+PROTOCOL_VERSION = "rocket-1.2.0"
 
 
 # Default model assignments per layer. Locked after 2026-05-12 telemetry +

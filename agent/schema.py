@@ -26,6 +26,30 @@ VERDICT = Literal["WORKING", "MIXED", "FAILING", "METHODOLOGY_GAP"]
 CLASSIFICATION = Literal["within", "outside", "ambiguous"]
 CONTEXT_VERDICT = Literal["working", "mixed", "failing"]
 
+# Data-quality caveats reported alongside the verdict. METHODOLOGY_GAP used
+# to overload the verdict enum to express both "creative is broken" and "we
+# can't trust the data" — these are different axes. In 1.2.0 the verdict
+# expresses creative effectiveness; methodology_flags expresses data quality.
+# METHODOLOGY_GAP stays in the enum but only fires for explicit pool-target
+# mismatch (no_match_note) or all-ambiguous (target_unsignaled) — the cases
+# where a creative effectiveness call is genuinely unavailable.
+METHODOLOGY_FLAG = Literal[
+    "pool_archetype_mismatch",      # no_match_note set on target classification
+    "target_unsignaled",            # ambiguity_note + every disposition ambiguous
+    "no_within_target_evidence",    # 0 within but no explicit mismatch — graded
+    "single_within_target",         # exactly 1 within disposition
+    "homogenization_high",          # L3 reported many tight-variance cells
+    "single_context_only",          # only one context label in the run
+]
+_VALID_METHODOLOGY_FLAGS = {
+    "pool_archetype_mismatch",
+    "target_unsignaled",
+    "no_within_target_evidence",
+    "single_within_target",
+    "homogenization_high",
+    "single_context_only",
+}
+
 
 # ---- Consumer-facing report ----
 
@@ -83,6 +107,7 @@ class Report:
     strengths_to_preserve: list[Strength]
     context_fit_map: dict[str, ContextFitEntry]
     verbatim_consumer_voice: list[Quote]
+    methodology_flags: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -113,6 +138,7 @@ class Report:
                 for k, v in self.context_fit_map.items()
             },
             "verbatim_consumer_voice": [asdict(q) for q in self.verbatim_consumer_voice],
+            "methodology_flags": list(self.methodology_flags),
         }
 
     def to_json(self, indent: int | None = 2) -> str:
@@ -151,6 +177,7 @@ class Report:
             verbatim_consumer_voice=[
                 Quote(**q) for q in data.get("verbatim_consumer_voice", [])
             ],
+            methodology_flags=list(data.get("methodology_flags", [])),
         )
 
     @classmethod
@@ -197,6 +224,12 @@ def validate_report(report: Report) -> None:
             raise SchemaError(
                 f"DispositionRef.classification must be within/outside/ambiguous, "
                 f"got {dr.classification!r}"
+            )
+    for flag in report.methodology_flags:
+        if flag not in _VALID_METHODOLOGY_FLAGS:
+            raise SchemaError(
+                f"methodology_flags entry {flag!r} is not in the valid set: "
+                f"{sorted(_VALID_METHODOLOGY_FLAGS)}"
             )
 
 
