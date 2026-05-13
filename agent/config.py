@@ -50,7 +50,14 @@ def _base64_encoded_size(raw_bytes: int) -> int:
 #        data-quality caveats (pool_archetype_mismatch, target_unsignaled,
 #        no_within_target_evidence, single_within_target, …) as a separate
 #        axis from the creative-effectiveness verdict.
-PROTOCOL_VERSION = "rocket-1.2.0"
+# 1.3.0: introduce DEFAULT_EFFORTS, set target_id to effort="low" on
+#        claude-opus-4-7 (its `output_config.effort` knob). Empirical: 5/5
+#        target_id calls on the bru boundary case landed byte-identical
+#        classifications at effort=low vs the SDK-default stochasticity that
+#        produced bucket flips. Cost dropped ~18% and latency ~30%. This
+#        obsoletes the previously-planned ensemble-target_id lever — single
+#        deterministic call is the right shape.
+PROTOCOL_VERSION = "rocket-1.3.0"
 
 
 # Default model assignments per layer. Locked after 2026-05-12 telemetry +
@@ -88,6 +95,30 @@ DEFAULT_TEMPERATURES: dict[str, float | None] = {
     "l3":        0.5,
     "l4":        None,   # claude-opus-4-7: temperature deprecated, omit
     "target_id": None,   # claude-opus-4-7: temperature deprecated, omit
+}
+
+
+# Per-layer `output_config.effort` for the Anthropic API. Available on
+# Sonnet 4.6 and Opus 4.7; replaces temperature as the primary token-spend
+# control on Opus 4.7 (where temperature/top_p/top_k are deprecated).
+#
+# 1.3.0 setting: target_id="low" — empirically validated (tests/
+# test_target_id_effort.py) to produce byte-identical classifications across
+# 5 runs on the bru boundary case, where the SDK default (high) was flipping
+# 0↔1↔2 within-target counts. Lower effort also cut cost (~18%) and latency
+# (~30%) per target_id call.
+#
+# Other layers left at None (SDK default = "high"):
+# - agent/l2/l3 (Sonnet): consumer voice and synthesis quality dominate;
+#   effort tuning is a separate experiment.
+# - l4 (Opus): the strategist memo benefits from full reasoning; trimming
+#   effort here risks the marketing-deck drift we just fixed in 1.2.0.
+DEFAULT_EFFORTS: dict[str, str | None] = {
+    "agent":     None,
+    "l2":        None,
+    "l3":        None,
+    "l4":        None,
+    "target_id": "low",
 }
 
 
@@ -162,6 +193,9 @@ class RunConfig:
     temperatures: dict[str, float | None] = field(
         default_factory=lambda: dict(DEFAULT_TEMPERATURES)
     )
+    efforts: dict[str, str | None] = field(
+        default_factory=lambda: dict(DEFAULT_EFFORTS)
+    )
 
     # Sampling seed for which dispositions / contexts get drawn from the pool.
     # Anthropic SDK has no `seed` parameter, so within-cell variance is API
@@ -219,6 +253,7 @@ class RunConfig:
             "disposition_version": self.disposition_version,
             "model_versions": dict(self.model_versions),
             "temperatures": dict(self.temperatures),
+            "efforts": dict(self.efforts),
             "seed": self.seed,
             "total_agents": self.total_agents(),
         }

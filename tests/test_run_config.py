@@ -16,6 +16,7 @@ from agent.config import (
     AssetSpec,
     PROTOCOL_VERSION,
     DEFAULT_TEMPERATURES,
+    DEFAULT_EFFORTS,
 )
 from agent.telemetry import (
     run_dir,
@@ -177,6 +178,7 @@ def test_to_dict_serializable() -> None:
     assert "boat_ad.png" in s
     assert PROTOCOL_VERSION in s
     assert "temperatures" in s
+    assert "efforts" in s
     print("  OK  to_dict JSON-serializable")
 
 
@@ -214,6 +216,38 @@ def test_temperatures_round_trip_through_to_dict() -> None:
     print("  OK  temperatures round-trip + default isolation")
 
 
+def test_default_efforts_match_advisor_schedule() -> None:
+    """The 1.3.0 effort schedule is load-bearing for target_id determinism;
+    changing it requires re-validating the bru boundary case. Gate it with
+    a test so a casual edit can't move the values silently.
+    """
+    expected = {
+        "agent":     None,   # Sonnet, SDK default
+        "l2":        None,
+        "l3":        None,
+        "l4":        None,   # Opus, deliberately SDK default for memo quality
+        "target_id": "low",  # empirically 5/5 stable on bru
+    }
+    assert DEFAULT_EFFORTS == expected, (
+        f"DEFAULT_EFFORTS drift: expected {expected}, got {DEFAULT_EFFORTS}"
+    )
+    print(f"  OK  DEFAULT_EFFORTS = {DEFAULT_EFFORTS}")
+
+
+def test_efforts_round_trip_through_to_dict() -> None:
+    cfg = RunConfig(
+        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        archetype="urban_indian_male_22_30",
+        category="personal_audio",
+    )
+    d = cfg.to_dict()
+    assert d["efforts"] == DEFAULT_EFFORTS
+    # mutating the dict on the config doesn't leak back into the default
+    cfg.efforts["target_id"] = "medium"
+    assert DEFAULT_EFFORTS["target_id"] == "low", "DEFAULT_EFFORTS leaked"
+    print("  OK  efforts round-trip + default isolation")
+
+
 def main() -> None:
     print("=== run config smoke ===")
     test_default_config_is_valid()
@@ -229,6 +263,8 @@ def main() -> None:
     test_to_dict_serializable()
     test_default_temperatures_match_advisor_schedule()
     test_temperatures_round_trip_through_to_dict()
+    test_default_efforts_match_advisor_schedule()
+    test_efforts_round_trip_through_to_dict()
     print("PASS — RunConfig + multi-tenant paths.")
 
 

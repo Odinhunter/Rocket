@@ -219,18 +219,32 @@ def identify_target(
         },
     ]
 
-    # No temperature: claude-opus-4-7 deprecated the parameter. The intent
-    # for target_id is near-deterministic classification; that lives in
-    # `config.temperatures["target_id"]` as None to document the constraint.
+    # No temperature: claude-opus-4-7 deprecated the parameter. Determinism
+    # for target_id comes from `output_config.effort` instead — empirically
+    # validated (tests/test_target_id_effort.py) to produce byte-identical
+    # classifications across 5 runs on the bru boundary case at effort=low.
+    #
+    # API constraint: `thinking` cannot be combined with forced tool_choice
+    # (400: "Thinking may not be enabled when tool_choice forces tool use").
+    # We therefore omit `thinking` and rely on effort alone — on Opus 4.7,
+    # omitting thinking config disables thinking, and effort=low controls
+    # output-token spend and stochasticity.
+    create_kwargs: dict = {
+        "max_tokens": 4000,
+        "system": _SYSTEM,
+        "messages": [{"role": "user", "content": user_content}],
+        "tools": [_TOOL],
+        "tool_choice": {"type": "tool", "name": "classify_ad_target"},
+    }
+    effort = config.efforts.get("target_id")
+    if effort is not None:
+        create_kwargs["output_config"] = {"effort": effort}
+
     response = call_with_telemetry(
         client,
         layer="target_id",
         model=model,
-        max_tokens=4000,
-        system=_SYSTEM,
-        messages=[{"role": "user", "content": user_content}],
-        tools=[_TOOL],
-        tool_choice={"type": "tool", "name": "classify_ad_target"},
+        **create_kwargs,
     )
 
     tool_input = _extract_tool_use(response, "classify_ad_target")
