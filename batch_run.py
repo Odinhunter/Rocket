@@ -120,9 +120,24 @@ def _print_v2_report(report: Report) -> None:
         print(f"\n  {fp.calibration_note}")
         if fp.by_segment:
             print("\n  By segment (convert rate):")
+            floored = False
             for seg in fp.by_segment:
-                print(f"    {seg.segment_label:<42} "
-                      f"{seg.funnel_rates.convert_rate*100:6.3f}%")
+                rates = seg.funnel_rates
+                if seg.behavioral_distribution.would_act_within_week_count == 0:
+                    lo, hi = rates.convert_band
+                    print(f"    {seg.segment_label:<42} "
+                          f"   —    [{lo*100:.3f}% – {hi*100:.3f}%] *")
+                    floored = True
+                else:
+                    print(f"    {seg.segment_label:<42} "
+                          f"{rates.convert_rate*100:6.3f}%   "
+                          f"[{rates.convert_band[0]*100:.3f}% – "
+                          f"{rates.convert_band[1]*100:.3f}%]")
+            if floored:
+                print("    * no would-act signal in segment — central rate "
+                      "suppressed (it sits at the heuristic floor and is "
+                      "identical across all such segments); band reflects "
+                      "the segment's N.")
 
     print("\n" + "-" * 78)
     print(f"METHODOLOGY  —  verdict: {report.verdict}   "
