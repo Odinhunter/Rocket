@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Literal
 
-from agent.schema import Quote
+from agent.schema import BehavioralSignalDistribution, Quote
 
 
 # ---- L2: per-disposition summary ----
@@ -40,6 +40,14 @@ class L2Summary:
     representative_quotes: dict[int, Quote] = field(default_factory=dict)
     emotional_read: str = ""        # synthesized from R3 prose across contexts
     friction_summary: str = ""      # synthesized from R6 across contexts
+    # rocket-2.0.0: segment_label is the L2 fan-out key — a disposition label
+    # in v1, a "disposition::chaos_band" key under per-(disp x chaos-band)
+    # granularity. behavioral_distribution is the R7 signal aggregate,
+    # computed deterministically in Python (never emitted by the model).
+    segment_label: str = ""
+    behavioral_distribution: BehavioralSignalDistribution = field(
+        default_factory=BehavioralSignalDistribution
+    )
 
     def to_dict(self) -> dict:
         return {
@@ -52,6 +60,8 @@ class L2Summary:
             },
             "emotional_read": self.emotional_read,
             "friction_summary": self.friction_summary,
+            "segment_label": self.segment_label,
+            "behavioral_distribution": self.behavioral_distribution.to_dict(),
         }
 
     @classmethod
@@ -66,6 +76,10 @@ class L2Summary:
             },
             emotional_read=data.get("emotional_read", ""),
             friction_summary=data.get("friction_summary", ""),
+            segment_label=data.get("segment_label", ""),
+            behavioral_distribution=BehavioralSignalDistribution.from_dict(
+                data.get("behavioral_distribution", {})
+            ),
         )
 
 
@@ -118,6 +132,14 @@ class L3Summary:
     context_fit: dict[str, ContextFitFinding] = field(default_factory=dict)
     representative_quotes: list[Quote] = field(default_factory=list)
     confidence_signals: ConfidenceSignals = field(default_factory=ConfidenceSignals)
+    # rocket-2.0.0: R7 behavioral signal aggregates, computed deterministically
+    # in Python from the L2 summaries. L3.5 reads these to project the funnel.
+    population_behavioral_distribution: BehavioralSignalDistribution = field(
+        default_factory=BehavioralSignalDistribution
+    )
+    segment_behavioral_distributions: dict[str, BehavioralSignalDistribution] = field(
+        default_factory=dict
+    )
 
     def to_dict(self) -> dict:
         return {
@@ -131,6 +153,13 @@ class L3Summary:
             },
             "representative_quotes": [asdict(q) for q in self.representative_quotes],
             "confidence_signals": asdict(self.confidence_signals),
+            "population_behavioral_distribution": (
+                self.population_behavioral_distribution.to_dict()
+            ),
+            "segment_behavioral_distributions": {
+                k: v.to_dict()
+                for k, v in self.segment_behavioral_distributions.items()
+            },
         }
 
     @classmethod
@@ -146,6 +175,13 @@ class L3Summary:
             },
             representative_quotes=[Quote(**q) for q in data.get("representative_quotes", [])],
             confidence_signals=ConfidenceSignals(**data.get("confidence_signals", {})),
+            population_behavioral_distribution=BehavioralSignalDistribution.from_dict(
+                data.get("population_behavioral_distribution", {})
+            ),
+            segment_behavioral_distributions={
+                k: BehavioralSignalDistribution.from_dict(v)
+                for k, v in data.get("segment_behavioral_distributions", {}).items()
+            },
         )
 
 

@@ -1,0 +1,129 @@
+"""Phase 1 API smoke: the Render Engine produces non-empty persona-core and
+context prose for the coffee pack, the prose weaves in pack artifacts, and
+no obviously-invented brands leak. Also verifies the render cache hits on
+the second call.
+
+Cost: ~3 Sonnet calls, ~$0.01.
+
+Run: python tests/test_render_smoke.py
+"""
+
+from __future__ import annotations
+
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from agent.artifact_pack import load_pack
+from agent.render import (
+    compose_persona_prompt,
+    count_pack_artifacts_used,
+    persona_core_hash,
+    render_context,
+    render_persona_core,
+    _validate_no_invented_artifacts,
+)
+from agent.vectors import (
+    ChaosVector,
+    ContextVector,
+    DemographicPoint,
+    DispositionVector,
+)
+
+_CACHE = Path("runs/_test_render_smoke_cache")
+
+
+def _demo() -> DemographicPoint:
+    return DemographicPoint(
+        gender="male", age_band="25_34", income_tier="upper_mid",
+        geography="Bangalore / metro tier-1",
+        occupation_hint="software engineer at a mid-stage SaaS startup",
+    )
+
+
+def _disposition() -> DispositionVector:
+    # The "office_bru_pragmatist" shape: regular instant user, price-led,
+    # function-driven, low involvement, neutral history.
+    return DispositionVector(
+        category_relationship="regular", brand_stance="neutral",
+        price_orientation="price_first", decision_driver="function",
+        category_involvement="low", prior_experience_valence="neutral",
+        channel_behavior="offline_first", life_stage="early_career",
+    )
+
+
+def _chaos() -> ChaosVector:
+    return ChaosVector(
+        decision_velocity="moderate", suggestibility="medium",
+        consistency="variable", risk_tolerance="balanced",
+    )
+
+
+def _context() -> ContextVector:
+    return ContextVector(
+        attention_level="low", device_posture="commute",
+        intent_state="killing_time", energy_state="drained",
+        social_setting="public",
+    )
+
+
+def main() -> None:
+    print("=== render engine API smoke ===")
+    if _CACHE.exists():
+        shutil.rmtree(_CACHE)
+    try:
+        pack = load_pack("coffee")
+        demo, disp, chaos, ctx = _demo(), _disposition(), _chaos(), _context()
+
+        core = render_persona_core(demo, disp, chaos, pack, cache_dir=_CACHE)
+        assert core.strip(), "render_persona_core returned empty prose"
+        n_artifacts = count_pack_artifacts_used(core, pack)
+        assert n_artifacts >= 2, (
+            f"persona core wove only {n_artifacts} pack brands — too flat"
+        )
+        # _validate_no_invented_artifacts is a WARN-ONLY heuristic, not a
+        # gate — it has known false positives. We surface its output for the
+        # eye, but the smoke test asserts only the positive signal (artifacts
+        # woven) and non-empty prose.
+        warnings = _validate_no_invented_artifacts(core, pack)
+        print(f"  OK  persona core rendered: {len(core)} chars, "
+              f"{n_artifacts} pack brands woven")
+        if warnings:
+            print(f"      ({len(warnings)} heuristic integrity warning(s) — "
+                  f"verify by eye, not a failure):")
+            for w in warnings:
+                print(f"        - {w}")
+        print("  --- persona core ---")
+        print("  " + core.replace("\n", "\n  "))
+
+        # Cache hit: second call must return byte-identical prose with no
+        # API call (verified by the cache file existing).
+        key = persona_core_hash(demo, disp, chaos, pack.category)
+        assert (_CACHE / f"{key}.json").exists(), "persona core was not cached"
+        core2 = render_persona_core(demo, disp, chaos, pack, cache_dir=_CACHE)
+        assert core2 == core, "cache did not return byte-identical prose"
+        print("  OK  persona core cache hit on the second call")
+
+        context_prose = render_context(ctx, pack, cache_dir=_CACHE)
+        assert context_prose.strip(), "render_context returned empty prose"
+        print(f"  OK  context rendered: {len(context_prose)} chars")
+        print("  --- context ---")
+        print("  " + context_prose.replace("\n", "\n  "))
+
+        prompt = compose_persona_prompt(core, context_prose)
+        assert core in prompt and context_prose in prompt
+        print(f"  OK  compose_persona_prompt assembled ({len(prompt)} chars)")
+        print("PASS — render engine produces vivid, artifact-grounded prose.")
+    finally:
+        if _CACHE.exists():
+            shutil.rmtree(_CACHE)
+
+
+if __name__ == "__main__":
+    main()

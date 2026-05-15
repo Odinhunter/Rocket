@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
+from agent.entities import AudienceSpec
+
 
 # Anthropic API enforces 5 MB *after* base64 encoding. Base64 inflates by
 # 4/3 + padding, so the max raw file size that survives is ~3.93 MB on disk.
@@ -70,6 +72,7 @@ DEFAULT_MODEL_VERSIONS: dict[str, str] = {
     "l3": "claude-sonnet-4-6",          # L3 population
     "l4": "claude-opus-4-7",            # L4 strategic memo
     "target_id": "claude-opus-4-7",     # Opus vision target classification
+    "render": "claude-sonnet-4-6",      # rocket-2.0.0 Render Engine (persona prose)
 }
 
 
@@ -202,6 +205,29 @@ class RunConfig:
     # stochasticity at the configured per-layer temperature, not deterministic.
     seed: int = 71
 
+    # ---- rocket-2.0.0 fields. All have v1-safe defaults so a 1.3.0 run is
+    # unaffected; they are only consulted on the protocol_version == "rocket-
+    # 2.0.0" path (the run_service.py dispatcher routes on protocol_version). ----
+    #
+    # audience_spec: the customer-composed targeting (demographics + disposition
+    # selection + context envelope + chaos distribution). When set, it
+    # supersedes the archetype/category disposition+context sampling. None on
+    # the v1 path.
+    audience_spec: "AudienceSpec | None" = None
+    # segment_granularity: the L2 fan-out key. "disposition_chaos_band" (the
+    # user-decided default) fans L2 per disposition x chaos band — the richer,
+    # ~3x-cost granularity that gives the funnel projection per-chaos-band teeth.
+    segment_granularity: Literal[
+        "disposition", "disposition_chaos_band"
+    ] = "disposition_chaos_band"
+    # baseline_funnel: the customer's real funnel rates, the anchor L3.5
+    # projects multipliers against. Keys: stop_rate / click_rate / visit_rate /
+    # convert_rate (all floats in 0..1). None until the customer supplies it.
+    baseline_funnel: dict | None = None
+    # Entity references for the two-phase run + filesystem entity model.
+    library_id: str = ""
+    audience_id: str = ""
+
     def total_agents(self) -> int:
         return self.dispositions_per_run * self.contexts_per_run * self.seeds_per_cell
 
@@ -256,4 +282,17 @@ class RunConfig:
             "efforts": dict(self.efforts),
             "seed": self.seed,
             "total_agents": self.total_agents(),
+            "audience_spec": (
+                self.audience_spec.to_dict()
+                if self.audience_spec is not None
+                else None
+            ),
+            "segment_granularity": self.segment_granularity,
+            "baseline_funnel": (
+                dict(self.baseline_funnel)
+                if self.baseline_funnel is not None
+                else None
+            ),
+            "library_id": self.library_id,
+            "audience_id": self.audience_id,
         }

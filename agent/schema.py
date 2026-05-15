@@ -34,12 +34,13 @@ CONTEXT_VERDICT = Literal["working", "mixed", "failing"]
 # mismatch (no_match_note) or all-ambiguous (target_unsignaled) — the cases
 # where a creative effectiveness call is genuinely unavailable.
 METHODOLOGY_FLAG = Literal[
-    "pool_archetype_mismatch",      # no_match_note set on target classification
-    "target_unsignaled",            # ambiguity_note + every disposition ambiguous
-    "no_within_target_evidence",    # 0 within but no explicit mismatch — graded
-    "single_within_target",         # exactly 1 within disposition
-    "homogenization_high",          # L3 reported many tight-variance cells
-    "single_context_only",          # only one context label in the run
+    "pool_archetype_mismatch",       # no_match_note set on target classification
+    "target_unsignaled",             # ambiguity_note + every disposition ambiguous
+    "no_within_target_evidence",     # 0 within but no explicit mismatch — graded
+    "single_within_target",          # exactly 1 within disposition
+    "homogenization_high",           # L3 reported many tight-variance cells
+    "single_context_only",           # only one context label in the run
+    "provisional_disposition_present",  # rocket-2.0.0: an on-the-spot disposition
 ]
 _VALID_METHODOLOGY_FLAGS = {
     "pool_archetype_mismatch",
@@ -48,6 +49,16 @@ _VALID_METHODOLOGY_FLAGS = {
     "single_within_target",
     "homogenization_high",
     "single_context_only",
+    "provisional_disposition_present",
+}
+
+# rocket-2.0.0: R7 behavioral signal action enum. The agent emits one of
+# these as its terminal in-character action — never a funnel rate.
+BEHAVIORAL_ACTION = Literal[
+    "scroll_past", "linger", "tap_cta", "save", "share", "seek_info"
+]
+_VALID_BEHAVIORAL_ACTIONS = {
+    "scroll_past", "linger", "tap_cta", "save", "share", "seek_info"
 }
 
 
@@ -94,6 +105,174 @@ class ContextFitEntry:
     friction_summary: str
 
 
+# ---- rocket-2.0.0: R7 behavioral signal + funnel projection ----
+
+
+@dataclass
+class BehavioralSignal:
+    """R7 — one agent's terminal in-character behavioral signal. The agent
+    emits an action + creative-anchored reasoning + a would-act-this-week
+    flag. It NEVER emits a funnel rate; turning signals into rates is the
+    job of the L3.5 projection layer."""
+    action: BEHAVIORAL_ACTION
+    reasoning: str
+    would_act_within_week: bool
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "BehavioralSignal":
+        return cls(
+            action=data["action"],
+            reasoning=data["reasoning"],
+            would_act_within_week=bool(data["would_act_within_week"]),
+        )
+
+
+@dataclass
+class BehavioralSignalDistribution:
+    """Aggregate of BehavioralSignal.action over a segment or the whole
+    population. Counts, not rates — computed deterministically in Python
+    (the locked 'distributions are Python, not the model' pattern). L3.5
+    turns counts into rates."""
+    counts: dict[str, int] = field(default_factory=dict)
+    would_act_within_week_count: int = 0
+    n: int = 0
+
+    def to_dict(self) -> dict:
+        return {
+            "counts": dict(self.counts),
+            "would_act_within_week_count": self.would_act_within_week_count,
+            "n": self.n,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "BehavioralSignalDistribution":
+        return cls(
+            counts={str(k): int(v) for k, v in data.get("counts", {}).items()},
+            would_act_within_week_count=int(
+                data.get("would_act_within_week_count", 0)
+            ),
+            n=int(data.get("n", 0)),
+        )
+
+
+@dataclass
+class FunnelRates:
+    """L3.5 output. Each rate is multiplier-derived from the customer's own
+    baseline funnel and is NEVER presented bare — always with its band.
+    `basis` literally names the calibration regime so the buyer knows what
+    they're reading."""
+    stop_rate: float
+    stop_band: tuple[float, float]
+    click_rate: float
+    click_band: tuple[float, float]
+    visit_rate: float
+    visit_band: tuple[float, float]
+    convert_rate: float
+    convert_band: tuple[float, float]
+    basis: str = "heuristic_v1"
+    baseline_source: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "stop_rate": self.stop_rate,
+            "stop_band": list(self.stop_band),
+            "click_rate": self.click_rate,
+            "click_band": list(self.click_band),
+            "visit_rate": self.visit_rate,
+            "visit_band": list(self.visit_band),
+            "convert_rate": self.convert_rate,
+            "convert_band": list(self.convert_band),
+            "basis": self.basis,
+            "baseline_source": self.baseline_source,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "FunnelRates":
+        def _band(key: str) -> tuple[float, float]:
+            lo, hi = data[key]
+            return (float(lo), float(hi))
+
+        return cls(
+            stop_rate=float(data["stop_rate"]),
+            stop_band=_band("stop_band"),
+            click_rate=float(data["click_rate"]),
+            click_band=_band("click_band"),
+            visit_rate=float(data["visit_rate"]),
+            visit_band=_band("visit_band"),
+            convert_rate=float(data["convert_rate"]),
+            convert_band=_band("convert_band"),
+            basis=data.get("basis", "heuristic_v1"),
+            baseline_source=data.get("baseline_source", ""),
+        )
+
+
+@dataclass
+class SegmentProjection:
+    """One segment's funnel projection — segment is a disposition or a
+    disposition x chaos-band, per RunConfig.segment_granularity."""
+    segment_label: str
+    behavioral_distribution: BehavioralSignalDistribution
+    funnel_rates: FunnelRates
+
+    def to_dict(self) -> dict:
+        return {
+            "segment_label": self.segment_label,
+            "behavioral_distribution": self.behavioral_distribution.to_dict(),
+            "funnel_rates": self.funnel_rates.to_dict(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SegmentProjection":
+        return cls(
+            segment_label=data["segment_label"],
+            behavioral_distribution=BehavioralSignalDistribution.from_dict(
+                data["behavioral_distribution"]
+            ),
+            funnel_rates=FunnelRates.from_dict(data["funnel_rates"]),
+        )
+
+
+@dataclass
+class FunnelProjection:
+    """The rocket-2.0.0 ROI block on the Report. Overall + per-segment funnel
+    rates, the population behavioral distribution, and the honesty-contract
+    text the buyer reads."""
+    overall: FunnelRates
+    by_segment: list[SegmentProjection] = field(default_factory=list)
+    population_behavioral_distribution: BehavioralSignalDistribution = field(
+        default_factory=BehavioralSignalDistribution
+    )
+    calibration_note: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "overall": self.overall.to_dict(),
+            "by_segment": [s.to_dict() for s in self.by_segment],
+            "population_behavioral_distribution": (
+                self.population_behavioral_distribution.to_dict()
+            ),
+            "calibration_note": self.calibration_note,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "FunnelProjection":
+        return cls(
+            overall=FunnelRates.from_dict(data["overall"]),
+            by_segment=[
+                SegmentProjection.from_dict(s) for s in data.get("by_segment", [])
+            ],
+            population_behavioral_distribution=(
+                BehavioralSignalDistribution.from_dict(
+                    data.get("population_behavioral_distribution", {})
+                )
+            ),
+            calibration_note=data.get("calibration_note", ""),
+        )
+
+
 @dataclass
 class Report:
     """The locked consumer-facing schema. All four synthesis layers serialize
@@ -108,6 +287,12 @@ class Report:
     context_fit_map: dict[str, ContextFitEntry]
     verbatim_consumer_voice: list[Quote]
     methodology_flags: list[str] = field(default_factory=list)
+    # rocket-2.0.0 additions. Defaults keep v1 serialization roundtripping
+    # untouched: a v1 Report has bet_ranking=[], funnel_projection=None,
+    # provisional_dispositions=[].
+    bet_ranking: list[str] = field(default_factory=list)
+    funnel_projection: "FunnelProjection | None" = None
+    provisional_dispositions: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -139,6 +324,13 @@ class Report:
             },
             "verbatim_consumer_voice": [asdict(q) for q in self.verbatim_consumer_voice],
             "methodology_flags": list(self.methodology_flags),
+            "bet_ranking": list(self.bet_ranking),
+            "funnel_projection": (
+                self.funnel_projection.to_dict()
+                if self.funnel_projection is not None
+                else None
+            ),
+            "provisional_dispositions": list(self.provisional_dispositions),
         }
 
     def to_json(self, indent: int | None = 2) -> str:
@@ -178,6 +370,13 @@ class Report:
                 Quote(**q) for q in data.get("verbatim_consumer_voice", [])
             ],
             methodology_flags=list(data.get("methodology_flags", [])),
+            bet_ranking=list(data.get("bet_ranking", [])),
+            funnel_projection=(
+                FunnelProjection.from_dict(data["funnel_projection"])
+                if data.get("funnel_projection") is not None
+                else None
+            ),
+            provisional_dispositions=list(data.get("provisional_dispositions", [])),
         )
 
     @classmethod
@@ -231,6 +430,43 @@ def validate_report(report: Report) -> None:
                 f"methodology_flags entry {flag!r} is not in the valid set: "
                 f"{sorted(_VALID_METHODOLOGY_FLAGS)}"
             )
+    # rocket-2.0.0: funnel projection internal consistency, when present.
+    if report.funnel_projection is not None:
+        _validate_funnel_projection(report.funnel_projection)
+
+
+def _validate_funnel_rates(fr: "FunnelRates", where: str) -> None:
+    for name in ("stop", "click", "visit", "convert"):
+        rate = getattr(fr, f"{name}_rate")
+        lo, hi = getattr(fr, f"{name}_band")
+        if rate < 0:
+            raise SchemaError(f"{where}: {name}_rate is negative ({rate})")
+        if lo > hi:
+            raise SchemaError(
+                f"{where}: {name}_band is inverted (lo={lo} > hi={hi})"
+            )
+        if not (lo <= rate <= hi):
+            raise SchemaError(
+                f"{where}: {name}_rate {rate} not within its band [{lo}, {hi}]"
+            )
+    if not fr.basis:
+        raise SchemaError(f"{where}: FunnelRates.basis must be non-empty")
+
+
+def _validate_funnel_projection(fp: "FunnelProjection") -> None:
+    _validate_funnel_rates(fp.overall, "funnel_projection.overall")
+    for seg in fp.by_segment:
+        if not seg.segment_label:
+            raise SchemaError("funnel_projection segment has empty segment_label")
+        _validate_funnel_rates(
+            seg.funnel_rates, f"funnel_projection.by_segment[{seg.segment_label}]"
+        )
+        for action in seg.behavioral_distribution.counts:
+            if action not in _VALID_BEHAVIORAL_ACTIONS:
+                raise SchemaError(
+                    f"behavioral_distribution for {seg.segment_label!r} has "
+                    f"unknown action {action!r}"
+                )
 
 
 # ---- L1 → L2 contract: AgentTranscript ----
@@ -247,6 +483,10 @@ class AgentTranscript:
     containing labelled sections (R1 GUT: ..., R2 COMPREHENSION: ...,
     R3 EMOTION: ... for encoding; R4, R5, R6 for reflection). L2 splits
     them via section-header regex.
+
+    rocket-2.0.0: `behavioral_signal` carries the parsed R7 action. It
+    defaults to None — v1 transcripts (no R7) and v2 transcripts where R7
+    failed to parse both leave it None, and L2 handles the gap.
     """
     agent_id: int
     disposition_label: str
@@ -254,12 +494,26 @@ class AgentTranscript:
     seed_idx: int
     encoding_text: str
     reflection_text: str
+    behavioral_signal: "BehavioralSignal | None" = None
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        return {
+            "agent_id": self.agent_id,
+            "disposition_label": self.disposition_label,
+            "context_label": self.context_label,
+            "seed_idx": self.seed_idx,
+            "encoding_text": self.encoding_text,
+            "reflection_text": self.reflection_text,
+            "behavioral_signal": (
+                self.behavioral_signal.to_dict()
+                if self.behavioral_signal is not None
+                else None
+            ),
+        }
 
     @classmethod
     def from_dict(cls, data: dict) -> "AgentTranscript":
+        bs = data.get("behavioral_signal")
         return cls(
             agent_id=int(data["agent_id"]),
             disposition_label=data["disposition_label"],
@@ -267,4 +521,7 @@ class AgentTranscript:
             seed_idx=int(data["seed_idx"]),
             encoding_text=data["encoding_text"],
             reflection_text=data["reflection_text"],
+            behavioral_signal=(
+                BehavioralSignal.from_dict(bs) if bs is not None else None
+            ),
         )
