@@ -83,11 +83,24 @@ class RunService:
         """Synchronous wrapper. Validates config, runs the async pipeline,
         validates telemetry invariants, returns the Report.
 
+        Dispatches on protocol version: a rocket-2.0.0 config (or any config
+        carrying an audience_spec) routes to the two-phase RunServiceV2; the
+        rocket-1.3.0 path below is unchanged.
+
         resume_run_id: if provided, use this run_id instead of minting a new
         one. Per-call idempotency means any completed agent_calls/ artifacts
         will be loaded from disk; only missing calls re-fire. Lets a partial
-        run resume cheaply.
+        run resume cheaply. (v1 path only.)
         """
+        if config.protocol_version == "rocket-2.0.0" or config.audience_spec is not None:
+            # Lazy import — run_service_v2 imports helpers from this module.
+            from agent.run_service_v2 import RunServiceV2
+
+            if resume_run_id is not None:
+                _log.warning(
+                    "resume_run_id is not supported on the v2 path; ignoring"
+                )
+            return RunServiceV2.run(config)
         config.validate()
         return asyncio.run(RunService._run_async(config, resume_run_id=resume_run_id))
 

@@ -29,10 +29,16 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 from agent.config import AssetSpec, RunConfig
+from agent.entities import AudienceSpec
+from agent.panel import PanelAgent
+from agent.projection_l35 import project_funnel
 from agent.schema import AgentTranscript, validate_report
 from agent.synthesis_l2 import synthesize_disposition_async
+from agent.synthesis_l2_v2 import synthesize_segment_async
 from agent.synthesis_l3 import synthesize_population
+from agent.synthesis_l3_v2 import synthesize_population_v2
 from agent.synthesis_l4 import synthesize_memo
+from agent.synthesis_l4_v2 import synthesize_memo_v2
 from agent.synthesis_types import TargetClassification
 from agent.telemetry import (
     current_account_id,
@@ -102,7 +108,99 @@ def _config_from_run_json(run_dir: Path) -> RunConfig:
     )
 
 
+def _config_from_run_json_v2(run_dir: Path) -> RunConfig:
+    raw = json.loads((run_dir / "run.json").read_text())
+    c = raw["config"]
+    audience = c.get("audience_spec")
+    return RunConfig(
+        asset=AssetSpec(
+            image_path=c["asset"]["image_path"], label=c["asset"]["label"]
+        ),
+        archetype=c["archetype"],
+        category=c["category"],
+        account_id=c["account_id"],
+        brand_profile_id=c["brand_profile_id"],
+        max_concurrent_agents=c.get("max_concurrent_agents", 4),
+        protocol_version=c.get("protocol_version", "rocket-2.0.0"),
+        model_versions=dict(c["model_versions"]),
+        seed=c["seed"],
+        audience_spec=AudienceSpec.from_dict(audience) if audience else None,
+        segment_granularity=c.get("segment_granularity", "disposition_chaos_band"),
+        baseline_funnel=c.get("baseline_funnel"),
+        library_id=c.get("library_id", ""),
+        audience_id=c.get("audience_id", ""),
+    )
+
+
+async def _replay_v2(run_dir: Path) -> None:
+    """Replay the v2 synthesis chain: L2 v2 -> L3 v2 -> L3.5 -> L4 v2."""
+    config = _config_from_run_json_v2(run_dir)
+    transcripts = _load_transcripts(run_dir)
+    panel = [
+        PanelAgent.from_dict(d)
+        for d in json.loads((run_dir / "panel.json").read_text())
+    ]
+    print(f"# v2 replay — {len(transcripts)} transcripts, {len(panel)} panel agents")
+
+    current_account_id.set(config.account_id)
+    current_brand_profile_id.set(config.brand_profile_id)
+    current_run_id.set(run_dir.name + "_replay")
+
+    tc = TargetClassification.from_dict(
+        json.loads((run_dir / "target_classification.json").read_text())
+    )
+
+    # Group transcripts by segment_key via the panel.
+    segment_of = {a.agent_id: a.segment_key for a in panel}
+    by_segment: dict[str, list[AgentTranscript]] = defaultdict(list)
+    for t in transcripts:
+        by_segment[segment_of[t.agent_id]].append(t)
+
+    t0 = time.time()
+    l2_summaries = await asyncio.gather(*[
+        synthesize_segment_async(label, ts, config)
+        for label, ts in sorted(by_segment.items())
+    ])
+    l2_summaries = sorted(l2_summaries, key=lambda s: s.segment_label)
+    print(f"# L2 v2 fan-out: {len(l2_summaries)} segment summaries in {time.time()-t0:.1f}s")
+
+    t0 = time.time()
+    l3 = await asyncio.to_thread(
+        synthesize_population_v2, l2_summaries, tc, config
+    )
+    print(f"# L3 v2 in {time.time()-t0:.1f}s")
+
+    projection = project_funnel(l3, config.baseline_funnel)
+    print(f"# L3.5 projection (basis: {projection.overall.basis})")
+
+    t0 = time.time()
+    provisional = sorted(
+        s.disposition_label for s in l2_summaries
+    )  # best-effort; replay has no library
+    report = await asyncio.to_thread(
+        synthesize_memo_v2, l3, tc, projection, config,
+    )
+    validate_report(report)
+    print(f"# L4 v2 in {time.time()-t0:.1f}s")
+
+    print()
+    print("=" * 78)
+    print(f"REPLAY (v2) — verdict: {report.verdict} confidence={report.confidence}")
+    print("=" * 78)
+    print(f"bet_ranking ({len(report.bet_ranking)} bets):")
+    for i, bet in enumerate(report.bet_ranking, 1):
+        print(f"  {i}. {bet}")
+    out_path = run_dir / "replay_report.json"
+    out_path.write_text(report.to_json())
+    print(f"\n# Replay report saved to {out_path}")
+
+
 async def _replay(run_dir: Path) -> None:
+    # v2 runs carry a panel.json — dispatch to the v2 synthesis chain.
+    if (run_dir / "panel.json").exists():
+        await _replay_v2(run_dir)
+        return
+
     config = _config_from_run_json(run_dir)
     transcripts = _load_transcripts(run_dir)
     print(f"# Loaded {len(transcripts)} transcripts from {run_dir}")
