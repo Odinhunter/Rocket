@@ -149,6 +149,7 @@ def _compute_confidence_signals_v2(
         contexts_in_agreement=contexts_in_agreement,
         total_contexts=total_contexts,
         homogenization_flag_count=homog_count,
+        total_segments=len(l2_summaries),
     )
 
 

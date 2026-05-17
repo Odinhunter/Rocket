@@ -84,11 +84,63 @@ first, so it must carry the real decision.
 
 # Report schema"""
 
-# Inject the v2 sections right before the schema, and swap in the v2 schema
-# template — no need to retype the verdict framework.
-_L4_V2_SYSTEM = _L4_SYSTEM.replace(
-    _REPORT_SCHEMA_TEMPLATE, _REPORT_SCHEMA_TEMPLATE_V2
-).replace("# Report schema", _V2_ADDITIONS, 1)
+# Inject the v2 sections right before the schema and swap in the v2 schema
+# template. The homogenization_high flag is owned by Python in v2 (see
+# _apply_homog_high_guard below) — the v1 prompt rule is left intact and
+# whatever the model emits gets reconciled against the deterministic guard
+# after L4 returns.
+_L4_V2_SYSTEM = (
+    _L4_SYSTEM
+    .replace(_REPORT_SCHEMA_TEMPLATE, _REPORT_SCHEMA_TEMPLATE_V2)
+    .replace("# Report schema", _V2_ADDITIONS, 1)
+)
+
+# v2 homogenization_high — deterministic Python guard.
+#
+# v1's absolute `homogenization_flag_count >= 2` was authored for v1's per-
+# disposition L2 cells (15-40 agents each, where "tight" was anomalous model
+# echo). v2 fans L2 per-(disposition x chaos-band), so cells are 2-13 agents
+# and "tight" is the structural default. A 3-of-3 cross-ad probe (boat,
+# cadbury, bru) and a 3-of-3 within-ad probe on boat showed the flag fired
+# on every run, with the tight fraction clustering at 60-73%. The flag was
+# always-on noise rather than a signal.
+#
+# Architectural commitment: signal-derived flags are computed in Python, not
+# emitted by the model. The model still sees the v1 rule (and reliably emits
+# the flag on v2 inputs); the guard reconciles against the v2 fractional
+# threshold deterministically. The threshold sits above the observed
+# within-ad band so the flag fires only when v2 is genuinely homogenized
+# beyond its structural baseline (e.g., 14/15 cells tight).
+_HOMOG_HIGH_FRACTION = 0.80
+_HOMOG_HIGH_MIN_TOTAL_SEGMENTS = 5
+
+
+def _apply_homog_high_guard(report: Report, signals) -> None:
+    """Strip `homogenization_high` from report.methodology_flags if the
+    L3 confidence signals don't justify it under v2's fractional rule.
+
+    Fires when both: total_segments >= _HOMOG_HIGH_MIN_TOTAL_SEGMENTS AND
+    homogenization_flag_count / total_segments >= _HOMOG_HIGH_FRACTION.
+    Otherwise stripped — the model's emission is ignored.
+    """
+    emitted = "homogenization_high" in report.methodology_flags
+    if not emitted:
+        _log.info(
+            "homog_high guard: model did NOT emit; signals %d/%d",
+            signals.homogenization_flag_count, signals.total_segments,
+        )
+        return
+    total = signals.total_segments
+    fraction = signals.homogenization_flag_count / total if total > 0 else 0.0
+    eligible = total >= _HOMOG_HIGH_MIN_TOTAL_SEGMENTS and fraction >= _HOMOG_HIGH_FRACTION
+    if not eligible:
+        report.methodology_flags.remove("homogenization_high")
+    _log.info(
+        "homog_high guard: emitted=%s eligible=%s (%d/%d = %.2f, threshold %.2f, min_total %d)",
+        emitted, eligible,
+        signals.homogenization_flag_count, total, fraction,
+        _HOMOG_HIGH_FRACTION, _HOMOG_HIGH_MIN_TOTAL_SEGMENTS,
+    )
 
 
 # ---- Public entry point ----
@@ -146,6 +198,7 @@ def synthesize_memo_v2(
             report.provisional_dispositions = provisional
             if provisional and "provisional_disposition_present" not in report.methodology_flags:
                 report.methodology_flags.append("provisional_disposition_present")
+            _apply_homog_high_guard(report, l3_summary.confidence_signals)
             validate_report(report)
             _validate_l4_coverage(report, pool_size)
             _validate_l4_coverage_v2(report)

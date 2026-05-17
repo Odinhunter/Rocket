@@ -114,11 +114,20 @@ class ConfidenceSignals:
     contexts_in_agreement: how many of the contexts produced consistent
         within-target verdicts (working/mixed/failing align).
     homogenization_flag_count: number of within-cell variance="tight" L2s.
+    total_segments: total number of L2 cells in the run. v2 only (defaults
+        to 0 for v1 and for legacy run.json files predating the field).
+        Read by v2's deterministic homogenization_high guard in
+        agent.synthesis_l4_v2._apply_homog_high_guard — v2's per-(disposition
+        x chaos-band) cells are structurally small (2-13 agents) and tight
+        is the default not anomalous echo, so the flag is reconciled in
+        Python against a fractional threshold (≥80% of cells tight, given
+        total ≥ 5) rather than v1's absolute `>= 2` count.
     """
     within_target_disposition_count: int = 0
     contexts_in_agreement: int = 0
     total_contexts: int = 0
     homogenization_flag_count: int = 0
+    total_segments: int = 0
 
 
 @dataclass
