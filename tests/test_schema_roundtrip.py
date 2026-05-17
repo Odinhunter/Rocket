@@ -287,8 +287,9 @@ def _make_funnel_rates(basis: str = "heuristic_v1") -> FunnelRates:
     )
 
 
-def _make_v2_fixture_report() -> Report:
-    """A v1 fixture report plus the rocket-2.0.0 fields populated."""
+def _make_full_fixture_report() -> Report:
+    """A fixture Report with every field populated, including funnel
+    projection and bet ranking."""
     r = _make_fixture_report()
     r.bet_ranking = [
         "Lead with the price anchor for impulsive cold-traffic — strongest projected lift",
@@ -323,41 +324,41 @@ def _make_v2_fixture_report() -> Report:
     return r
 
 
-def test_v1_fixture_still_roundtrips_unchanged() -> None:
-    """The v1 Report fixture (no v2 fields) must still round-trip byte-
-    identically after the additive rocket-2.0.0 schema extension."""
+def test_legacy_fixture_still_roundtrips_unchanged() -> None:
+    """A legacy Report (no funnel_projection / bet_ranking) must still
+    round-trip byte-identically — the schema fields are additive."""
     r = _make_fixture_report()
     s1 = r.to_json()
     r2 = Report.from_json(s1)
     s2 = r2.to_json()
-    assert s1 == s2, "v1 fixture no longer round-trips byte-identically"
+    assert s1 == s2, "legacy fixture no longer round-trips byte-identically"
     assert r2.funnel_projection is None
     assert r2.bet_ranking == []
     assert r2.provisional_dispositions == []
     validate_report(r2)
-    print("  OK  v1 fixture still round-trips after additive v2 extension")
+    print("  OK  legacy fixture still round-trips")
 
 
-def test_v2_fixture_roundtrip() -> None:
-    r = _make_v2_fixture_report()
+def test_full_fixture_roundtrip() -> None:
+    r = _make_full_fixture_report()
     s1 = r.to_json()
     r2 = Report.from_json(s1)
     s2 = r2.to_json()
-    assert s1 == s2, "v2 Report round-trip not byte-identical"
+    assert s1 == s2, "full Report round-trip not byte-identical"
     assert r2.funnel_projection is not None
     assert r2.funnel_projection.overall.basis == "heuristic_v1"
     assert len(r2.funnel_projection.by_segment) == 1
     assert r2.bet_ranking == r.bet_ranking
-    print("  OK  v2 Report (funnel_projection + bet_ranking) round-trip")
+    print("  OK  full Report (funnel_projection + bet_ranking) round-trip")
 
 
-def test_validate_accepts_v2_fixture() -> None:
-    validate_report(_make_v2_fixture_report())
-    print("  OK  validate_report accepts the v2 fixture")
+def test_validate_accepts_full_fixture() -> None:
+    validate_report(_make_full_fixture_report())
+    print("  OK  validate_report accepts the full fixture")
 
 
 def test_validate_rejects_inverted_funnel_band() -> None:
-    r = _make_v2_fixture_report()
+    r = _make_full_fixture_report()
     # Invert the overall click band: lo > hi.
     r.funnel_projection.overall.click_band = (0.040, 0.022)
     try:
@@ -370,7 +371,7 @@ def test_validate_rejects_inverted_funnel_band() -> None:
 
 
 def test_validate_rejects_rate_outside_band() -> None:
-    r = _make_v2_fixture_report()
+    r = _make_full_fixture_report()
     r.funnel_projection.overall.convert_rate = 0.99  # outside [0.006, 0.016]
     try:
         validate_report(r)
@@ -382,13 +383,13 @@ def test_validate_rejects_rate_outside_band() -> None:
 
 
 def test_provisional_disposition_flag_accepted() -> None:
-    r = _make_v2_fixture_report()
+    r = _make_full_fixture_report()
     assert "provisional_disposition_present" in r.methodology_flags
     validate_report(r)
     print("  OK  'provisional_disposition_present' methodology flag accepted")
 
 
-def test_agent_transcript_v2_behavioral_signal_roundtrip() -> None:
+def test_agent_transcript_behavioral_signal_roundtrip() -> None:
     t = AgentTranscript(
         agent_id=0,
         disposition_label="brand_loyal_boat_user",
@@ -404,8 +405,8 @@ def test_agent_transcript_v2_behavioral_signal_roundtrip() -> None:
     )
     t2 = AgentTranscript.from_dict(t.to_dict())
     assert t == t2, "AgentTranscript w/ behavioral_signal round-trip mismatch"
-    # And the v1 shape (no behavioral_signal) still round-trips.
-    t_v1 = AgentTranscript(
+    # Legacy shape (no behavioral_signal) still round-trips.
+    t_legacy = AgentTranscript(
         agent_id=1,
         disposition_label="d",
         context_label="c",
@@ -413,8 +414,8 @@ def test_agent_transcript_v2_behavioral_signal_roundtrip() -> None:
         encoding_text="...",
         reflection_text="...",
     )
-    t_v1_2 = AgentTranscript.from_dict(t_v1.to_dict())
-    assert t_v1 == t_v1_2 and t_v1_2.behavioral_signal is None
+    t_legacy_2 = AgentTranscript.from_dict(t_legacy.to_dict())
+    assert t_legacy == t_legacy_2 and t_legacy_2.behavioral_signal is None
     print("  OK  AgentTranscript round-trip with and without behavioral_signal")
 
 
@@ -431,13 +432,13 @@ def main() -> None:
     test_methodology_flags_rejects_unknown_value()
     test_methodology_flags_round_trip()
     test_agent_transcript_roundtrip()
-    test_v1_fixture_still_roundtrips_unchanged()
-    test_v2_fixture_roundtrip()
-    test_validate_accepts_v2_fixture()
+    test_legacy_fixture_still_roundtrips_unchanged()
+    test_full_fixture_roundtrip()
+    test_validate_accepts_full_fixture()
     test_validate_rejects_inverted_funnel_band()
     test_validate_rejects_rate_outside_band()
     test_provisional_disposition_flag_accepted()
-    test_agent_transcript_v2_behavioral_signal_roundtrip()
+    test_agent_transcript_behavioral_signal_roundtrip()
     print("PASS — schema is locked.")
 
 

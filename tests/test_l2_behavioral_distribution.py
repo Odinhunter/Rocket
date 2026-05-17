@@ -4,7 +4,7 @@ locked "distributions are Python, not the model" pattern. Transcripts with
 no parsed R7 are excluded from n so proportions are over real signals.
 No API calls.
 
-Run: python tests/test_l2_v2_behavioral_distribution.py
+Run: python tests/test_l2_behavioral_distribution.py
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agent.schema import AgentTranscript, BehavioralSignal
-from agent.synthesis_l2_v2 import compute_behavioral_distribution
+from agent.synthesis_l2 import compute_behavioral_distribution
 
 
 def _transcript(agent_id: int, signal: BehavioralSignal | None) -> AgentTranscript:

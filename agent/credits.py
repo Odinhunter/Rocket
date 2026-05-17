@@ -1,7 +1,7 @@
 """Credits — minimal filesystem-backed debit hook for the two-phase run.
 
-v1 had no credit system. v2 needs the credit debit to happen at COMMIT,
-never at prepare — so an abandoned prepare costs the customer nothing.
+The credit debit happens at COMMIT, never at prepare — so an abandoned
+prepare costs the customer nothing.
 
 This is deliberately minimal: a per-account append-only ledger plus a
 per-run `committed` marker file. The marker makes commit idempotent —

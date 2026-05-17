@@ -1,10 +1,9 @@
 """The Render Engine — turns population-axis vectors into persona prose.
 
-In v1 the agent system prompt was assembled by agent/prompt.py from six
-hand-written prose blocks. In v2 the persona is *rendered* from structured
-vectors (demographics + disposition + chaos) against a hand-curated
-CategoryArtifactPack. This is what makes on-the-spot audience composition
-possible: a new disposition is a new vector point, rendered instantly.
+The persona is rendered from structured vectors (demographics +
+disposition + chaos) against a hand-curated CategoryArtifactPack. This is
+what makes on-the-spot audience composition possible: a new disposition
+is a new vector point, rendered instantly.
 
 HARD RULE: the render engine weaves artifacts that are PRESENT IN THE PACK
 — real brands, real prices, real communities — and never invents them.
@@ -12,10 +11,9 @@ That constraint is the whole game: vividness comes from the curated
 artifacts, not from the vectors. _validate_no_invented_artifacts is the
 post-hoc check.
 
-Register note: the rendered persona core is THIRD-PERSON descriptive prose,
-matching the v1 system-prompt style it replaces — the agent then reacts in
-first person. compose_persona_prompt assembles core + context into the
-final system prompt (replacing agent/prompt.py:build_agent_prompt).
+Register note: the rendered persona core is THIRD-PERSON descriptive prose
+— the agent then reacts in first person. compose_persona_prompt assembles
+core + context into the final system prompt.
 
 Caching: a persona core is a pure function of (demographic, disposition,
 chaos, category, schema+prompt version). It renders once and is reused for
@@ -414,10 +412,10 @@ def render_context(
 
 def compose_persona_prompt(core_prose: str, context_prose: str) -> str:
     """Assemble the rendered persona core + rendered context into the final
-    agent system prompt. Replaces agent/prompt.py:build_agent_prompt.
+    agent system prompt.
 
     Context comes last — it is the freshest priming and gates attention
-    before disposition shapes the specific reaction (the v1 ordering)."""
+    before disposition shapes the specific reaction."""
     return (
         "WHO THIS PERSON IS\n\n"
         f"{core_prose.strip()}\n\n"
@@ -495,8 +493,8 @@ def _validate_no_invented_artifacts(
     TitleCase tokens that look like brand names but are NOT in the pack's
     vocabulary.
 
-    Returns a list of warning strings (empty = clean). v1 behaviour is
-    WARN-ONLY — logged, not raised — because the heuristic is imperfect: it
+    Returns a list of warning strings (empty = clean). WARN-ONLY — logged,
+    not raised — because the heuristic is imperfect: it
     skips sentence-initial words and a stoplist of common places/platforms,
     but it cannot tell a persona's given name from a brand. The render
     PROMPT (which forbids inventing artifacts AND forbids naming the person)

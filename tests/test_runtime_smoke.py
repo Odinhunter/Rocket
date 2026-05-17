@@ -1,14 +1,14 @@
-"""Phase 3 API smoke: the v2 agent runtime fires one PanelAgent end-to-end —
-renders the persona core + context, runs bundled Encoding + Reflection,
-emits R1-R7, parses the R7 behavioral signal, and holds the prompt-caching
+"""API smoke: the agent runtime fires one PanelAgent end-to-end — renders
+the persona core + context, runs bundled Encoding + Reflection, emits
+R1-R7, parses the R7 behavioral signal, and holds the prompt-caching
 invariant (Encoding writes the cache, Reflection reads it, the pair matches).
 
 Also re-measures the cache-prefix token floor against the rendered-prose
-prefix — v1's ~3099-token floor must not be assumed.
+prefix.
 
 Cost: ~4 Sonnet calls (2 render + 2 agent), ~$0.03.
 
-Run: python tests/test_runtime_v2_smoke.py
+Run: python tests/test_runtime_smoke.py
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ load_dotenv()
 from agent.artifact_pack import load_pack
 from agent.config import AssetSpec, RunConfig
 from agent.panel import PanelAgent
-from agent.runtime_v2 import run_agent_v2
+from agent.runtime import run_agent
 from agent.telemetry import (
     current_account_id,
     current_brand_profile_id,
@@ -45,7 +45,7 @@ from agent.vectors import (
     NamedDisposition,
 )
 
-_ACCOUNT, _BRAND, _RUN = "_test_v2", "runtime", "smoke_run"
+_ACCOUNT, _BRAND, _RUN = "_test_runtime", "runtime", "smoke_run"
 _RENDER_CACHE = Path(f"runs/{_ACCOUNT}/{_BRAND}/library_renders")
 
 
@@ -92,7 +92,7 @@ def _cleanup() -> None:
 
 
 def main() -> None:
-    print("=== runtime_v2 API smoke ===")
+    print("=== runtime API smoke ===")
     _cleanup()
     asset_path = Path("assets/boat_ad.png")
     if not asset_path.exists():
@@ -100,7 +100,7 @@ def main() -> None:
 
     config = RunConfig(
         asset=AssetSpec(image_path=str(asset_path), label="Boat smoke asset"),
-        archetype="urban_indian_male_22_30",  # legacy field, unused by v2 runtime
+        archetype="urban_indian_male_22_30",  # legacy field, unused by runtime
         category="coffee",
         account_id=_ACCOUNT,
         brand_profile_id=_BRAND,
@@ -113,7 +113,7 @@ def main() -> None:
     agent = _panel_agent()
 
     try:
-        transcript = run_agent_v2(
+        transcript = run_agent(
             agent, config, pack, run_id=_RUN, render_cache_dir=_RENDER_CACHE,
         )
 
@@ -141,7 +141,7 @@ def main() -> None:
         # Idempotent resume: a second call loads artifacts, fires no API calls.
         rd = run_dir(_RUN, account_id=_ACCOUNT, brand_profile_id=_BRAND)
         tele_lines_before = len((rd / "telemetry.jsonl").read_text().splitlines())
-        run_agent_v2(agent, config, pack, run_id=_RUN, render_cache_dir=_RENDER_CACHE)
+        run_agent(agent, config, pack, run_id=_RUN, render_cache_dir=_RENDER_CACHE)
         tele_lines_after = len((rd / "telemetry.jsonl").read_text().splitlines())
         assert tele_lines_after == tele_lines_before, (
             "idempotent resume fired new API calls"
@@ -170,10 +170,10 @@ def main() -> None:
         # Output budget.
         for e in agent_events:
             out = e.get("output_tokens") or 0
-            assert out <= 1300, f"output_tokens {out} over the v2 budget"
+            assert out <= 1300, f"output_tokens {out} over budget"
         print("  OK  output token budget held (<= 1300 with R7)")
 
-        print("PASS — v2 runtime emits R1-R7, parses R7, caches, resumes idempotently.")
+        print("PASS — runtime emits R1-R7, parses R7, caches, resumes idempotently.")
     finally:
         _cleanup()
 

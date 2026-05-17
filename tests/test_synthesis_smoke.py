@@ -1,6 +1,6 @@
-"""Phase 4 API smoke: the full v2 synthesis chain end-to-end —
-L2 v2 (per-segment) -> L3 v2 -> L3.5 projection -> L4 v2 — on a small
-hand-written transcript set. Validates the wiring, not the prose quality.
+"""API smoke: the full synthesis chain end-to-end — L2 (per-segment) -> L3
+-> L3.5 projection -> L4 — on a small hand-written transcript set.
+Validates the wiring, not the prose quality.
 
 Asserts: L2 summaries carry a Python-computed behavioral_distribution; L3
 carries the population + per-segment distributions; L3.5 produces a
@@ -9,7 +9,7 @@ bet_ranking and the funnel_projection attached.
 
 Cost: ~3 Sonnet calls (2x L2, 1x L3) + 1 Opus call (L4), ~$0.35.
 
-Run: python tests/test_synthesis_v2_smoke.py
+Run: python tests/test_synthesis_smoke.py
 """
 
 from __future__ import annotations
@@ -26,9 +26,9 @@ load_dotenv()
 from agent.config import AssetSpec, RunConfig
 from agent.projection_l35 import project_funnel
 from agent.schema import AgentTranscript, BehavioralSignal, validate_report
-from agent.synthesis_l2_v2 import synthesize_segment
-from agent.synthesis_l3_v2 import synthesize_population_v2
-from agent.synthesis_l4_v2 import synthesize_memo_v2
+from agent.synthesis_l2 import synthesize_segment
+from agent.synthesis_l3 import synthesize_population
+from agent.synthesis_l4 import synthesize_memo
 from agent.synthesis_types import DispositionTarget, TargetClassification
 
 # A boat-earbuds-style creative. Two segments, two transcripts each.
@@ -173,14 +173,14 @@ _BASELINE = {
 
 
 def main() -> None:
-    print("=== v2 synthesis chain API smoke (L2 -> L3 -> L3.5 -> L4) ===")
+    print("=== synthesis chain API smoke (L2 -> L3 -> L3.5 -> L4) ===")
     config = RunConfig(
         asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat Airdopes deal"),
         archetype="urban_indian_male_22_30", category="personal_audio",
         baseline_funnel=_BASELINE,
     )
 
-    # L2 v2 — one call per segment.
+    # L2 — one call per segment.
     l2_summaries = []
     for segment_label, transcripts in _SEGMENTS.items():
         summary = synthesize_segment(segment_label, transcripts, config)
@@ -192,8 +192,8 @@ def main() -> None:
         print(f"  OK  L2 {segment_label}: summary + behavioral_distribution "
               f"{dict(bd.counts)} (would_act={bd.would_act_within_week_count})")
 
-    # L3 v2 — population synthesis + behavioral distributions.
-    l3 = synthesize_population_v2(l2_summaries, _TARGET, config)
+    # L3 — population synthesis + behavioral distributions.
+    l3 = synthesize_population(l2_summaries, _TARGET, config)
     assert l3.population_behavioral_distribution.n == 4, (
         f"population n {l3.population_behavioral_distribution.n} != 4"
     )
@@ -215,8 +215,8 @@ def main() -> None:
           f"{projection.overall.click_band[1]:.4f}), "
           f"{len(projection.by_segment)} segment projections")
 
-    # L4 v2 — strategic memo with bet_ranking headline.
-    report = synthesize_memo_v2(
+    # L4 — strategic memo with bet_ranking headline.
+    report = synthesize_memo(
         l3, _TARGET, projection, config,
         provisional_dispositions=["office_bru_pragmatist"],
     )
@@ -232,7 +232,7 @@ def main() -> None:
     print(f"      bet_ranking ({len(report.bet_ranking)} bets):")
     for bet in report.bet_ranking:
         print(f"        - {bet}")
-    print("PASS — v2 synthesis chain produces a validated Report with funnel + bets.")
+    print("PASS — synthesis chain produces a validated Report with funnel + bets.")
 
 
 if __name__ == "__main__":

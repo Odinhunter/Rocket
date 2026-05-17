@@ -40,10 +40,11 @@ class L2Summary:
     representative_quotes: dict[int, Quote] = field(default_factory=dict)
     emotional_read: str = ""        # synthesized from R3 prose across contexts
     friction_summary: str = ""      # synthesized from R6 across contexts
-    # rocket-2.0.0: segment_label is the L2 fan-out key — a disposition label
-    # in v1, a "disposition::chaos_band" key under per-(disp x chaos-band)
-    # granularity. behavioral_distribution is the R7 signal aggregate,
-    # computed deterministically in Python (never emitted by the model).
+    # segment_label is the L2 fan-out key — a disposition label under
+    # "disposition" granularity, or a "disposition::chaos_band" key under
+    # the default per-(disp x chaos-band) granularity. behavioral_distribution
+    # is the R7 signal aggregate, computed deterministically in Python
+    # (never emitted by the model).
     segment_label: str = ""
     behavioral_distribution: BehavioralSignalDistribution = field(
         default_factory=BehavioralSignalDistribution
@@ -114,14 +115,11 @@ class ConfidenceSignals:
     contexts_in_agreement: how many of the contexts produced consistent
         within-target verdicts (working/mixed/failing align).
     homogenization_flag_count: number of within-cell variance="tight" L2s.
-    total_segments: total number of L2 cells in the run. v2 only (defaults
-        to 0 for v1 and for legacy run.json files predating the field).
-        Read by v2's deterministic homogenization_high guard in
-        agent.synthesis_l4_v2._apply_homog_high_guard — v2's per-(disposition
-        x chaos-band) cells are structurally small (2-13 agents) and tight
-        is the default not anomalous echo, so the flag is reconciled in
-        Python against a fractional threshold (≥80% of cells tight, given
-        total ≥ 5) rather than v1's absolute `>= 2` count.
+    total_segments: total number of L2 cells in the run. Defaults to 0 for
+        legacy run.json files predating the field. Currently the raw input
+        for a future brand-relative homogenization detector (per-brand
+        rolling baseline); the in-prompt homogenization_high flag is
+        unconditionally suppressed in L4.
     """
     within_target_disposition_count: int = 0
     contexts_in_agreement: int = 0

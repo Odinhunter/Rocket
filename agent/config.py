@@ -59,7 +59,7 @@ def _base64_encoded_size(raw_bytes: int) -> int:
 #        produced bucket flips. Cost dropped ~18% and latency ~30%. This
 #        obsoletes the previously-planned ensemble-target_id lever — single
 #        deterministic call is the right shape.
-PROTOCOL_VERSION = "rocket-1.3.0"
+PROTOCOL_VERSION = "rocket-2.0.0"
 
 
 # Default model assignments per layer. Locked after 2026-05-12 telemetry +
@@ -205,14 +205,9 @@ class RunConfig:
     # stochasticity at the configured per-layer temperature, not deterministic.
     seed: int = 71
 
-    # ---- rocket-2.0.0 fields. All have v1-safe defaults so a 1.3.0 run is
-    # unaffected; they are only consulted on the protocol_version == "rocket-
-    # 2.0.0" path (the run_service.py dispatcher routes on protocol_version). ----
-    #
-    # audience_spec: the customer-composed targeting (demographics + disposition
-    # selection + context envelope + chaos distribution). When set, it
-    # supersedes the archetype/category disposition+context sampling. None on
-    # the v1 path.
+    # audience_spec: the customer-composed targeting (demographics +
+    # disposition selection + context envelope + chaos distribution).
+    # Required for a real run; RunService.prepare raises if it is None.
     audience_spec: "AudienceSpec | None" = None
     # segment_granularity: the L2 fan-out key. "disposition_chaos_band" (the
     # user-decided default) fans L2 per disposition x chaos band — the richer,

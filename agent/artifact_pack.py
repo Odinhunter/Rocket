@@ -1,15 +1,14 @@
-"""Category Artifact Pack — the hand-curated moat for Rocket v2.
+"""Category Artifact Pack — the hand-curated moat.
 
-In v1 the moat was 100 hand-written disposition prose blocks per customer.
-In v2 the moat moves up a level: a hand-curated knowledge object *per
-category* — real brands, real prices, real retail channels, real
-communities, cultural references, voice samples, behavioral priors, and
-the category's default chaos distribution.
+A pack is a hand-curated knowledge object *per category* — real brands,
+real prices, real retail channels, real communities, cultural references,
+voice samples, behavioral priors, and the category's default chaos
+distribution.
 
 The Render Engine (agent/render.py) weaves artifacts FROM a pack into
 persona prose. Hard rule: it may only use artifacts present in the pack —
 it never invents brands, prices, or communities. That constraint is what
-keeps vector-rendered personas as vivid as the v1 hand-written ones.
+keeps vector-rendered personas vivid.
 
 A pack lives in packs/<category>.py and exposes a module-level `PACK`
 constant. load_pack(category) imports it.
@@ -75,8 +74,7 @@ class Community:
 
 @dataclass
 class CategoryArtifactPack:
-    """The hand-curated knowledge object for one category. Raw material is
-    mined from the v1 archetypes/ modules during Phase 1 curation."""
+    """The hand-curated knowledge object for one category."""
 
     category: str
     brand_landscape: list[BrandLandscapeEntry] = field(default_factory=list)

@@ -1,8 +1,8 @@
-"""Entity model for Rocket v2: Account -> Brand Profile -> {Disposition
-Library, Saved Audiences} -> Run.
+"""Entity model: Account -> Brand Profile -> {Disposition Library,
+Saved Audiences} -> Run.
 
-Filesystem-backed (no DB), matching the existing runs/<account>/<brand>/
-multi-tenant convention. A Run resolves an AudienceSpec into a panel.
+Filesystem-backed (no DB), matching the runs/<account>/<brand>/ multi-
+tenant convention. A Run resolves an AudienceSpec into a panel.
 
 Layout:
   runs/<account_id>/account.json
@@ -10,12 +10,10 @@ Layout:
   runs/<account_id>/<brand_profile_id>/entities/library.json
   runs/<account_id>/<brand_profile_id>/entities/audiences/<audience_id>.json
 
-Design note on the disposition cap: in v1 a Brand Profile was capped at 7
-dispositions because L2 fan-out scales with disposition count. In v2 the
-*library* is uncapped — a customer can have 100 hand-mapped dispositions —
-but a single run's AudienceSpec selects at most 7 (AUDIENCE_DISPOSITION_CAP),
-because L2 fan-out (now per-disposition x chaos-band) is the per-run cost
-lever, not the library size.
+The disposition library is uncapped — a customer can hand-map 100
+dispositions — but a single run's AudienceSpec selects at most 7
+(AUDIENCE_DISPOSITION_CAP), because L2 fan-out (per-disposition x
+chaos-band) is the per-run cost lever, not the library size.
 """
 
 from __future__ import annotations
@@ -41,7 +39,7 @@ AUDIENCE_DISPOSITION_CAP = 7
 _CONTEXT_ENVELOPE_MIN = 3
 _CONTEXT_ENVELOPE_MAX = 5
 
-# Hard ceiling on panel size, carried from v1.
+# Hard ceiling on panel size.
 _PANEL_SIZE_CEILING = 200
 
 

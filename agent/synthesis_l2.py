@@ -1,20 +1,16 @@
-"""L2 — Per-disposition aggregation.
+"""L2 — per-SEGMENT aggregation.
 
-One Sonnet call per disposition. Reads all AgentTranscripts belonging to
-one disposition (across contexts and seeds within that disposition) and
-emits an L2Summary that L3 will fan into population-level findings.
+Fans out per SEGMENT, where a segment is a disposition
+(segment_granularity == "disposition") or a disposition × chaos-band (the
+default, "disposition_chaos_band"). The caller (run_service) groups by
+PanelAgent.segment_key and hands each group here.
 
-Tool-use mode (same rationale as L3 — Sonnet, flatter schema, not Opus,
-no truncation risk).
-
-L2 input: list[AgentTranscript] for ONE disposition (all contexts & seeds
-in that disposition cell). The encoding_text / reflection_text contain
-labelled sections (R1 GUT: ..., R2 COMPREHENSION: ..., etc.). L2 reads
-the raw text — section splitting is the model's job in the prompt.
-
-L2 output: L2Summary with summary_paragraph, within_cell_variance,
-optional outlier_note, representative_quotes (one per round R1-R6),
-emotional_read, friction_summary.
+The Sonnet call does the *narrative* aggregation (summary, variance,
+R1-R6 representative quotes). L2Summary also carries `segment_label` and
+`behavioral_distribution`. The behavioral_distribution is the R7 signal
+aggregate, computed DETERMINISTICALLY IN PYTHON from the transcripts —
+never emitted by the model ("distributions are Python, not the model",
+same as L3's quote pool and confidence signals).
 """
 
 from __future__ import annotations
@@ -22,15 +18,15 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any
 
 import anthropic
 
+from typing import Any
+
 from agent.config import RunConfig
-from agent.schema import AgentTranscript, Quote
+from agent.schema import AgentTranscript, BehavioralSignalDistribution, Quote
 from agent.synthesis_types import L2Summary
 from agent.telemetry import call_with_telemetry
-
 
 _log = logging.getLogger(__name__)
 
@@ -136,113 +132,129 @@ _L2_TOOL = {
 }
 
 
+def _extract_tool_use(response: Any, tool_name: str) -> dict:
+    for block in response.content:
+        if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == tool_name:
+            return block.input
+    raise RuntimeError(
+        f"Expected tool_use block named {tool_name!r}, got blocks: "
+        f"{[getattr(b, 'type', None) for b in response.content]}"
+    )
+
+
 _L2_SYSTEM = """\
-You are a senior consumer-research analyst doing per-disposition \
-aggregation on a multi-agent Creative Read. You will be given all the \
-transcripts produced by ONE disposition (one consumer-type voice), \
-across multiple attention contexts and seeds. Your job is to compress \
-those raw transcripts into one structured summary that a population-\
-level synthesizer (L3) will fan into cross-disposition findings.
+You are a senior consumer-research analyst doing per-SEGMENT aggregation \
+on a multi-agent Creative Read. You will be given all the transcripts \
+produced by ONE segment — a single consumer disposition at a single \
+decision-making style (chaos band) — across multiple attention contexts. \
+Your job is to compress those raw transcripts into one structured summary \
+that a population-level synthesizer (L3) will fan into cross-segment \
+findings.
 
 # How to read the transcripts
 
-Each transcript comes from ONE agent — one (disposition, context, seed) \
-cell — and contains two text blocks:
+Each transcript comes from ONE agent and contains two text blocks:
 
 - **encoding_text** has three labelled sections:
   - `R1 GUT:` 1-2 sentences, the agent's first-glance reaction
   - `R2 COMPREHENSION:` 3 sentences on what message landed
   - `R3 EMOTION:` 4-5 sentences on emotional texture
-- **reflection_text** has three labelled sections:
+- **reflection_text** has four labelled sections:
   - `R4 STICKINESS:` what stuck 48 hours later
   - `R5 SOCIAL:` would they share / mention / post
   - `R6 FRICTION:` the single biggest friction on purchase
+  - `R7 ACTION:` a one-line JSON behavioral signal (an action + reasoning)
 
-All agents in this batch are the SAME disposition. Variance across them \
-comes from context (which attention state they were in) and seed (within-\
-cell stochasticity). Your aggregation answers: what is this disposition's \
-consistent read of the ad, where does the read vary, and what's the \
-representative voice across rounds?
+All agents in this batch are the SAME segment. Variance across them comes \
+from the attention context. Your aggregation answers: what is this \
+segment's consistent read of the ad, where does the read vary, and what's \
+the representative voice across rounds R1-R6.
 
-# What you produce
+# What you produce — and what you do NOT
 
-Use the emit_disposition_summary tool with:
+Use the emit_disposition_summary tool with summary_paragraph, \
+within_cell_variance, outlier_note, representative_quotes (one per round \
+R1-R6), emotional_read, friction_summary — exactly as the tool schema \
+describes.
 
-- **summary_paragraph**: 4-6 sentences in third-person describing what \
-this disposition thinks of the ad. Span the cognitive arc (gut → \
-comprehension → emotion → recall → social → friction). Specific to the \
-ad. Traceable to evidence in the transcripts. No generic strategy \
-language ("the brand should sharpen", "needs better messaging").
-
-- **within_cell_variance**: 'tight' if agents said roughly the same thing \
-across contexts (homogenization flag — the disposition may be performing \
-sameness rather than signaling real variance). 'spread' for healthy \
-contextual variance. 'outlier_present' if one agent diverged sharply on a \
-load-bearing dimension.
-
-- **outlier_note**: one sentence describing the outlier if present, else \
-null.
-
-- **representative_quotes**: one quote per round (R1-R6) — six entries \
-total if the transcripts cover all six rounds. Pick the MOST quotable, \
-most specific verbatim from that round across this disposition's \
-transcripts. The quote MUST be a verbatim extract — copy the exact \
-phrasing, do not paraphrase. Use the exact disposition_label (provided \
-in the input), the round number, and the exact context_label of the \
-transcript the quote came from.
-
-- **emotional_read**: 1-2 sentences synthesizing R3 EMOTION across the \
-transcripts. What did the ad make this disposition FEEL?
-
-- **friction_summary**: 1-2 sentences synthesizing R6 FRICTION across the \
-transcripts. What's the single biggest friction this disposition surfaces \
-on purchase?
+You do NOT summarize or count R7. The R7 behavioral-signal distribution is \
+computed deterministically in Python from the transcripts — it is not \
+your job and you must not emit it. Read R7 only as context for your \
+narrative (it tells you what the agent would actually DO), but the counts \
+are handled elsewhere.
 
 # Discipline
 
 - Use the exact disposition_label and context_label strings from the \
 input. Don't shorten or rephrase.
-- Quotes are verbatim. Do not edit, even for grammar.
-- Do not invent rounds that aren't in the transcripts. If R3 EMOTION is \
-empty in one transcript, draw from another transcript in the same cell.
-- Do not commit a verdict. That's L4's job. L2 produces the disposition-\
-level evidence base."""
+- Quotes are verbatim. Do not edit, even for grammar. R1-R6 only.
+- Do not invent rounds that aren't in the transcripts.
+- Do not commit a verdict. That's L4's job. L2 produces the segment-level \
+evidence base."""
+
+
+# ---- Deterministic Python: the R7 behavioral-signal distribution ----
+
+
+def compute_behavioral_distribution(
+    transcripts: list[AgentTranscript],
+) -> BehavioralSignalDistribution:
+    """Aggregate the R7 behavioral signals of a segment's transcripts into a
+    BehavioralSignalDistribution. Counts only — never emitted by the model.
+    Transcripts whose R7 failed to parse (behavioral_signal is None) are
+    counted in `n` is NOT — n is the count of agents with a usable signal,
+    so the proportions L3.5 derives are over real signals, not gaps."""
+    counts: dict[str, int] = {}
+    would_act = 0
+    n = 0
+    for t in transcripts:
+        sig = t.behavioral_signal
+        if sig is None:
+            continue
+        counts[sig.action] = counts.get(sig.action, 0) + 1
+        if sig.would_act_within_week:
+            would_act += 1
+        n += 1
+    return BehavioralSignalDistribution(
+        counts=counts, would_act_within_week_count=would_act, n=n
+    )
 
 
 # ---- Public entry point ----
 
 
-async def synthesize_disposition_async(
-    disposition_label: str,
+async def synthesize_segment_async(
+    segment_label: str,
     transcripts: list[AgentTranscript],
     config: RunConfig,
 ) -> L2Summary:
-    """Async wrapper for parallel L2 fan-out. Spawns a thread for the
-    blocking Anthropic call."""
+    """Async wrapper for parallel L2 fan-out."""
     return await asyncio.to_thread(
-        synthesize_disposition, disposition_label, transcripts, config
+        synthesize_segment, segment_label, transcripts, config
     )
 
 
-def synthesize_disposition(
-    disposition_label: str,
+def synthesize_segment(
+    segment_label: str,
     transcripts: list[AgentTranscript],
     config: RunConfig,
 ) -> L2Summary:
-    """One Sonnet call per disposition. transcripts must all share
-    `disposition_label`; this is asserted, not silently filtered."""
+    """One Sonnet call per segment. transcripts must all belong to the same
+    segment (the caller groups by PanelAgent.segment_key); they are asserted
+    to share a disposition_label as a sanity check."""
     if not transcripts:
-        raise ValueError(f"L2 needs at least one transcript for {disposition_label!r}")
+        raise ValueError(f"L2 needs at least one transcript for segment {segment_label!r}")
+    disposition_label = transcripts[0].disposition_label
     for t in transcripts:
         if t.disposition_label != disposition_label:
             raise ValueError(
-                f"transcript disposition_label {t.disposition_label!r} "
-                f"doesn't match expected {disposition_label!r}"
+                f"segment {segment_label!r} mixes disposition_labels: "
+                f"{t.disposition_label!r} != {disposition_label!r}"
             )
 
     client = anthropic.Anthropic(max_retries=5)
     model = config.model_versions["l2"]
-    user_payload = _build_user_payload(disposition_label, transcripts, config)
+    user_payload = _build_user_payload(segment_label, transcripts, config)
 
     response = call_with_telemetry(
         client,
@@ -257,23 +269,18 @@ def synthesize_disposition(
     )
 
     tool_input = _extract_tool_use(response, "emit_disposition_summary")
-    return _build_l2_summary(disposition_label, tool_input)
+    summary = _build_l2_summary(disposition_label, segment_label, tool_input)
+    # The R7 distribution is computed in Python — never from the model.
+    summary.behavioral_distribution = compute_behavioral_distribution(transcripts)
+    return summary
 
 
 # ---- Internals ----
 
 
-def _extract_tool_use(response: Any, tool_name: str) -> dict:
-    for block in response.content:
-        if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == tool_name:
-            return block.input
-    raise RuntimeError(
-        f"Expected tool_use block named {tool_name!r}, got blocks: "
-        f"{[getattr(b, 'type', None) for b in response.content]}"
-    )
-
-
-def _build_l2_summary(disposition_label: str, tool_input: dict) -> L2Summary:
+def _build_l2_summary(
+    disposition_label: str, segment_label: str, tool_input: dict
+) -> L2Summary:
     rep = tool_input.get("representative_quotes", {}) or {}
     quotes: dict[int, Quote] = {}
     for k, v in rep.items():
@@ -297,24 +304,25 @@ def _build_l2_summary(disposition_label: str, tool_input: dict) -> L2Summary:
         representative_quotes=quotes,
         emotional_read=tool_input.get("emotional_read", ""),
         friction_summary=tool_input.get("friction_summary", ""),
+        segment_label=segment_label,
+        # behavioral_distribution is set by the caller (synthesize_segment)
+        # from compute_behavioral_distribution — Python, not the model.
     )
 
 
 def _build_user_payload(
-    disposition_label: str,
+    segment_label: str,
     transcripts: list[AgentTranscript],
     config: RunConfig,
 ) -> str:
-    """Compose the user-side payload. Transcripts are passed as compact JSON
-    so the model can see the full text and the metadata together."""
     payload = {
-        "disposition_label": disposition_label,
+        "segment_label": segment_label,
+        "disposition_label": transcripts[0].disposition_label,
         "asset_label": config.asset.label,
         "transcripts": [
             {
                 "agent_id": t.agent_id,
                 "context": t.context_label,
-                "seed_idx": t.seed_idx,
                 "encoding_text": t.encoding_text,
                 "reflection_text": t.reflection_text,
             }
@@ -322,10 +330,12 @@ def _build_user_payload(
         ],
     }
     return (
-        f"DISPOSITION: {disposition_label}\n"
+        f"SEGMENT: {segment_label}\n"
+        f"DISPOSITION: {transcripts[0].disposition_label}\n"
         f"COUNT: {len(transcripts)} transcript(s) across "
         f"contexts {sorted({t.context_label for t in transcripts})}\n\n"
         "INPUTS\n======\n\n"
         + json.dumps(payload, indent=2, ensure_ascii=False)
-        + "\n\nCall emit_disposition_summary with your structured output."
+        + "\n\nCall emit_disposition_summary with your structured output. "
+        "Do NOT summarize or count R7 — that is handled in Python."
     )

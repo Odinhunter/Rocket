@@ -2,7 +2,7 @@
 from a reflection transcript, and degrades to None (never raises) on
 missing or malformed R7. No API calls.
 
-Run: python tests/test_runtime_v2_r7_parse.py
+Run: python tests/test_runtime_r7_parse.py
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from agent.runtime_v2 import parse_r7_signal
+from agent.runtime import parse_r7_signal
 
 
 def test_clean_r7() -> None:
@@ -77,7 +77,7 @@ def test_bad_would_act_returns_none() -> None:
 
 
 def main() -> None:
-    print("=== runtime_v2 R7 parser smoke ===")
+    print("=== runtime R7 parser smoke ===")
     test_clean_r7()
     test_r7_with_brace_bleed_in_r6()
     test_string_bool_tolerated()

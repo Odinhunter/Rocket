@@ -1,10 +1,9 @@
 """Population construction — resolve an AudienceSpec into a panel of agents.
 
-In v1 the agent matrix was `rng.sample(disposition_pool, D)` x contexts x
-seeds — a flat sample from archetype pools. In v2 a panel is the
-deterministic resolution of an AudienceSpec: demographics x dispositions x
-contexts x a chaos *distribution*, sampled by stratified allocation to
-match the specified distributions as closely as the panel size allows.
+A panel is the deterministic resolution of an AudienceSpec: demographics
+x dispositions x contexts x a chaos *distribution*, sampled by stratified
+allocation to match the specified distributions as closely as the panel
+size allows.
 
 Determinism: given the same AudienceSpec + dispositions + seed, build_panel
 returns an identical panel (agent_id order included). The seed controls
@@ -34,8 +33,7 @@ SegmentGranularity = str  # "disposition" | "disposition_chaos_band"
 
 @dataclass
 class PanelAgent:
-    """One agent — a point across all four population axes. The v2
-    replacement for v1's AgentSpec."""
+    """One agent — a point across all four population axes."""
 
     agent_id: int
     demographic: DemographicPoint

@@ -1,19 +1,15 @@
-"""Rocket Creative Read — CLI entry point.
+"""Rocket Creative Read — CLI entry point (rocket-2.0.0).
 
-Two modes:
+Two-phase run against a composed AudienceSpec:
 
-  v1 (rocket-1.3.0) — archetype/category sampling:
-    python batch_run.py --asset assets/boat_ad.png
-    python batch_run.py --asset assets/boat_ad.png --dispositions 5 --contexts 3
-
-  v2 (rocket-2.0.0) — two-phase run against a composed AudienceSpec:
     python batch_run.py --asset assets/boat_ad.png \\
         --audience-spec specs/cold_traffic.json \\
         --category personal_audio --account acme --brand-profile boat
-    Add --yes to skip the confirmation prompt (auto-confirm).
 
-The v2 path resolves the AudienceSpec against the Brand Profile's
-disposition library (which must already exist on disk under
+Add --yes to skip the confirmation prompt (auto-commit).
+
+The run resolves the AudienceSpec against the Brand Profile's disposition
+library (which must already exist on disk under
 runs/<account>/<brand>/entities/), runs prepare() -> shows the
 confirmation surface -> commit() (which debits the credit).
 """
@@ -34,8 +30,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 from agent.config import AssetSpec, RunConfig
 from agent.entities import AudienceSpec
-from agent.run_service import RunService
-from agent.run_service_v2 import RunPreparation, RunServiceV2
+from agent.run_service import RunPreparation, RunService
 from agent.schema import Report
 from agent.telemetry import run_dir, telemetry_summary
 
@@ -81,20 +76,8 @@ def _print_target_and_changes(report: Report) -> None:
         print(f"    — {q.disposition}, R{q.round}, {q.context}\n")
 
 
-def _print_v1_report(report: Report) -> None:
-    print()
-    print("=" * 78)
-    print(f"VERDICT: {report.verdict}   confidence: {report.confidence}/100")
-    print("=" * 78)
-    if report.methodology_flags:
-        print(f"\nMETHODOLOGY FLAGS ({len(report.methodology_flags)}):")
-        for flag in report.methodology_flags:
-            print(f"  ⚑ {flag}")
-    _print_target_and_changes(report)
-
-
-def _print_v2_report(report: Report) -> None:
-    """v2 leads with the bet ranking — the brand-manager headline. Verdict,
+def _print_report(report: Report) -> None:
+    """Lead with the bet ranking — the brand-manager headline. Verdict,
     confidence and the funnel projection are supporting metadata."""
     print()
     print("=" * 78)
@@ -168,9 +151,6 @@ def _print_telemetry(config: RunConfig) -> None:
         print(f"\n# Artifacts: {latest[0]}/")
 
 
-# ---- v2 path ----
-
-
 def _print_preparation(prep: RunPreparation) -> None:
     print()
     print("=" * 78)
@@ -202,7 +182,42 @@ def _print_preparation(prep: RunPreparation) -> None:
     print("=" * 78)
 
 
-def _run_v2(args: argparse.Namespace, asset_path: Path, asset_label: str) -> None:
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Rocket Creative Read — two-phase AudienceSpec run.",
+    )
+    parser.add_argument("--asset", required=True,
+                        help="Path to the creative asset (.png / .jpg / .webp).")
+    parser.add_argument("--asset-label", default=None,
+                        help="Human caption for the asset. Defaults to filename.")
+    parser.add_argument("--audience-spec", required=True,
+                        help="Path to an AudienceSpec JSON file.")
+    parser.add_argument("--category", default=_DEFAULT_CATEGORY)
+    parser.add_argument("--account", default="internal", help="Account ID.")
+    parser.add_argument("--brand-profile", default="default", help="Brand Profile ID.")
+    parser.add_argument("--archetype", default=_DEFAULT_ARCHETYPE,
+                        help="Archetype label retained for telemetry tagging.")
+    parser.add_argument("--max-concurrent", type=int, default=4,
+                        help="Max parallel agents. Default 4.")
+    parser.add_argument("--seed", type=int, default=71, help="Sampling seed.")
+    parser.add_argument("--baseline-funnel", default=None,
+                        help="Path to a JSON file with the customer's baseline "
+                             "funnel: stop_rate / click_rate / visit_rate / convert_rate.")
+    parser.add_argument("--segment-granularity", default="disposition_chaos_band",
+                        choices=["disposition", "disposition_chaos_band"],
+                        help="L2 fan-out granularity. Default disposition_chaos_band.")
+    parser.add_argument("--library-id", default="", help="Disposition library id.")
+    parser.add_argument("--audience-id", default="", help="Saved audience id.")
+    parser.add_argument("--yes", action="store_true",
+                        help="Skip the confirmation prompt; auto-commit.")
+    args = parser.parse_args()
+
+    asset_path = Path(args.asset)
+    if not asset_path.exists():
+        print(f"ERROR: asset not found at {asset_path}", file=sys.stderr)
+        sys.exit(1)
+    asset_label = args.asset_label or asset_path.stem.replace("_", " ").title()
+
     spec_data = json.loads(Path(args.audience_spec).read_text())
     audience_spec = AudienceSpec.from_dict(spec_data)
 
@@ -218,7 +233,6 @@ def _run_v2(args: argparse.Namespace, asset_path: Path, asset_label: str) -> Non
         brand_profile_id=args.brand_profile,
         max_concurrent_agents=args.max_concurrent,
         seed=args.seed,
-        protocol_version="rocket-2.0.0",
         audience_spec=audience_spec,
         segment_granularity=args.segment_granularity,
         baseline_funnel=baseline_funnel,
@@ -226,13 +240,13 @@ def _run_v2(args: argparse.Namespace, asset_path: Path, asset_label: str) -> Non
         audience_id=args.audience_id,
     )
 
-    print("# Rocket Creative Read — v2 (rocket-2.0.0)")
+    print("# Rocket Creative Read (rocket-2.0.0)")
     print(f"# asset: {asset_path}  ({asset_label})")
     print(f"# category: {config.category}")
     print(f"# account / brand_profile: {config.account_id} / {config.brand_profile_id}")
     print(f"# audience spec: {args.audience_spec}")
 
-    prep = RunServiceV2.prepare(config)
+    prep = RunService.prepare(config)
     _print_preparation(prep)
 
     if not args.yes:
@@ -242,96 +256,9 @@ def _run_v2(args: argparse.Namespace, asset_path: Path, asset_label: str) -> Non
                   f"re-run with --yes or commit it later.\n# {run_dir(prep.run_id, account_id=config.account_id, brand_profile_id=config.brand_profile_id)}/")
             return
 
-    report = RunServiceV2.commit(prep)
-    _print_v2_report(report)
+    report = RunService.commit(prep)
+    _print_report(report)
     _print_telemetry(config)
-
-
-# ---- v1 path ----
-
-
-def _run_v1(args: argparse.Namespace, asset_path: Path, asset_label: str) -> None:
-    config = RunConfig(
-        asset=AssetSpec(image_path=str(asset_path), label=asset_label),
-        archetype=args.archetype,
-        category=args.category,
-        account_id=args.account,
-        brand_profile_id=args.brand_profile,
-        dispositions_per_run=args.dispositions,
-        contexts_per_run=args.contexts,
-        seeds_per_cell=args.seeds,
-        max_concurrent_agents=args.max_concurrent,
-        seed=args.seed,
-    )
-    config.validate()
-
-    print("# Rocket Creative Read — v1 (rocket-1.3.0)")
-    print(f"# asset: {asset_path}  ({asset_label})")
-    print(f"# archetype: {config.archetype} / category: {config.category}")
-    print(f"# agents: D={config.dispositions_per_run} × C={config.contexts_per_run} × "
-          f"S={config.seeds_per_cell} = {config.total_agents()}")
-    print(f"# account / brand_profile: {config.account_id} / {config.brand_profile_id}")
-    print(f"# concurrency: {config.max_concurrent_agents}")
-
-    report = RunService.run(config, resume_run_id=args.resume)
-    _print_v1_report(report)
-    _print_telemetry(config)
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Rocket Creative Read — v1 archetype sampling or v2 "
-                    "two-phase AudienceSpec run.",
-    )
-    parser.add_argument("--asset", required=True,
-                        help="Path to the creative asset (.png / .jpg / .webp).")
-    parser.add_argument("--asset-label", default=None,
-                        help="Human caption for the asset. Defaults to filename.")
-    parser.add_argument("--category", default=_DEFAULT_CATEGORY)
-    parser.add_argument("--account", default="internal", help="Account ID.")
-    parser.add_argument("--brand-profile", default="default", help="Brand Profile ID.")
-    parser.add_argument("--max-concurrent", type=int, default=4,
-                        help="Max parallel agents. Default 4.")
-    parser.add_argument("--seed", type=int, default=71, help="Sampling seed.")
-
-    # --- v2 flags ---
-    parser.add_argument("--audience-spec", default=None,
-                        help="Path to an AudienceSpec JSON file. Presence of this "
-                             "flag selects the v2 two-phase path.")
-    parser.add_argument("--baseline-funnel", default=None,
-                        help="(v2) Path to a JSON file with the customer's baseline "
-                             "funnel: stop_rate / click_rate / visit_rate / convert_rate.")
-    parser.add_argument("--segment-granularity", default="disposition_chaos_band",
-                        choices=["disposition", "disposition_chaos_band"],
-                        help="(v2) L2 fan-out granularity. Default disposition_chaos_band.")
-    parser.add_argument("--library-id", default="", help="(v2) Disposition library id.")
-    parser.add_argument("--audience-id", default="", help="(v2) Saved audience id.")
-    parser.add_argument("--yes", action="store_true",
-                        help="(v2) Skip the confirmation prompt; auto-commit.")
-
-    # --- v1 flags ---
-    parser.add_argument("--archetype", default=_DEFAULT_ARCHETYPE,
-                        help="(v1) Archetype to sample dispositions/contexts from.")
-    parser.add_argument("--dispositions", type=int, default=5,
-                        help="(v1) Dispositions per run. Default 5.")
-    parser.add_argument("--contexts", type=int, default=3,
-                        help="(v1) Contexts per run. Default 3.")
-    parser.add_argument("--seeds", type=int, default=1,
-                        help="(v1) Seeds per cell. Default 1.")
-    parser.add_argument("--resume", metavar="RUN_ID", default=None,
-                        help="(v1) Resume an existing run by run_id.")
-    args = parser.parse_args()
-
-    asset_path = Path(args.asset)
-    if not asset_path.exists():
-        print(f"ERROR: asset not found at {asset_path}", file=sys.stderr)
-        sys.exit(1)
-    asset_label = args.asset_label or asset_path.stem.replace("_", " ").title()
-
-    if args.audience_spec:
-        _run_v2(args, asset_path, asset_label)
-    else:
-        _run_v1(args, asset_path, asset_label)
 
 
 if __name__ == "__main__":

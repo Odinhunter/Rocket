@@ -287,8 +287,8 @@ class Report:
     context_fit_map: dict[str, ContextFitEntry]
     verbatim_consumer_voice: list[Quote]
     methodology_flags: list[str] = field(default_factory=list)
-    # rocket-2.0.0 additions. Defaults keep v1 serialization roundtripping
-    # untouched: a v1 Report has bet_ranking=[], funnel_projection=None,
+    # Defaults let legacy Reports round-trip cleanly when the new fields
+    # weren't populated: bet_ranking=[], funnel_projection=None,
     # provisional_dispositions=[].
     bet_ranking: list[str] = field(default_factory=list)
     funnel_projection: "FunnelProjection | None" = None
@@ -484,9 +484,9 @@ class AgentTranscript:
     R3 EMOTION: ... for encoding; R4, R5, R6 for reflection). L2 splits
     them via section-header regex.
 
-    rocket-2.0.0: `behavioral_signal` carries the parsed R7 action. It
-    defaults to None — v1 transcripts (no R7) and v2 transcripts where R7
-    failed to parse both leave it None, and L2 handles the gap.
+    `behavioral_signal` carries the parsed R7 action. It defaults to None
+    when R7 failed to parse (or for legacy transcripts predating R7); L2
+    handles the gap.
     """
     agent_id: int
     disposition_label: str

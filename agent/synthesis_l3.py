@@ -1,45 +1,38 @@
-"""L3 — Population synthesis.
+"""L3 — population synthesis.
 
-Single Sonnet call. Reads L2 per-disposition summaries + TargetClassification,
-emits an L3Summary that L4 will turn into the consumer-facing memo.
+Reads per-SEGMENT L2 summaries (one per disposition × chaos-band, up to
+~21 of them) and emits a structured evidence base.
 
-Tool-use mode is used here (safe on Sonnet — the L4 failure mode was Opus
-+ long memo + complex nested schema → truncation inside tool input).
-L3 outputs a flatter schema; the truncation risk does not apply.
+Two pieces are DETERMINISTIC PYTHON ("distributions are Python, not the
+model"):
+  - segment_behavioral_distributions: each L2 summary's R7 distribution,
+    keyed by segment_label.
+  - population_behavioral_distribution: those distributions summed.
 
-What L3 produces:
-- robust_themes: findings supported by >= 3 dispositions (or all of them, if
-  there are fewer than 3 in the run)
-- fragile_themes: findings flagged by only one disposition
-- within_target_findings / outside_target_findings: split using the target
-  classification's `classification` field
-- context_fit: one entry per context label seen across the L2 summaries
-- representative_quotes: a global pool of 10-20 quotes for L4 to draw from
-- confidence_signals: quantitative summary (within_target_count,
-  contexts_in_agreement, etc.) so L4 can land on the confidence anchors
+These feed L3.5 (agent/projection_l35.py), the funnel projection layer.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from collections import Counter
 
 import anthropic
 
+from typing import Any
+
 from agent.config import RunConfig
+from agent.schema import BehavioralSignalDistribution, Quote
 from agent.synthesis_types import (
     ConfidenceSignals,
     ContextFitFinding,
-    DispositionTarget,
     L2Summary,
     L3Summary,
     TargetClassification,
     Theme,
 )
-from agent.schema import Quote
 from agent.telemetry import call_with_telemetry
-
 
 _log = logging.getLogger(__name__)
 
@@ -209,6 +202,29 @@ inputs verbatim.
 evidence base, not the conclusion."""
 
 
+def _extract_tool_use(response: Any, tool_name: str) -> dict:
+    for block in response.content:
+        if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == tool_name:
+            return block.input
+    raise RuntimeError(
+        f"Expected tool_use block named {tool_name!r}, got blocks: "
+        f"{[getattr(b, 'type', None) for b in response.content]}"
+    )
+
+
+def _pool_quotes_from_l2(l2_summaries: list[L2Summary]) -> list[Quote]:
+    """Gather all quotes from L2 summaries' representative_quotes maps into one
+    flat pool that L4 can draw evidence from. Order: by round, then by
+    disposition."""
+    pool: list[Quote] = []
+    for round_num in range(1, 7):
+        for summary in sorted(l2_summaries, key=lambda s: s.disposition_label):
+            q = summary.representative_quotes.get(round_num)
+            if q is not None:
+                pool.append(q)
+    return pool
+
+
 # ---- Public entry point ----
 
 
@@ -217,7 +233,9 @@ def synthesize_population(
     target_classification: TargetClassification,
     config: RunConfig,
 ) -> L3Summary:
-    """L3 synthesis. One Sonnet call with structured tool-use output."""
+    """L3 synthesis. One Sonnet call for the narrative; the quote pool,
+    confidence signals, and behavioral-signal distributions are computed in
+    Python."""
     client = anthropic.Anthropic(max_retries=5)
     model = config.model_versions["l3"]
     user_payload = _build_user_payload(l2_summaries, target_classification, config)
@@ -241,16 +259,6 @@ def synthesize_population(
 # ---- Internals ----
 
 
-def _extract_tool_use(response: Any, tool_name: str) -> dict:
-    for block in response.content:
-        if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == tool_name:
-            return block.input
-    raise RuntimeError(
-        f"Expected tool_use block named {tool_name!r}, got blocks: "
-        f"{[getattr(b, 'type', None) for b in response.content]}"
-    )
-
-
 def _build_l3_summary(
     tool_input: dict,
     l2_summaries: list[L2Summary],
@@ -260,34 +268,47 @@ def _build_l3_summary(
         k: ContextFitFinding(verdict=v["verdict"], friction_summary=v["friction_summary"])
         for k, v in tool_input.get("context_fit", {}).items()
     }
+    seg_dists, pop_dist = _compute_behavioral_distributions(l2_summaries)
     return L3Summary(
         robust_themes=[Theme(**t) for t in tool_input.get("robust_themes", [])],
         fragile_themes=[Theme(**t) for t in tool_input.get("fragile_themes", [])],
-        within_target_findings=[Theme(**t) for t in tool_input.get("within_target_findings", [])],
-        outside_target_findings=[Theme(**t) for t in tool_input.get("outside_target_findings", [])],
+        within_target_findings=[
+            Theme(**t) for t in tool_input.get("within_target_findings", [])
+        ],
+        outside_target_findings=[
+            Theme(**t) for t in tool_input.get("outside_target_findings", [])
+        ],
         context_fit=context_fit,
         representative_quotes=_pool_quotes_from_l2(l2_summaries),
-        confidence_signals=_compute_confidence_signals(l2_summaries, tc, context_fit),
+        confidence_signals=_compute_confidence_signals(
+            l2_summaries, tc, context_fit
+        ),
+        segment_behavioral_distributions=seg_dists,
+        population_behavioral_distribution=pop_dist,
     )
 
 
-def _pool_quotes_from_l2(l2_summaries: list[L2Summary]) -> list[Quote]:
-    """Gather all quotes from L2 summaries' representative_quotes maps into one
-    flat pool that L4 can draw evidence from. Order: by round, then by
-    disposition, so the pool has predictable round coverage.
-
-    No filtering, no model judgment — just aggregation. L4 picks 5-10 for
-    the consumer-facing verbatim_consumer_voice based on its own judgment.
-    """
-    pool: list[Quote] = []
-    # Iterate rounds 1..6 to get balanced coverage, then within each round
-    # iterate sorted by disposition.
-    for round_num in range(1, 7):
-        for summary in sorted(l2_summaries, key=lambda s: s.disposition_label):
-            q = summary.representative_quotes.get(round_num)
-            if q is not None:
-                pool.append(q)
-    return pool
+def _compute_behavioral_distributions(
+    l2_summaries: list[L2Summary],
+) -> tuple[dict[str, BehavioralSignalDistribution], BehavioralSignalDistribution]:
+    """Deterministic: collect each segment's R7 distribution (keyed by
+    segment_label) and sum them into the population distribution."""
+    seg_dists: dict[str, BehavioralSignalDistribution] = {}
+    pop_counts: dict[str, int] = {}
+    pop_would_act = 0
+    pop_n = 0
+    for s in l2_summaries:
+        label = s.segment_label or s.disposition_label
+        dist = s.behavioral_distribution
+        seg_dists[label] = dist
+        for action, count in dist.counts.items():
+            pop_counts[action] = pop_counts.get(action, 0) + count
+        pop_would_act += dist.would_act_within_week_count
+        pop_n += dist.n
+    pop_dist = BehavioralSignalDistribution(
+        counts=pop_counts, would_act_within_week_count=pop_would_act, n=pop_n
+    )
+    return seg_dists, pop_dist
 
 
 def _compute_confidence_signals(
@@ -295,34 +316,26 @@ def _compute_confidence_signals(
     tc: TargetClassification,
     context_fit: dict[str, ContextFitFinding],
 ) -> ConfidenceSignals:
-    """Deterministic counts. Don't ask the model; just count."""
+    """Deterministic counts. L2 summaries are per-SEGMENT, so multiple
+    summaries may share a disposition_label — within_target_count counts
+    DISTINCT within-target dispositions, not segments."""
     within_labels = set(tc.within_target_labels())
-
-    within_count = sum(
-        1 for s in l2_summaries if s.disposition_label in within_labels
+    dispositions_present = {s.disposition_label for s in l2_summaries}
+    within_count = len(dispositions_present & within_labels)
+    homog_count = sum(
+        1 for s in l2_summaries if s.within_cell_variance == "tight"
     )
-    homog_count = sum(1 for s in l2_summaries if s.within_cell_variance == "tight")
     total_contexts = len(context_fit)
-
-    # contexts_in_agreement: count contexts where the L3 verdict label
-    # matches across-context for the within-target-only set of L2 summaries.
-    # In the simple case where one context per agent, the L3 emits a verdict
-    # per context; agreement here is just "how many contexts share the same
-    # verdict label as the majority." If only one context exists, agreement = 1.
     verdicts = [cf.verdict for cf in context_fit.values()]
-    if not verdicts:
-        contexts_in_agreement = 0
-    else:
-        # Majority verdict count
-        from collections import Counter
-        most_common_count = Counter(verdicts).most_common(1)[0][1]
-        contexts_in_agreement = most_common_count
-
+    contexts_in_agreement = (
+        Counter(verdicts).most_common(1)[0][1] if verdicts else 0
+    )
     return ConfidenceSignals(
         within_target_disposition_count=within_count,
         contexts_in_agreement=contexts_in_agreement,
         total_contexts=total_contexts,
         homogenization_flag_count=homog_count,
+        total_segments=len(l2_summaries),
     )
 
 
@@ -334,13 +347,16 @@ def _build_user_payload(
     payload = {
         "asset_label": config.asset.label,
         "category": config.category,
-        "archetype": config.archetype,
         "target_classification": tc.to_dict(),
         "l2_summaries": [s.to_dict() for s in l2_summaries],
     }
     return (
         "INPUTS FOR POPULATION SYNTHESIS\n"
         "================================\n\n"
+        "Note: l2_summaries are per-SEGMENT (disposition x chaos-band). "
+        "Multiple segments may share a disposition_label. Treat each as a "
+        "distinct evidence cell; use disposition_label for the "
+        "within/outside-target split.\n\n"
         + json.dumps(payload, indent=2, ensure_ascii=False)
         + "\n\nCall emit_population_synthesis with your structured output."
     )

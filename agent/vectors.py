@@ -1,4 +1,4 @@
-"""The four standardized population axes for Rocket v2 (rocket-2.0.0).
+"""The four standardized population axes for Rocket.
 
 Every agent in a panel is one point across four axes:
 
@@ -8,11 +8,10 @@ Every agent in a panel is one point across four axes:
   4. Chaos         — behavioral style, a 4-dimension vector; a run carries a
                      *distribution* over named chaos profiles.
 
-This is the schematization that the v1 free-text disposition/context prose
-could not support: structured vectors are comparable across runs (so a
-benchmark library and calibration become possible), renderable on demand
-(so a customer can compose an audience on the spot), and the substrate the
-funnel projection is built on.
+Structured vectors are comparable across runs (so a benchmark library and
+calibration become possible), renderable on demand (so a customer can
+compose an audience on the spot), and the substrate the funnel projection
+is built on.
 
 Every vector enum carries `"unspecified"` as an escape hatch so Phase 1
 artifact-pack curation can surface a missing value without forcing a
