@@ -1,0 +1,119 @@
+{
+  "demographics": [
+    {
+      "gender": "any",
+      "age_band": "25_34",
+      "income_tier": "upper_mid",
+      "geography": "Bangalore / Mumbai / Delhi metro",
+      "occupation_hint": "early/mid-career — startup, consulting, design",
+      "household_hint": "single or dating; lives with flatmates or partner"
+    },
+    {
+      "gender": "any",
+      "age_band": "25_34",
+      "income_tier": "upper_mid",
+      "geography": "Bangalore / Mumbai / Pune metro",
+      "occupation_hint": "early/mid-career — corporate, startup",
+      "household_hint": "recently married or new parent; own 2BHK"
+    },
+    {
+      "gender": "female",
+      "age_band": "35_44",
+      "income_tier": "upper_mid",
+      "geography": "Pune / Mumbai / Indore tier-1 + tier-2",
+      "occupation_hint": "household decision-maker; part-time work or full-time-mom",
+      "household_hint": "married with 1-2 school-age kids; 3BHK; runs household"
+    }
+  ],
+  "disposition_labels": [
+    "loyalist_dairymilk",
+    "upgrader_premium",
+    "gifter_festive",
+    "skeptic_health_dark",
+    "gifter_silk_dating",
+    "loyalist_nostalgic"
+  ],
+  "context_envelope": [
+    {
+      "label": "commute_scroll",
+      "vector": {
+        "attention_level": "low",
+        "device_posture": "commute",
+        "intent_state": "killing_time",
+        "energy_state": "drained",
+        "social_setting": "public"
+      }
+    },
+    {
+      "label": "evening_couch_scroll",
+      "vector": {
+        "attention_level": "low",
+        "device_posture": "couch",
+        "intent_state": "passive_browse",
+        "energy_state": "neutral",
+        "social_setting": "family_present"
+      }
+    },
+    {
+      "label": "pre_purchase_research",
+      "vector": {
+        "attention_level": "high",
+        "device_posture": "desk",
+        "intent_state": "actively_shopping",
+        "energy_state": "alert",
+        "social_setting": "alone"
+      }
+    },
+    {
+      "label": "weekend_afternoon_browse",
+      "vector": {
+        "attention_level": "medium",
+        "device_posture": "couch",
+        "intent_state": "passive_browse",
+        "energy_state": "neutral",
+        "social_setting": "alone"
+      }
+    }
+  ],
+  "chaos_distribution": {
+    "weighted": [
+      {
+        "profile": {
+          "label": "impulsive",
+          "vector": {
+            "decision_velocity": "impulsive",
+            "suggestibility": "high",
+            "consistency": "erratic",
+            "risk_tolerance": "seeking"
+          }
+        },
+        "weight": 0.35
+      },
+      {
+        "profile": {
+          "label": "moderate",
+          "vector": {
+            "decision_velocity": "moderate",
+            "suggestibility": "medium",
+            "consistency": "variable",
+            "risk_tolerance": "balanced"
+          }
+        },
+        "weight": 0.45
+      },
+      {
+        "profile": {
+          "label": "deliberate",
+          "vector": {
+            "decision_velocity": "deliberate",
+            "suggestibility": "low",
+            "consistency": "steady",
+            "risk_tolerance": "averse"
+          }
+        },
+        "weight": 0.2
+      }
+    ]
+  },
+  "panel_size": 100
+}
