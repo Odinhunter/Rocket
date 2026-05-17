@@ -54,7 +54,6 @@ from agent.entities import DispositionLibrary
 from agent.panel import PanelAgent, build_panel, compute_panel_version
 from agent.projection_l35 import project_funnel
 from agent.render import render_persona_core
-from agent.run_service import _persist_json
 from agent.runtime_v2 import run_agent_v2_async
 from agent.schema import AgentTranscript, Report
 from agent.synthesis_l2_v2 import synthesize_segment_async
@@ -83,6 +82,13 @@ _COST_L3 = 0.06
 _COST_L4 = 0.32
 _COST_TARGET_ID = 0.15
 _COST_PER_RENDER = 0.005
+
+
+def _persist_json(path: Path, payload: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
+    tmp.replace(path)
 
 
 # ---- RunPreparation ----

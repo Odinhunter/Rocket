@@ -23,9 +23,10 @@ from collections import Counter
 
 import anthropic
 
+from typing import Any
+
 from agent.config import RunConfig
-from agent.schema import BehavioralSignalDistribution
-from agent.synthesis_l3 import _L3_SYSTEM, _L3_TOOL, _extract_tool_use, _pool_quotes_from_l2
+from agent.schema import BehavioralSignalDistribution, Quote
 from agent.synthesis_types import (
     ConfidenceSignals,
     ContextFitFinding,
@@ -37,6 +38,194 @@ from agent.synthesis_types import (
 from agent.telemetry import call_with_telemetry
 
 _log = logging.getLogger(__name__)
+
+
+# ---- Tool schema ----
+
+
+_L3_TOOL = {
+    "name": "emit_population_synthesis",
+    "description": (
+        "Emit the narrative synthesis: cross-disposition robust themes, "
+        "fragile (single-disposition) flags, within- vs outside-target "
+        "findings, and per-context fit. Verdict-level reasoning belongs "
+        "to L4, not here — L3 produces the structured evidence base. "
+        "Quote pool and confidence signals are NOT emitted by the model; "
+        "they are computed deterministically in Python from the L2 inputs."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "robust_themes": {
+                "type": "array",
+                "description": "Findings cited by >=3 dispositions (or by all dispositions when fewer than 3 exist in this run).",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "statement": {"type": "string"},
+                        "cited_by": {"type": "array", "items": {"type": "string"}},
+                        "rounds": {"type": "array", "items": {"type": "integer"}},
+                    },
+                    "required": ["statement", "cited_by", "rounds"],
+                },
+            },
+            "fragile_themes": {
+                "type": "array",
+                "description": "Findings flagged by only one disposition; surfaced for transparency but not load-bearing.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "statement": {"type": "string"},
+                        "cited_by": {"type": "array", "items": {"type": "string"}},
+                        "rounds": {"type": "array", "items": {"type": "integer"}},
+                    },
+                    "required": ["statement", "cited_by", "rounds"],
+                },
+            },
+            "within_target_findings": {
+                "type": "array",
+                "description": (
+                    "Findings drawn ONLY from dispositions classified 'within' "
+                    "in the target classification. These are the load-bearing "
+                    "verdict drivers for L4."
+                ),
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "statement": {"type": "string"},
+                        "cited_by": {"type": "array", "items": {"type": "string"}},
+                        "rounds": {"type": "array", "items": {"type": "integer"}},
+                    },
+                    "required": ["statement", "cited_by", "rounds"],
+                },
+            },
+            "outside_target_findings": {
+                "type": "array",
+                "description": (
+                    "Findings drawn ONLY from dispositions classified 'outside'. "
+                    "Informational context, not verdict drivers."
+                ),
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "statement": {"type": "string"},
+                        "cited_by": {"type": "array", "items": {"type": "string"}},
+                        "rounds": {"type": "array", "items": {"type": "integer"}},
+                    },
+                    "required": ["statement", "cited_by", "rounds"],
+                },
+            },
+            "context_fit": {
+                "type": "object",
+                "description": (
+                    "One entry per context label that appears in this run's "
+                    "L2 summaries. Use the exact context_label string as the key. "
+                    "verdict is lowercase: working / mixed / failing."
+                ),
+                "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                        "verdict": {"type": "string", "enum": ["working", "mixed", "failing"]},
+                        "friction_summary": {"type": "string"},
+                    },
+                    "required": ["verdict", "friction_summary"],
+                },
+            },
+        },
+        "required": [
+            "robust_themes",
+            "fragile_themes",
+            "within_target_findings",
+            "outside_target_findings",
+            "context_fit",
+        ],
+    },
+}
+
+
+_L3_SYSTEM = """\
+You are a senior consumer-research analyst doing population synthesis on \
+a multi-agent Creative Read. Your job is to compress per-disposition L2 \
+summaries into a structured evidence base that a strategist (L4) will turn \
+into a verdict memo.
+
+You will receive:
+(a) A list of L2 summaries — one per disposition. Each carries a 4-6 \
+sentence summary, within-cell variance label, optional outlier note, \
+emotional_read, friction_summary, and a representative_quotes map keyed \
+by round (R1..R6).
+(b) A target classification — per-disposition within/outside/ambiguous \
+labels with reasoning.
+(c) The list of context labels present in this run.
+
+# What you produce
+
+A structured population synthesis via the emit_population_synthesis tool. \
+Specifically:
+
+- **robust_themes**: findings supported by >= 3 dispositions (or all \
+dispositions when there are fewer than 3 in the run). One sentence per \
+theme, exact disposition labels in cited_by. Rounds is the set of rounds \
+where the theme surfaced (de-duplicated).
+
+- **fragile_themes**: findings supported by exactly one disposition. \
+Surfaced for transparency — L4 will deprioritize them.
+
+- **within_target_findings**: themes drawn ONLY from dispositions \
+classified "within" in the target classification. These are the verdict-\
+load-bearing findings. If only one disposition is within-target, the \
+findings come from just that one — that's still useful, but note it \
+implicitly through cited_by length.
+
+- **outside_target_findings**: themes drawn ONLY from outside-target \
+dispositions. These are informational about how the ad reads cross-\
+segment — not verdict drivers.
+
+- **context_fit**: one entry per context label that appears in the L2 \
+summaries. verdict is "working" / "mixed" / "failing" — lowercase — \
+based on whether the ad's within-target story holds, breaks, or wobbles \
+in that attention state. friction_summary is one sentence describing \
+the dominant friction in that context.
+
+You do NOT emit a quote pool or confidence signals — those are computed \
+in Python from the L2 inputs. Your job is the *narrative* synthesis: \
+themes, findings, context fit. The quantitative scaffolding is handled \
+elsewhere.
+
+# Discipline
+
+- Use the exact disposition_label strings from the input. Don't shorten, \
+don't rephrase.
+- Use the exact context labels from the input. Don't add or rename them.
+- Theme statements are ONE sentence each, specific to this ad, traceable \
+to L2 evidence.
+- Do not invent quotes. representative_quotes are pulled from the L2 \
+inputs verbatim.
+- Do not commit a verdict here — that's L4's job. Your output is the \
+evidence base, not the conclusion."""
+
+
+def _extract_tool_use(response: Any, tool_name: str) -> dict:
+    for block in response.content:
+        if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == tool_name:
+            return block.input
+    raise RuntimeError(
+        f"Expected tool_use block named {tool_name!r}, got blocks: "
+        f"{[getattr(b, 'type', None) for b in response.content]}"
+    )
+
+
+def _pool_quotes_from_l2(l2_summaries: list[L2Summary]) -> list[Quote]:
+    """Gather all quotes from L2 summaries' representative_quotes maps into one
+    flat pool that L4 can draw evidence from. Order: by round, then by
+    disposition."""
+    pool: list[Quote] = []
+    for round_num in range(1, 7):
+        for summary in sorted(l2_summaries, key=lambda s: s.disposition_label):
+            q = summary.representative_quotes.get(round_num)
+            if q is not None:
+                pool.append(q)
+    return pool
 
 
 # ---- Public entry point ----

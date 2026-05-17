@@ -24,13 +24,125 @@ import logging
 
 import anthropic
 
+from typing import Any
+
 from agent.config import RunConfig
 from agent.schema import AgentTranscript, BehavioralSignalDistribution, Quote
-from agent.synthesis_l2 import _L2_TOOL, _extract_tool_use
 from agent.synthesis_types import L2Summary
 from agent.telemetry import call_with_telemetry
 
 _log = logging.getLogger(__name__)
+
+
+_L2_TOOL = {
+    "name": "emit_disposition_summary",
+    "description": (
+        "Emit the per-disposition summary: a 4-6 sentence read of what "
+        "this disposition thinks of the ad, within-cell variance flag, "
+        "optional outlier note, representative quotes per round (R1-R6), "
+        "emotional read, friction summary."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "summary_paragraph": {
+                "type": "string",
+                "description": (
+                    "4-6 sentences in third-person, summarizing what this "
+                    "disposition's read of the ad is across the contexts "
+                    "and seeds in this cell. Specific to the ad, traceable "
+                    "to evidence in the transcripts. No generic strategy "
+                    "language."
+                ),
+            },
+            "within_cell_variance": {
+                "type": "string",
+                "enum": ["tight", "spread", "outlier_present"],
+                "description": (
+                    "'tight': agents in this cell said roughly the same thing "
+                    "(homogenization flag — may indicate model echo rather "
+                    "than disposition signal). 'spread': healthy variance "
+                    "across contexts/seeds within the disposition. "
+                    "'outlier_present': one agent diverged sharply — set "
+                    "outlier_note in that case."
+                ),
+            },
+            "outlier_note": {
+                "type": ["string", "null"],
+                "description": (
+                    "If within_cell_variance == 'outlier_present', describe "
+                    "the outlier in one sentence. Otherwise null."
+                ),
+            },
+            "representative_quotes": {
+                "type": "object",
+                "description": (
+                    "Map keyed by round number as STRING ('1', '2', '3', '4', "
+                    "'5', '6'). Each value is one Quote — the most specific, "
+                    "quotable verbatim from that round across this "
+                    "disposition's transcripts. Include all six rounds when "
+                    "the transcripts cover them. Quotes are verbatim — copy "
+                    "exact phrasing, do not paraphrase."
+                ),
+                "properties": {
+                    "1": {"$ref": "#/$defs/Quote"},
+                    "2": {"$ref": "#/$defs/Quote"},
+                    "3": {"$ref": "#/$defs/Quote"},
+                    "4": {"$ref": "#/$defs/Quote"},
+                    "5": {"$ref": "#/$defs/Quote"},
+                    "6": {"$ref": "#/$defs/Quote"},
+                },
+                "additionalProperties": False,
+            },
+            "emotional_read": {
+                "type": "string",
+                "description": (
+                    "1-2 sentences synthesizing the R3 EMOTION sections across "
+                    "the transcripts. What did the ad make this disposition "
+                    "feel, in their own register?"
+                ),
+            },
+            "friction_summary": {
+                "type": "string",
+                "description": (
+                    "1-2 sentences synthesizing R6 FRICTION across the "
+                    "transcripts. What single biggest friction did this "
+                    "disposition surface? Use their language."
+                ),
+            },
+        },
+        "required": [
+            "summary_paragraph",
+            "within_cell_variance",
+            "outlier_note",
+            "representative_quotes",
+            "emotional_read",
+            "friction_summary",
+        ],
+        "$defs": {
+            "Quote": {
+                "type": "object",
+                "properties": {
+                    "quote": {"type": "string"},
+                    "disposition": {"type": "string"},
+                    "round": {"type": "integer", "minimum": 1, "maximum": 6},
+                    "context": {"type": "string"},
+                },
+                "required": ["quote", "disposition", "round", "context"],
+            },
+        },
+    },
+}
+
+
+def _extract_tool_use(response: Any, tool_name: str) -> dict:
+    for block in response.content:
+        if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == tool_name:
+            return block.input
+    raise RuntimeError(
+        f"Expected tool_use block named {tool_name!r}, got blocks: "
+        f"{[getattr(b, 'type', None) for b in response.content]}"
+    )
 
 
 _L2_V2_SYSTEM = """\

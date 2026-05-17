@@ -23,6 +23,7 @@ the user message, uncached.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 import re
@@ -35,14 +36,69 @@ from agent.artifact_pack import CategoryArtifactPack
 from agent.config import RunConfig
 from agent.panel import PanelAgent
 from agent.render import render_context, render_persona_core
-from agent.runtime import (
-    _extract_text,
-    _image_block,
-    _redact_image_b64,
-    _usage_dict,
-)
 from agent.schema import AgentTranscript, BehavioralSignal, _VALID_BEHAVIORAL_ACTIONS
 from agent.telemetry import call_with_telemetry, run_dir
+
+
+_MEDIA_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+}
+
+
+def _image_block(image_path: str, *, cache: bool) -> dict:
+    path = Path(image_path)
+    media_type = _MEDIA_TYPES.get(path.suffix.lower())
+    if media_type is None:
+        raise ValueError(
+            f"Unsupported image extension {path.suffix!r}. Supported: {sorted(_MEDIA_TYPES)}"
+        )
+    data = base64.standard_b64encode(path.read_bytes()).decode("ascii")
+    block: dict = {
+        "type": "image",
+        "source": {"type": "base64", "media_type": media_type, "data": data},
+    }
+    if cache:
+        block["cache_control"] = {"type": "ephemeral"}
+    return block
+
+
+def _extract_text(response: object) -> str:
+    for block in response.content:
+        if getattr(block, "type", None) == "text":
+            return block.text
+    return ""
+
+
+def _redact_image_b64(content: list[dict]) -> list[dict]:
+    """Drop the base64 image payload from the persisted record; keep media
+    type and the path reference. Cuts artifact size by ~300KB without losing
+    debuggability."""
+    out = []
+    for block in content:
+        if block.get("type") == "image":
+            src = dict(block.get("source", {}))
+            if "data" in src:
+                src["data"] = f"(base64 elided, {len(src['data'])} chars)"
+            out.append({**block, "source": src})
+        else:
+            out.append(block)
+    return out
+
+
+def _usage_dict(response: object) -> dict | None:
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return None
+    return {
+        "input_tokens": getattr(usage, "input_tokens", None),
+        "output_tokens": getattr(usage, "output_tokens", None),
+        "cache_read_input_tokens": getattr(usage, "cache_read_input_tokens", None),
+        "cache_creation_input_tokens": getattr(usage, "cache_creation_input_tokens", None),
+    }
 
 _log = logging.getLogger(__name__)
 
