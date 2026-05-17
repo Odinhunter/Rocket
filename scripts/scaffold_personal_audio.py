@@ -59,7 +59,7 @@ AUDIENCE_ID = "cold_traffic_v1"
 def _library() -> DispositionLibrary:
     dispositions = [
         NamedDisposition(
-            label="brand_loyal_boat_user",
+            label="loyalist_airdopes",
             vector=DispositionVector(
                 category_relationship="regular",
                 brand_stance="loyalist",
@@ -78,7 +78,7 @@ def _library() -> DispositionLibrary:
             ),
         ),
         NamedDisposition(
-            label="spec_led_upgrader",
+            label="enthusiast_specs",
             vector=DispositionVector(
                 category_relationship="regular",
                 brand_stance="neutral",
@@ -97,7 +97,7 @@ def _library() -> DispositionLibrary:
             ),
         ),
         NamedDisposition(
-            label="premium_audio_aspirant",
+            label="aspirant_airpods",
             vector=DispositionVector(
                 category_relationship="regular",
                 brand_stance="skeptical",
@@ -118,7 +118,7 @@ def _library() -> DispositionLibrary:
             ),
         ),
         NamedDisposition(
-            label="design_led_nothing_enthusiast",
+            label="enthusiast_nothing_design",
             vector=DispositionVector(
                 category_relationship="regular",
                 brand_stance="loyalist",
@@ -138,7 +138,7 @@ def _library() -> DispositionLibrary:
             ),
         ),
         NamedDisposition(
-            label="replacement_buyer",
+            label="pragmatist_urgent_replacement",
             vector=DispositionVector(
                 category_relationship="regular",
                 brand_stance="neutral",
@@ -157,7 +157,7 @@ def _library() -> DispositionLibrary:
             ),
         ),
         NamedDisposition(
-            label="specs_skeptical_pragmatist",
+            label="skeptic_warranty",
             vector=DispositionVector(
                 category_relationship="regular",
                 brand_stance="skeptical",
@@ -177,7 +177,7 @@ def _library() -> DispositionLibrary:
             ),
         ),
         NamedDisposition(
-            label="wired_audio_purist",
+            label="purist_wired",
             vector=DispositionVector(
                 category_relationship="occasional",
                 brand_stance="neutral",
@@ -265,11 +265,11 @@ def _audience_spec() -> AudienceSpec:
     return AudienceSpec(
         demographics=[_DEMOGRAPHIC],
         disposition_labels=[
-            "brand_loyal_boat_user",
-            "spec_led_upgrader",
-            "premium_audio_aspirant",
-            "design_led_nothing_enthusiast",
-            "specs_skeptical_pragmatist",
+            "loyalist_airdopes",
+            "enthusiast_specs",
+            "aspirant_airpods",
+            "enthusiast_nothing_design",
+            "skeptic_warranty",
         ],
         context_envelope=_CONTEXT_ENVELOPE,
         chaos_distribution=pack.default_chaos_distribution,
