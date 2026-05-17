@@ -1,6 +1,12 @@
-"""Offline test: _apply_homog_high_guard strips homogenization_high from
-report.methodology_flags when L3 confidence_signals don't justify it under
-v2's fractional rule. The model owns nothing here — Python is authoritative.
+"""Offline test: _suppress_homog_high_v2 unconditionally removes
+`homogenization_high` from report.methodology_flags in v2's L4 path.
+
+Path 1 supersedes the prior fractional-guard approach. The flag's v1
+concept (rare model echo across big cells) does not translate to v2's
+locked-disposition x small-cell segmentation where "tight" is the
+structural default. The model still emits the flag (it sees the v1
+prompt rule); v2 strips it unconditionally. See the block comment in
+agent/synthesis_l4_v2.py for full reasoning.
 
 Run: python tests/test_l4_v2_homog_guard.py
 """
@@ -13,16 +19,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agent.schema import Report
-from agent.synthesis_l4_v2 import (
-    _HOMOG_HIGH_FRACTION,
-    _HOMOG_HIGH_MIN_TOTAL_SEGMENTS,
-    _apply_homog_high_guard,
-)
+from agent.synthesis_l4_v2 import _suppress_homog_high_v2
 from agent.synthesis_types import ConfidenceSignals
 
 
 def _report_with_flags(*flags: str) -> Report:
-    # Minimal valid-shape Report; the guard only reads/mutates methodology_flags.
+    # Minimal valid-shape Report; suppressor only reads/mutates methodology_flags.
     return Report(
         verdict="MIXED",
         confidence=50,
@@ -38,39 +40,37 @@ def _report_with_flags(*flags: str) -> Report:
 def main() -> None:
     # Case 1: flag absent → no-op
     r = _report_with_flags("single_within_target")
-    _apply_homog_high_guard(r, ConfidenceSignals(total_segments=15, homogenization_flag_count=15))
+    _suppress_homog_high_v2(r, ConfidenceSignals(total_segments=15, homogenization_flag_count=12))
     assert r.methodology_flags == ["single_within_target"], "no-op when flag absent"
 
-    # Case 2: total_segments under floor → strip (guards small runs and legacy)
+    # Case 2: flag present at high fraction (would have been "eligible" under old guard) → strip
     r = _report_with_flags("homogenization_high")
-    _apply_homog_high_guard(r, ConfidenceSignals(total_segments=4, homogenization_flag_count=4))
-    assert "homogenization_high" not in r.methodology_flags, "must strip when total_segments under floor"
+    _suppress_homog_high_v2(r, ConfidenceSignals(total_segments=15, homogenization_flag_count=15))
+    assert r.methodology_flags == [], "must strip even at 100% tight"
 
-    # Case 3: fraction below threshold → strip (this is the observed v2 baseline case)
+    # Case 3: flag present at low fraction → strip (same outcome; suppression is unconditional)
     r = _report_with_flags("homogenization_high")
-    _apply_homog_high_guard(r, ConfidenceSignals(total_segments=15, homogenization_flag_count=11))  # 73% — observed boat baseline
-    assert "homogenization_high" not in r.methodology_flags, "must strip at 73% (below 80% threshold)"
+    _suppress_homog_high_v2(r, ConfidenceSignals(total_segments=15, homogenization_flag_count=2))
+    assert r.methodology_flags == [], "must strip even at 13% tight"
 
-    # Case 4: fraction at threshold → keep (boundary)
+    # Case 4: flag present at the boat-observed boundary (12/15 = 80%) → strip
     r = _report_with_flags("homogenization_high")
-    _apply_homog_high_guard(r, ConfidenceSignals(total_segments=15, homogenization_flag_count=12))  # 80% exact
-    assert "homogenization_high" in r.methodology_flags, "must keep at exactly 80%"
+    _suppress_homog_high_v2(r, ConfidenceSignals(total_segments=15, homogenization_flag_count=12))
+    assert r.methodology_flags == [], "must strip at the 80% boundary that motivated Path 1"
 
-    # Case 5: fraction above threshold → keep (genuinely collapsed panel)
+    # Case 5: empty signals (total_segments=0, legacy run shape) → strip without zero-division
     r = _report_with_flags("homogenization_high")
-    _apply_homog_high_guard(r, ConfidenceSignals(total_segments=15, homogenization_flag_count=14))  # 93%
-    assert "homogenization_high" in r.methodology_flags, "must keep at 93%"
+    _suppress_homog_high_v2(r, ConfidenceSignals(total_segments=0, homogenization_flag_count=0))
+    assert r.methodology_flags == [], "must strip safely when total_segments is 0"
 
-    # Case 6: other flags preserved when homog is stripped
+    # Case 6: other flags preserved when homog stripped, order intact
     r = _report_with_flags("single_within_target", "homogenization_high", "provisional_disposition_present")
-    _apply_homog_high_guard(r, ConfidenceSignals(total_segments=15, homogenization_flag_count=9))  # 60%
-    assert r.methodology_flags == ["single_within_target", "provisional_disposition_present"], "other flags preserved, order intact"
+    _suppress_homog_high_v2(r, ConfidenceSignals(total_segments=15, homogenization_flag_count=9))
+    assert r.methodology_flags == ["single_within_target", "provisional_disposition_present"], (
+        "other flags preserved with order intact"
+    )
 
-    # Constants sanity
-    assert _HOMOG_HIGH_FRACTION == 0.80
-    assert _HOMOG_HIGH_MIN_TOTAL_SEGMENTS == 5
-
-    print("PASS: all guard cases")
+    print("PASS: all suppression cases")
 
 
 if __name__ == "__main__":

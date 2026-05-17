@@ -95,51 +95,48 @@ _L4_V2_SYSTEM = (
     .replace("# Report schema", _V2_ADDITIONS, 1)
 )
 
-# v2 homogenization_high — deterministic Python guard.
+# v2 homogenization_high — unconditional suppression (Path 1).
 #
-# v1's absolute `homogenization_flag_count >= 2` was authored for v1's per-
-# disposition L2 cells (15-40 agents each, where "tight" was anomalous model
-# echo). v2 fans L2 per-(disposition x chaos-band), so cells are 2-13 agents
-# and "tight" is the structural default. A 3-of-3 cross-ad probe (boat,
-# cadbury, bru) and a 3-of-3 within-ad probe on boat showed the flag fired
-# on every run, with the tight fraction clustering at 60-73%. The flag was
-# always-on noise rather than a signal.
+# History on this flag in v2:
+#   - v1's absolute `homogenization_flag_count >= 2` was authored for v1's
+#     per-disposition L2 cells (15-40 agents each, where "tight" was
+#     anomalous model echo).
+#   - v2 fans L2 per-(disposition x chaos-band) — cells are 2-13 agents,
+#     and "tight" is the structural default rather than an echo artifact.
+#   - A 3-ad cross-category probe (boat, cadbury, bru) showed the flag
+#     fired on every run, tight fractions 60-73%.
+#   - A 5-run within-ad probe on boat showed natural within-brand variance
+#     spans 60-80% (count 9-12 of 15). A fractional 0.80 guard caught the
+#     top of that natural band — exactly where the threshold should NOT sit.
+#   - Each brand has its own structural baseline. Cadbury 67%, Bru 67%,
+#     Boat 60-80%. A global numeric threshold cannot solve a brand-relative
+#     question; tuning it per case does not scale.
 #
-# Architectural commitment: signal-derived flags are computed in Python, not
-# emitted by the model. The model still sees the v1 rule (and reliably emits
-# the flag on v2 inputs); the guard reconciles against the v2 fractional
-# threshold deterministically. The threshold sits above the observed
-# within-ad band so the flag fires only when v2 is genuinely homogenized
-# beyond its structural baseline (e.g., 14/15 cells tight).
-_HOMOG_HIGH_FRACTION = 0.80
-_HOMOG_HIGH_MIN_TOTAL_SEGMENTS = 5
+# Conclusion: the v1 concept does not translate to v2's segmentation and
+# the flag has emitted nothing meaningful across the v2 lifetime to date.
+# Suppress unconditionally in v2's L4 path. The flag stays in
+# _VALID_METHODOLOGY_FLAGS for back-compat with legacy v1 run.json files
+# (v1 still emits it normally; v1 semantics are unchanged).
+#
+# The right long-term answer is brand-relative anomaly detection — fire
+# when *this* run is unusual *for this brand* against a rolling baseline
+# kept in agent/calibration_log.py. Ships when each brand has N>=5 prior
+# runs to seed a baseline. See HANDOFF.md (Session 5 / Path 2 plan).
 
 
-def _apply_homog_high_guard(report: Report, signals) -> None:
-    """Strip `homogenization_high` from report.methodology_flags if the
-    L3 confidence signals don't justify it under v2's fractional rule.
-
-    Fires when both: total_segments >= _HOMOG_HIGH_MIN_TOTAL_SEGMENTS AND
-    homogenization_flag_count / total_segments >= _HOMOG_HIGH_FRACTION.
-    Otherwise stripped — the model's emission is ignored.
-    """
+def _suppress_homog_high_v2(report: Report, signals) -> None:
+    """v2 unconditionally suppresses homogenization_high. See block comment
+    above for why. signals are logged for observability and for future
+    Path 2 calibration work — the per-run tight fraction is the raw signal
+    a rolling-baseline anomaly detector would consume."""
     emitted = "homogenization_high" in report.methodology_flags
-    if not emitted:
-        _log.info(
-            "homog_high guard: model did NOT emit; signals %d/%d",
-            signals.homogenization_flag_count, signals.total_segments,
-        )
-        return
+    if emitted:
+        report.methodology_flags.remove("homogenization_high")
     total = signals.total_segments
     fraction = signals.homogenization_flag_count / total if total > 0 else 0.0
-    eligible = total >= _HOMOG_HIGH_MIN_TOTAL_SEGMENTS and fraction >= _HOMOG_HIGH_FRACTION
-    if not eligible:
-        report.methodology_flags.remove("homogenization_high")
     _log.info(
-        "homog_high guard: emitted=%s eligible=%s (%d/%d = %.2f, threshold %.2f, min_total %d)",
-        emitted, eligible,
-        signals.homogenization_flag_count, total, fraction,
-        _HOMOG_HIGH_FRACTION, _HOMOG_HIGH_MIN_TOTAL_SEGMENTS,
+        "homog_high v2-suppress: model emitted=%s, signals %d/%d (%.2f)",
+        emitted, signals.homogenization_flag_count, total, fraction,
     )
 
 
@@ -198,7 +195,7 @@ def synthesize_memo_v2(
             report.provisional_dispositions = provisional
             if provisional and "provisional_disposition_present" not in report.methodology_flags:
                 report.methodology_flags.append("provisional_disposition_present")
-            _apply_homog_high_guard(report, l3_summary.confidence_signals)
+            _suppress_homog_high_v2(report, l3_summary.confidence_signals)
             validate_report(report)
             _validate_l4_coverage(report, pool_size)
             _validate_l4_coverage_v2(report)
