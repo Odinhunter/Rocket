@@ -82,7 +82,7 @@ def _library() -> DispositionLibrary:
             vector=DispositionVector(
                 category_relationship="regular",
                 brand_stance="neutral",
-                price_orientation="value_calculator",
+                price_orientation="quality_first",
                 decision_driver="function",
                 category_involvement="obsessive",
                 prior_experience_valence="mixed",
@@ -90,10 +90,13 @@ def _library() -> DispositionLibrary:
                 life_stage="early_career",
             ),
             anchor=(
-                "the spec sheet itself — driver size in mm, ANC depth in dB, "
-                "AAC vs aptX vs LDAC, multipoint. Brand-agnostic; keeps a "
-                "Notion comparison doc, watches Geekyranjit twice, will spend "
-                "weekends optimizing a ₹500 saving and a 2dB ANC gain."
+                "the published spec sheet itself — driver size in mm, ANC "
+                "depth in dB, codec list (AAC / aptX / LDAC), multipoint "
+                "support, mic pickup pattern. Treats any TWS ad that leads "
+                "with marketing shorthand like 'AI-ENx' or '4 mics' without "
+                "published measurements as a non-signal regardless of price "
+                "— will not click. Brand-agnostic; keeps a Notion comparison "
+                "doc; watches Geekyranjit before any purchase above ₹1,000."
             ),
         ),
         NamedDisposition(
