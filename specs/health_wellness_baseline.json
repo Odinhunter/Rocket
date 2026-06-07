@@ -1,0 +1,6 @@
+{
+  "stop_rate": 0.11,
+  "click_rate": 0.02,
+  "visit_rate": 0.012,
+  "convert_rate": 0.006
+}
