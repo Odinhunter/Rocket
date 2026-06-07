@@ -25,8 +25,14 @@ from typing import Any
 import anthropic
 
 from agent.config import RunConfig
-from agent.synthesis_types import DispositionTarget, TargetClassification
+from agent.synthesis_types import (
+    DemographicMismatch,
+    DispositionTarget,
+    InferredAudience,
+    TargetClassification,
+)
 from agent.telemetry import call_with_telemetry
+from agent.vectors import DemographicPoint
 
 
 _log = logging.getLogger(__name__)
@@ -72,6 +78,32 @@ _TOOL = {
                     "specific cues."
                 ),
             },
+            "inferred_audience": {
+                "type": "object",
+                "description": (
+                    "The single demographic the ad APPEARS to target, read "
+                    "from the creative. Be CONSERVATIVE: commit to a specific "
+                    "gender or age band ONLY when the ad signals it clearly "
+                    "and strongly (e.g. a male-vitality product; a hero model "
+                    "of unmistakable age). When the ad is broad, mixed, or "
+                    "unsignaled on an axis, use 'mixed' or 'unclear' — those "
+                    "are the correct, safe defaults, not a cop-out. Feeds a "
+                    "gross-mismatch sanity check, so over-committing causes "
+                    "false alarms."
+                ),
+                "properties": {
+                    "gender": {
+                        "type": "string",
+                        "enum": ["male", "female", "mixed", "unclear"],
+                    },
+                    "age_band": {
+                        "type": "string",
+                        "enum": ["18_24", "25_34", "35_44", "45_54",
+                                 "55_plus", "mixed", "unclear"],
+                    },
+                },
+                "required": ["gender", "age_band"],
+            },
             "disposition_classifications": {
                 "type": "array",
                 "description": (
@@ -112,6 +144,7 @@ _TOOL = {
         "required": [
             "inferred_target_description",
             "target_reasoning",
+            "inferred_audience",
             "disposition_classifications",
         ],
     },
@@ -126,6 +159,10 @@ describing distinct consumer types within a single archetype. Your job:
 1. Identify the target audience of the ad — who is it for.
 2. For each disposition, classify it as within / outside / ambiguous \
 against the ad's inferred target.
+3. Record the ad's apparent demographic (gender skew + age band) in \
+`inferred_audience` — CONSERVATIVELY. Use 'mixed'/'unclear' unless the \
+creative signals the axis strongly; this field feeds a gross-mismatch \
+sanity check, so over-committing causes false alarms.
 
 # How to read the ad
 
@@ -203,6 +240,15 @@ def identify_target(
         f"**{label}** — {desc}" for label, desc in disposition_pool
     )
 
+    # Archetype is an OPTIONAL hint. When unspecified, omit the line entirely
+    # rather than injecting a stale/false pool claim — the classifier infers
+    # the pool from the category + the dispositions it is already given.
+    archetype = config.archetype.strip()
+    archetype_line = (
+        f"Archetype: {archetype}\n"
+        if archetype and archetype.lower() != "unspecified"
+        else ""
+    )
     user_content = [
         image_block,
         {
@@ -210,7 +256,8 @@ def identify_target(
             "text": (
                 f"AD CONTEXT: {config.asset.label}\n"
                 f"Category: {config.category}\n"
-                f"Archetype: {config.archetype}\n\n"
+                f"{archetype_line}"
+                "\n"
                 "DISPOSITIONS IN THE RUN POOL:\n\n"
                 + disposition_text
                 + "\n\nClassify each disposition above against the ad's "
@@ -273,6 +320,7 @@ def _build_target_classification(
         disposition_classifications=classifications,
         ambiguity_note=tool_input.get("ambiguity_note"),
         no_match_note=tool_input.get("no_match_note"),
+        inferred_audience=InferredAudience.from_dict(tool_input.get("inferred_audience")),
     )
 
 
@@ -298,3 +346,103 @@ def _image_block(image_path: str) -> dict:
         "type": "image",
         "source": {"type": "base64", "media_type": media_type, "data": data},
     }
+
+
+# ---- Deterministic demographic sanity-check (gross mismatches only) ----
+#
+# Compares the brand's DECLARED audience demographics against the demographic
+# the ad APPEARS to target (TargetClassification.inferred_audience). Pure
+# Python — no model. Surfaced pre-commit as an advisory that overrides --yes.
+# Intentionally CONSERVATIVE: fires only on gross, unambiguous mismatches
+# (wrong-creative uploads, fundamentally misaimed campaigns), never on the
+# subtle "declared 25-34, reads 30-45" kind. Distinct from the
+# disposition-level pool mismatch (no_match_note).
+
+_AGE_ORDER = {"18_24": 0, "25_34": 1, "35_44": 2, "45_54": 3, "55_plus": 4}
+_AGE_GROSS_DISTANCE = 3   # nearest declared band this many positions away = gross
+
+_GENDER_WORD = {"male": "men", "female": "women"}
+_AGE_WORD = {
+    "18_24": "18-24", "25_34": "25-34", "35_44": "35-44",
+    "45_54": "45-54", "55_plus": "55+",
+}
+
+
+def detect_gross_demographic_mismatch(
+    declared: list[DemographicPoint],
+    inferred: InferredAudience,
+) -> DemographicMismatch | None:
+    """Return a DemographicMismatch iff the ad's apparent demographic grossly
+    contradicts the declared audience; else None."""
+    axes: list[str] = []
+
+    # GENDER — fire only when the ad reads as one specific gender AND every
+    # declared frame is the OPPOSITE specific gender (no 'any'/'unspecified'/
+    # mixed-gender frame to absorb it).
+    if inferred.gender in ("male", "female"):
+        declared_genders = {d.gender for d in declared}
+        wildcard = declared_genders & {"any", "unspecified"}
+        opposite = "female" if inferred.gender == "male" else "male"
+        if not wildcard and declared_genders == {opposite}:
+            axes.append("gender")
+
+    # AGE — fire only when the nearest declared band is >= _AGE_GROSS_DISTANCE
+    # positions from the ad's apparent band (opposite ends of the age range).
+    if inferred.age_band in _AGE_ORDER:
+        declared_bands = [d.age_band for d in declared if d.age_band in _AGE_ORDER]
+        if declared_bands:
+            nearest = min(
+                abs(_AGE_ORDER[inferred.age_band] - _AGE_ORDER[b])
+                for b in declared_bands
+            )
+            if nearest >= _AGE_GROSS_DISTANCE:
+                axes.append("age")
+
+    if not axes:
+        return None
+
+    declared_summary = _summarize_declared(declared)
+    message = (
+        f"The creative reads as targeting {_summarize_inferred(inferred)}, but "
+        f"the declared audience is {declared_summary} (mismatch on "
+        f"{', '.join(axes)}). Likely a wrong-creative upload or a "
+        f"fundamentally misaimed campaign."
+    )
+    return DemographicMismatch(
+        axes=axes,
+        inferred_gender=inferred.gender,
+        inferred_age_band=inferred.age_band,
+        declared_summary=declared_summary,
+        message=message,
+    )
+
+
+def _summarize_declared(declared: list[DemographicPoint]) -> str:
+    genders = {d.gender for d in declared}
+    bands = [d.age_band for d in declared if d.age_band in _AGE_ORDER]
+    if {"any", "unspecified"} & genders or genders == {"male", "female"}:
+        g = "all genders"
+    elif genders == {"male"}:
+        g = "men"
+    elif genders == {"female"}:
+        g = "women"
+    else:
+        g = "/".join(sorted(genders))
+    if bands:
+        lo = min(bands, key=lambda b: _AGE_ORDER[b])
+        hi = max(bands, key=lambda b: _AGE_ORDER[b])
+        a = _AGE_WORD[lo] if lo == hi else f"{_AGE_WORD[lo]}–{_AGE_WORD[hi]}"
+        return f"{g} aged {a}"
+    return g
+
+
+def _summarize_inferred(inferred: InferredAudience) -> str:
+    g = _GENDER_WORD.get(inferred.gender)
+    a = _AGE_WORD.get(inferred.age_band)
+    if g and a:
+        return f"{g} aged {a}"
+    if g:
+        return g
+    if a:
+        return f"people aged {a}"
+    return "an unclear demographic"

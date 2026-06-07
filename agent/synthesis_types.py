@@ -203,6 +203,54 @@ class DispositionTarget:
 
 
 @dataclass
+class InferredAudience:
+    """The ad's APPARENT target demographic, read from the creative by the
+    target classifier (gender skew + age band). 'mixed'/'unclear' when the ad
+    does not strongly signal an axis — those values never trigger a mismatch
+    flag (we flag GROSS mismatches only)."""
+    gender: Literal["male", "female", "mixed", "unclear"] = "unclear"
+    age_band: Literal[
+        "18_24", "25_34", "35_44", "45_54", "55_plus", "mixed", "unclear"
+    ] = "unclear"
+
+    def to_dict(self) -> dict:
+        return {"gender": self.gender, "age_band": self.age_band}
+
+    @classmethod
+    def from_dict(cls, data: dict | None) -> "InferredAudience":
+        if not data:
+            return cls()
+        return cls(
+            gender=data.get("gender", "unclear"),
+            age_band=data.get("age_band", "unclear"),
+        )
+
+
+@dataclass
+class DemographicMismatch:
+    """A GROSS, deterministic mismatch between the brand's DECLARED audience
+    demographics and the demographic the ad APPEARS to target. Computed in
+    Python (not by a model) in RunService.prepare and surfaced on the pre-run
+    confirmation surface as an advisory that overrides --yes. Never blocks —
+    the operator can acknowledge and proceed. DISTINCT from the
+    disposition-level pool mismatch (no_match_note / pool_archetype_mismatch)."""
+    axes: list[str]                 # subset of {"gender", "age"}
+    inferred_gender: str
+    inferred_age_band: str
+    declared_summary: str
+    message: str
+
+    def to_dict(self) -> dict:
+        return {
+            "axes": list(self.axes),
+            "inferred_gender": self.inferred_gender,
+            "inferred_age_band": self.inferred_age_band,
+            "declared_summary": self.declared_summary,
+            "message": self.message,
+        }
+
+
+@dataclass
 class TargetClassification:
     """Produced by an Opus vision call that sees the asset + disposition pool
     but no agent reactions. Target is a property of the ad, not of who
@@ -214,6 +262,7 @@ class TargetClassification:
     disposition_classifications: list[DispositionTarget]
     ambiguity_note: str | None = None
     no_match_note: str | None = None
+    inferred_audience: InferredAudience = field(default_factory=InferredAudience)
 
     def within_target_labels(self) -> list[str]:
         return [d.disposition_label for d in self.disposition_classifications if d.classification == "within"]
@@ -231,6 +280,7 @@ class TargetClassification:
             "disposition_classifications": [asdict(d) for d in self.disposition_classifications],
             "ambiguity_note": self.ambiguity_note,
             "no_match_note": self.no_match_note,
+            "inferred_audience": self.inferred_audience.to_dict(),
         }
 
     @classmethod
@@ -243,4 +293,5 @@ class TargetClassification:
             ],
             ambiguity_note=data.get("ambiguity_note"),
             no_match_note=data.get("no_match_note"),
+            inferred_audience=InferredAudience.from_dict(data.get("inferred_audience")),
         )

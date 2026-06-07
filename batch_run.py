@@ -34,7 +34,7 @@ from agent.run_service import RunPreparation, RunService
 from agent.schema import Report
 from agent.telemetry import run_dir, telemetry_summary
 
-_DEFAULT_ARCHETYPE = "urban_indian_male_22_30"
+_DEFAULT_ARCHETYPE = "unspecified"
 _DEFAULT_CATEGORY = "personal_audio"
 
 
@@ -177,6 +177,15 @@ def _print_preparation(prep: RunPreparation) -> None:
     if prep.provisional_dispositions:
         print(f"  provisional dispositions (will be flagged in the report): "
               f"{', '.join(prep.provisional_dispositions)}")
+    if prep.demographic_mismatch is not None:
+        m = prep.demographic_mismatch
+        print("\n" + "!" * 78)
+        print("⚠  GROSS DEMOGRAPHIC MISMATCH  —  this overrides --yes")
+        print(f"   {m.message}")
+        print("   Advisory, not a block: if this is intentional, re-run with")
+        print("   --acknowledge-demographic-mismatch. Otherwise fix the declared")
+        print("   audience, or check you uploaded the right creative.")
+        print("!" * 78)
     print(f"\nEstimated cost: ~${prep.estimated_cost_usd:.2f}   "
           f"(persona cores rendered: {prep.persona_cores_rendered})")
     print("=" * 78)
@@ -196,7 +205,10 @@ def main() -> None:
     parser.add_argument("--account", default="internal", help="Account ID.")
     parser.add_argument("--brand-profile", default="default", help="Brand Profile ID.")
     parser.add_argument("--archetype", default=_DEFAULT_ARCHETYPE,
-                        help="Archetype label retained for telemetry tagging.")
+                        help="Optional archetype label. Default 'unspecified' "
+                             "lets the target classifier infer the pool from "
+                             "the dispositions + category instead of a fixed "
+                             "label. Pass a real descriptor only to add a hint.")
     parser.add_argument("--max-concurrent", type=int, default=4,
                         help="Max parallel agents. Default 4.")
     parser.add_argument("--seed", type=int, default=71, help="Sampling seed.")
@@ -210,6 +222,11 @@ def main() -> None:
     parser.add_argument("--audience-id", default="", help="Saved audience id.")
     parser.add_argument("--yes", action="store_true",
                         help="Skip the confirmation prompt; auto-commit.")
+    parser.add_argument("--acknowledge-demographic-mismatch", action="store_true",
+                        help="Proceed even if the ad grossly mismatches the "
+                             "declared audience demographic (e.g. deliberately "
+                             "testing an off-demographic creative). Required to "
+                             "run through a gross mismatch; it overrides --yes.")
     args = parser.parse_args()
 
     asset_path = Path(args.asset)
@@ -248,6 +265,16 @@ def main() -> None:
 
     prep = RunService.prepare(config)
     _print_preparation(prep)
+
+    # A gross demographic mismatch overrides --yes: never silently auto-commit
+    # through it. Advisory only — proceed via --acknowledge-demographic-mismatch.
+    if prep.demographic_mismatch is not None and not args.acknowledge_demographic_mismatch:
+        print("\nABORT — gross demographic mismatch (see the flag above). No "
+              "credit debited. This overrides --yes. To run anyway (e.g. you are "
+              "deliberately testing an off-demographic creative), re-run with "
+              "--acknowledge-demographic-mismatch. Otherwise fix the declared "
+              "audience or the uploaded creative.")
+        return
 
     if not args.yes:
         answer = input("\nProceed and commit 1 credit? [y/N] ").strip().lower()

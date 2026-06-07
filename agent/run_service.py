@@ -55,8 +55,8 @@ from agent.schema import AgentTranscript, Report
 from agent.synthesis_l2 import synthesize_segment_async
 from agent.synthesis_l3 import synthesize_population
 from agent.synthesis_l4 import synthesize_memo
-from agent.synthesis_types import TargetClassification
-from agent.target_id import identify_target
+from agent.synthesis_types import DemographicMismatch, TargetClassification
+from agent.target_id import detect_gross_demographic_mismatch, identify_target
 from agent.telemetry import (
     current_account_id,
     current_brand_profile_id,
@@ -107,6 +107,10 @@ class RunPreparation:
     estimated_cost_usd: float = 0.0
     persona_cores_rendered: int = 0
     panel_version: str = ""
+    # Gross declared-vs-ad demographic mismatch (deterministic, advisory).
+    # None when the ad's apparent demographic is consistent with / broad
+    # enough for the declared audience. When set, batch_run overrides --yes.
+    demographic_mismatch: DemographicMismatch | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -119,6 +123,10 @@ class RunPreparation:
             "estimated_cost_usd": round(self.estimated_cost_usd, 3),
             "persona_cores_rendered": self.persona_cores_rendered,
             "panel_version": self.panel_version,
+            "demographic_mismatch": (
+                self.demographic_mismatch.to_dict()
+                if self.demographic_mismatch is not None else None
+            ),
         }
 
 
@@ -231,6 +239,15 @@ class RunService:
         target_cls = identify_target(disposition_pool, config)
         _persist_json(rd / "target_classification.json", target_cls.to_dict())
 
+        # Deterministic gross declared-vs-ad demographic sanity check (advisory;
+        # batch_run overrides --yes when this is set). Distinct from the
+        # disposition-level pool mismatch carried in no_match_note.
+        demographic_mismatch = detect_gross_demographic_mismatch(
+            spec.demographics, target_cls.inferred_audience
+        )
+        if demographic_mismatch is not None:
+            _log.warning("gross demographic mismatch: %s", demographic_mismatch.message)
+
         # Warm the render cache: render each unique persona core once.
         cache_dir = _render_cache_dir(config)
         seen: set[str] = set()
@@ -275,6 +292,7 @@ class RunService:
             provisional_dispositions=provisional,
             estimated_cost_usd=estimated_cost,
             persona_cores_rendered=rendered, panel_version=panel_version,
+            demographic_mismatch=demographic_mismatch,
         )
         _persist_json(rd / "preparation.json", prep.to_dict())
         _persist_json(rd / "panel.json", [a.to_dict() for a in panel])
