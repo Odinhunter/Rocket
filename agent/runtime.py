@@ -27,7 +27,7 @@ from pathlib import Path
 import anthropic
 
 from agent.artifact_pack import CategoryArtifactPack
-from agent.config import RunConfig
+from agent.config import CreativeInputs, RunConfig
 from agent.panel import PanelAgent
 from agent.render import render_context, render_persona_core
 from agent.schema import AgentTranscript, BehavioralSignal, _VALID_BEHAVIORAL_ACTIONS
@@ -100,46 +100,59 @@ _log = logging.getLogger(__name__)
 _MAX_TOKENS = 1250
 
 _ENCODING_USER = (
-    "ENCODING PHASE — emit three sections, each labelled.\n\n"
-    "R1 GUT: exactly 1-2 sentences. Your first-glance reaction "
-    "before parsing the ad. Pre-thought, visceral. Stop after the "
-    "second period.\n\n"
-    "R2 COMPREHENSION: exactly 3 sentences. What message did the "
-    "ad land for you, and — reading only the creative's own signals "
-    "(the model's apparent gender / age / life-stage, the benefit "
-    "promised, the styling, the occasion) — who is it pitched at, and "
-    "is that someone like you? Name a mismatch plainly if you see one "
-    "('this is clearly aimed at women', 'this is for a much younger "
-    "crowd', 'wrong life stage for me'), but judge fit ONLY from those "
-    "on-screen signals, never from assumptions about what people like "
-    "you supposedly prefer. Stop after the third period.\n\n"
-    "R3 EMOTION: free-form prose, 4-5 sentences max. The "
-    "emotional texture the ad left on you — what did it stir, "
-    "what did it leave flat? Be honest about the feeling."
+    "ENCODING PHASE — you are a real person glancing at an ad, NOT a "
+    "writer. Keep every section to 1-2 plain sentences (a line or two). "
+    "Be blunt and conversational; never eloquent, thorough, or clever — "
+    "no literary phrasing, no neat metaphors, no tidy summaries. Three "
+    "labelled sections.\n\n"
+    "R1 GUT: 1-2 sentences. Your instant, pre-thought reaction.\n\n"
+    "R2 COMPREHENSION: 1-2 sentences. What's it selling, who's it for, and "
+    "is that you? If the creative's signals (the model's "
+    "gender/age/life-stage, the benefit, the styling) clearly aren't "
+    "aimed at someone like you, say so plainly — don't explain it away or "
+    "assume what 'people like you' prefer.\n\n"
+    "R3 EMOTION: 1-2 sentences. What it made you feel, or that it left you "
+    "cold. Plain words."
 )
 
 # R7 is a single JSON line so it parses deterministically out of
 # otherwise free-form reflection prose.
 _REFLECTION_USER = (
-    "REFLECTION PHASE — 48 hours later. Emit four sections, each "
-    "labelled.\n\n"
-    "R4 STICKINESS: 3-4 sentences. What stuck from that ad, and what "
-    "didn't? Be specific. Stop after the fourth period at most.\n\n"
-    "R5 SOCIAL: 3-4 sentences. Would you share/screenshot/mention this "
-    "ad to anyone? Why or why not? What social cost or upside?\n\n"
-    "R6 FRICTION: 4-5 sentences. If you were considering buying, what's "
-    "the single biggest friction the ad introduced — and would you act "
-    "on it? If the ad clearly isn't pitched at someone like you, that "
-    "mismatch can be the friction — but treat it as one factor, not an "
-    "automatic dealbreaker.\n\n"
-    "R7 ACTION: after R6, emit exactly ONE line of JSON and nothing else "
-    "after it:\n"
+    "REFLECTION PHASE — a day or two later, still a real person, still "
+    "plain and short. Keep every section to 1-2 sentences. If an ad left "
+    "almost nothing behind, say so plainly — don't manufacture depth.\n\n"
+    "R4 STICKINESS: 1-2 sentences. What, if anything, stuck.\n\n"
+    "R5 SOCIAL: 1-2 sentences. Would you share or mention it, and why or "
+    "why not?\n\n"
+    "R6 FRICTION: 1-2 sentences. If you'd consider buying, the one thing "
+    "that stops you. If the ad isn't aimed at someone like you, that's a "
+    "fine reason — one factor, not a lecture.\n\n"
+    "R7 ACTION: emit exactly ONE line of JSON and nothing after it:\n"
     '{"action": "<scroll_past|linger|tap_cta|save|share|seek_info>", '
-    '"reasoning": "<one in-character sentence, anchored to something '
-    'specific in the creative>", "would_act_within_week": <true|false>}\n'
-    "Emit an in-character behavioral signal — what you would actually DO. "
-    "Never a funnel rate, a percentage, or a probability."
+    '"reasoning": "<one short in-character sentence, anchored to the '
+    'creative>", "would_act_within_week": <true|false>}\n'
+    "What you would actually DO. Never a funnel rate or percentage."
 )
+
+
+def _creative_copy_block(ci: CreativeInputs) -> str:
+    """The ad copy + offer accompanying the image, formatted as the agent
+    reads it in feed. Empty string when nothing was provided (so image-only
+    runs are byte-unchanged). MUST go in the UNCACHED user text — never the
+    cached persona-core/image prefix — so it does not perturb caching."""
+    lines = []
+    if ci.headline.strip():
+        lines.append(f"Headline: {ci.headline.strip()}")
+    if ci.primary_text.strip():
+        lines.append(f"Body: {ci.primary_text.strip()}")
+    if ci.offer.strip():
+        lines.append(f"Offer / price: {ci.offer.strip()}")
+    if not lines:
+        return ""
+    return (
+        "AD COPY & OFFER accompanying this image (read it as you would in "
+        "feed, alongside the visual):\n" + "\n".join(lines) + "\n\n"
+    )
 
 
 # ---- R7 parsing (pure function — offline-testable) ----
@@ -237,9 +250,10 @@ def run_agent(
         "regardless of whether the persona would be interested in a more "
         "alert moment.\n\n"
     )
+    copy_block = _creative_copy_block(config.creative_inputs)
     encoding_user_content = [
         _image_block(config.asset.image_path, cache=True),
-        {"type": "text", "text": context_block + _ENCODING_USER},
+        {"type": "text", "text": context_block + copy_block + _ENCODING_USER},
     ]
 
     # Call A — Encoding (R1-R3). Idempotent: skip if artifact exists.

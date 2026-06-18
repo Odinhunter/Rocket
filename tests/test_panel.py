@@ -22,6 +22,7 @@ from agent.vectors import (
     ChaosProfile,
     ChaosVector,
     ContextVector,
+    DemographicBundle,
     DemographicPoint,
     DispositionVector,
     NamedContext,
@@ -224,6 +225,107 @@ def test_build_panel_rejects_mismatched_dispositions() -> None:
     raise AssertionError("build_panel should reject mismatched dispositions")
 
 
+# ---- Per-disposition demographic bundles (income distribution) ----
+
+
+def _disposition_bundled(label: str, tier_weights: dict[str, float]) -> NamedDisposition:
+    """A disposition whose agents draw from per-tier coherent bundles."""
+    d = _disposition(label)
+    d.demographic_bundles = [
+        DemographicBundle(
+            point=DemographicPoint(
+                gender="any", age_band="25_34", income_tier=tier,
+                geography=f"geo_{tier}",
+            ),
+            weight=w,
+        )
+        for tier, w in tier_weights.items()
+    ]
+    return d
+
+
+def _bundled_spec(panel_size: int, dispositions: list[NamedDisposition]) -> AudienceSpec:
+    return AudienceSpec(
+        demographics=[
+            DemographicPoint(
+                gender="male", age_band="25_34", income_tier="upper_mid",
+                geography="fallback metro",
+            )
+        ],
+        disposition_labels=[d.label for d in dispositions],
+        context_envelope=[_context(f"ctx_{i}") for i in range(4)],
+        chaos_distribution=_chaos_distribution(),
+        panel_size=panel_size,
+    )
+
+
+def test_bundled_income_distribution_matches() -> None:
+    dA = _disposition_bundled("affluent_disp", {"upper_mid": 50, "affluent": 40, "premium": 10})
+    dB = _disposition_bundled("mass_disp", {"mass": 60, "lower_mid": 30, "upper_mid": 10})
+    spec = _bundled_spec(200, [dA, dB])
+    panel = build_panel(spec, [dA, dB], category="health_wellness", seed=71)
+    assert len(panel) == 200
+    incA = Counter(a.demographic.income_tier for a in panel if a.disposition_label == "affluent_disp")
+    incB = Counter(a.demographic.income_tier for a in panel if a.disposition_label == "mass_disp")
+    nA, nB = sum(incA.values()), sum(incB.values())
+    # No cross-tier contamination: each disposition only shows its own tiers.
+    assert incA["mass"] == 0 and incA["lower_mid"] == 0, incA
+    assert incB["premium"] == 0 and incB["affluent"] == 0, incB
+    # Shares reproduce the weights within largest-remainder tolerance.
+    assert abs(incA["upper_mid"] / nA - 0.50) < 0.04, incA
+    assert abs(incA["affluent"] / nA - 0.40) < 0.04, incA
+    assert abs(incB["mass"] / nB - 0.60) < 0.04, incB
+    print(f"  OK  bundled income distribution matches per disposition: A={dict(incA)} B={dict(incB)}")
+
+
+def test_bundled_coherence_no_contamination() -> None:
+    """Every agent's demographic is one of its OWN disposition's bundles."""
+    dA = _disposition_bundled("affluent_disp", {"upper_mid": 50, "affluent": 40, "premium": 10})
+    dB = _disposition_bundled("mass_disp", {"mass": 60, "lower_mid": 30, "upper_mid": 10})
+    spec = _bundled_spec(200, [dA, dB])
+    panel = build_panel(spec, [dA, dB], category="health_wellness", seed=71)
+    allowed = {
+        "affluent_disp": {(b.point.income_tier, b.point.geography) for b in dA.demographic_bundles},
+        "mass_disp": {(b.point.income_tier, b.point.geography) for b in dB.demographic_bundles},
+    }
+    for a in panel:
+        key = (a.demographic.income_tier, a.demographic.geography)
+        assert key in allowed[a.disposition_label], f"{a.disposition_label} got alien demo {key}"
+    print("  OK  bundled agents draw only from their own disposition's bundles")
+
+
+def test_bundled_reproducible_and_sizes() -> None:
+    dA = _disposition_bundled("affluent_disp", {"upper_mid": 50, "affluent": 40, "premium": 10})
+    dB = _disposition_bundled("mass_disp", {"mass": 60, "lower_mid": 30, "upper_mid": 10})
+    for n in (15, 100, 200):
+        spec = _bundled_spec(n, [dA, dB])
+        p1 = build_panel(spec, [dA, dB], category="health_wellness", seed=71)
+        p2 = build_panel(spec, [dA, dB], category="health_wellness", seed=71)
+        assert len(p1) == n, f"panel size {len(p1)} != {n}"
+        assert [a.to_dict() for a in p1] == [a.to_dict() for a in p2], "bundled panel not reproducible"
+        assert {a.disposition_label for a in p1} == {"affluent_disp", "mass_disp"}, "a disposition vanished"
+        # Chaos distribution still matched (shared tail unchanged by bundling).
+        counts = Counter(a.chaos_band for a in p1)
+        assert sum(counts.values()) == n
+    print("  OK  bundled path: exact size, reproducible, both dispositions present at 15/100/200")
+
+
+def test_bundled_mixed_fallback() -> None:
+    """A disposition WITHOUT bundles falls back to spec.demographics even when
+    a sibling disposition carries bundles (mixed library)."""
+    dA = _disposition_bundled("affluent_disp", {"affluent": 70, "premium": 30})
+    dB = _disposition("plain_disp")  # no bundles
+    spec = _bundled_spec(120, [dA, dB])
+    panel = build_panel(spec, [dA, dB], category="health_wellness", seed=71)
+    plain = [a for a in panel if a.disposition_label == "plain_disp"]
+    assert plain, "fallback disposition produced no agents"
+    # The fallback disposition uses the spec's single demographic frame.
+    assert all(a.demographic.geography == "fallback metro" for a in plain), "fallback did not use spec.demographics"
+    bundled = [a for a in panel if a.disposition_label == "affluent_disp"]
+    assert all(a.demographic.income_tier in {"affluent", "premium"} for a in bundled)
+    print("  OK  mixed library: bundled disposition uses bundles, plain disposition falls back to spec.demographics")
+
+
 def main() -> None:
     print("=== population construction (panel) smoke ===")
     test_panel_size_exact()
@@ -236,6 +338,10 @@ def main() -> None:
     test_panel_agent_roundtrip()
     test_compute_panel_version()
     test_build_panel_rejects_mismatched_dispositions()
+    test_bundled_income_distribution_matches()
+    test_bundled_coherence_no_contamination()
+    test_bundled_reproducible_and_sizes()
+    test_bundled_mixed_fallback()
     print("PASS — panels reproducibly match target distributions.")
 
 

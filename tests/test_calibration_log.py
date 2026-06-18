@@ -62,7 +62,14 @@ def test_record_prediction_then_outcome() -> None:
         assert pair["multiplier_table_version"] == MULTIPLIER_TABLE_VERSION
         assert pair["actual_funnel"] is None, "actual_funnel should start as None"
         assert pair["projection"]["overall"]["basis"] == "heuristic_v1"
-        print("  OK  prediction logged; actual_funnel slot starts None")
+        # Stage gating is logged with the prediction, so a future fit can
+        # filter out image-only SCENARIO stages before fitting them.
+        stage_meta = pair["projection"]["stage_meta"]
+        assert [m["stage_key"] for m in stage_meta] == ["stop", "click", "visit", "convert"]
+        status = {m["stage_key"]: m["status"] for m in stage_meta}
+        assert status["stop"] == "grounded"  # modeled, always grounded
+        assert status["convert"] == "scenario"  # no offer provided in this fixture
+        print("  OK  prediction logged with stage_meta gating; actual_funnel slot starts None")
 
         # Outcome arrives later (a future customer-feedback flow).
         actual = {"stop_rate": 0.12, "click_rate": 0.025,

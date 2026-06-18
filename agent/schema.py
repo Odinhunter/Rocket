@@ -236,6 +236,46 @@ class SegmentProjection:
 
 
 @dataclass
+class FunnelStageMeta:
+    """Run-level (NOT per-segment) mapping of one funnel stage to the real
+    ad-platform observable it predicts, plus whether the stage's causal
+    inputs were provided this run. Identical for `overall` and every segment,
+    so it lives once on FunnelProjection.
+
+    `measurement_basis` is "direct_observable" (the stage maps to a metric the
+    customer can read in Ads Manager — CTR, LP-view rate, purchase rate) or
+    "modeled" (no direct observable for a static creative — stop/thumbstop;
+    and `visit` until landing-page analysis is wired). `status` is "grounded"
+    when every required input was supplied, else "scenario" (image-only).
+    NOTE: this is `measurement_basis`, distinct from FunnelRates.basis which
+    names the calibration regime ("heuristic_v1")."""
+    stage_key: str
+    observable_label: str
+    measurement_basis: str  # "modeled" | "direct_observable"
+    required_inputs: list[str] = field(default_factory=list)
+    status: str = "grounded"  # "grounded" | "scenario"
+
+    def to_dict(self) -> dict:
+        return {
+            "stage_key": self.stage_key,
+            "observable_label": self.observable_label,
+            "measurement_basis": self.measurement_basis,
+            "required_inputs": list(self.required_inputs),
+            "status": self.status,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "FunnelStageMeta":
+        return cls(
+            stage_key=data["stage_key"],
+            observable_label=data["observable_label"],
+            measurement_basis=data["measurement_basis"],
+            required_inputs=list(data.get("required_inputs", [])),
+            status=data.get("status", "grounded"),
+        )
+
+
+@dataclass
 class FunnelProjection:
     """The rocket-2.0.0 ROI block on the Report. Overall + per-segment funnel
     rates, the population behavioral distribution, and the honesty-contract
@@ -246,6 +286,9 @@ class FunnelProjection:
         default_factory=BehavioralSignalDistribution
     )
     calibration_note: str = ""
+    # Run-level stage→observable mapping + input gating. Empty on legacy runs.
+    provided_inputs: list[str] = field(default_factory=list)
+    stage_meta: list[FunnelStageMeta] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -255,6 +298,8 @@ class FunnelProjection:
                 self.population_behavioral_distribution.to_dict()
             ),
             "calibration_note": self.calibration_note,
+            "provided_inputs": list(self.provided_inputs),
+            "stage_meta": [m.to_dict() for m in self.stage_meta],
         }
 
     @classmethod
@@ -270,6 +315,10 @@ class FunnelProjection:
                 )
             ),
             calibration_note=data.get("calibration_note", ""),
+            provided_inputs=list(data.get("provided_inputs", [])),
+            stage_meta=[
+                FunnelStageMeta.from_dict(m) for m in data.get("stage_meta", [])
+            ],
         )
 
 
@@ -467,6 +516,30 @@ def _validate_funnel_projection(fp: "FunnelProjection") -> None:
                     f"behavioral_distribution for {seg.segment_label!r} has "
                     f"unknown action {action!r}"
                 )
+    # Stage gating metadata — only enforced when present (legacy/recomputed-
+    # without-meta projections leave it empty and skip these checks).
+    if fp.stage_meta:
+        keys = [m.stage_key for m in fp.stage_meta]
+        if keys != ["stop", "click", "visit", "convert"]:
+            raise SchemaError(
+                f"funnel stage_meta must cover the 4 stages in order, got {keys}"
+            )
+        for m in fp.stage_meta:
+            if m.measurement_basis not in ("modeled", "direct_observable"):
+                raise SchemaError(
+                    f"stage_meta[{m.stage_key}]: bad measurement_basis "
+                    f"{m.measurement_basis!r}"
+                )
+            if m.status not in ("grounded", "scenario"):
+                raise SchemaError(
+                    f"stage_meta[{m.stage_key}]: bad status {m.status!r}"
+                )
+        stop_meta = fp.stage_meta[0]
+        if stop_meta.measurement_basis != "modeled" or stop_meta.status != "grounded":
+            raise SchemaError(
+                "stop stage must be modeled+grounded regardless of inputs "
+                "(the creative is always present)"
+            )
 
 
 # ---- L1 → L2 contract: AgentTranscript ----

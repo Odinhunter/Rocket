@@ -383,7 +383,9 @@ class RunService:
         _persist_json(rd / "l3_summary.json", l3.to_dict())
 
         # ---- L3.5: funnel projection (deterministic Python) ----
-        projection = project_funnel(l3, config.baseline_funnel)
+        projection = project_funnel(
+            l3, config.baseline_funnel, provided_inputs=config.provided_inputs()
+        )
         _persist_json(rd / "l35_projection.json", projection.to_dict())
         # Log the prediction so a future calibration fit has the
         # prediction/outcome pair once the customer reports real numbers.

@@ -201,6 +201,58 @@ def _choose_cells(
     return chosen
 
 
+def _choose_cells_bundled(
+    spec: AudienceSpec, dispositions: list[NamedDisposition]
+) -> list[tuple[DemographicPoint, NamedDisposition, NamedContext]]:
+    """Per-disposition demographic allocation.
+
+    Each disposition draws its agents from its OWN `demographic_bundles`
+    (weighted), so a library can encode a realistic per-disposition income
+    distribution. A disposition with no bundles falls back to the audience-
+    level `spec.demographics` (equal-weighted) — so a mixed library works.
+
+    Deterministic: panel_size is split across dispositions disposition-major
+    (matching the uniform path's skew), then within each disposition the
+    agents are apportioned across bundles by weight and across contexts
+    uniformly, both via largest-remainder + even-spread. No random draw.
+    """
+    N = spec.panel_size
+    D = len(dispositions)
+    ctxs = spec.context_envelope
+    # Agents per disposition: equal share, remainder to the first-listed
+    # (same disposition-major rounding the uniform grid produces).
+    disp_counts = _largest_remainder([1.0 / D] * D, N)
+
+    cells: list[tuple[DemographicPoint, NamedDisposition, NamedContext]] = []
+    for d_idx, disp in enumerate(dispositions):
+        n_d = disp_counts[d_idx]
+        if n_d == 0:
+            continue
+        if disp.demographic_bundles:
+            points = [b.point for b in disp.demographic_bundles]
+            weights = [b.weight for b in disp.demographic_bundles]
+        else:
+            points = list(spec.demographics)
+            weights = [1.0] * len(points)
+        wsum = sum(weights)
+        demo_counts = _largest_remainder([w / wsum for w in weights], n_d)
+        # Even-spread the bundle draws and the contexts independently across
+        # this disposition's agents, so income decorrelates from context and
+        # every context still appears (marginal coverage) when n_d >= |ctx|.
+        demo_seq = _even_spread(
+            {str(i): demo_counts[i] for i in range(len(points))}
+        )
+        ctx_counts = _largest_remainder([1.0 / len(ctxs)] * len(ctxs), n_d)
+        ctx_seq = _even_spread(
+            {str(i): ctx_counts[i] for i in range(len(ctxs))}
+        )
+        for j in range(n_d):
+            cells.append(
+                (points[int(demo_seq[j])], disp, ctxs[int(ctx_seq[j])])
+            )
+    return cells
+
+
 # ---- Public API ----
 
 
@@ -227,9 +279,15 @@ def build_panel(
     if len(dispositions) != len(spec.disposition_labels):
         raise ValueError("build_panel: `dispositions` has duplicate labels")
 
-    cells = _choose_cells(spec, dispositions)
+    # Per-disposition bundles (a realistic income distribution per
+    # disposition) take over whenever any selected disposition carries them;
+    # otherwise the uniform audience-level grid is used, unchanged.
+    if any(d.demographic_bundles for d in dispositions):
+        cells = _choose_cells_bundled(spec, dispositions)
+    else:
+        cells = _choose_cells(spec, dispositions)
     assert len(cells) == spec.panel_size, (
-        f"_choose_cells produced {len(cells)} != panel_size {spec.panel_size}"
+        f"cell selection produced {len(cells)} != panel_size {spec.panel_size}"
     )
 
     # Chaos profiles, apportioned to match the distribution as closely as the

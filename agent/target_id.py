@@ -249,6 +249,21 @@ def identify_target(
         if archetype and archetype.lower() != "unspecified"
         else ""
     )
+    # Declared targeting is the customer's STATED Meta audience — a hint for
+    # disposition classification ONLY. It must NOT drive inferred_audience,
+    # which has to stay creative-derived so detect_gross_demographic_mismatch
+    # compares the creative against the declared audience (not declared vs
+    # declared, which would silently defeat the guard).
+    declared = config.declared_targeting.strip()
+    declared_line = (
+        "Customer's DECLARED targeting (the audience they say they are buying "
+        f"on Meta): {declared}\n"
+        "Use this only as context for classifying the dispositions. Do NOT let "
+        "it override your inferred_audience — infer the ad's apparent audience "
+        "strictly from the creative itself, even if it contradicts this line.\n"
+        if declared
+        else ""
+    )
     user_content = [
         image_block,
         {
@@ -257,6 +272,7 @@ def identify_target(
                 f"AD CONTEXT: {config.asset.label}\n"
                 f"Category: {config.category}\n"
                 f"{archetype_line}"
+                f"{declared_line}"
                 "\n"
                 "DISPOSITIONS IN THE RUN POOL:\n\n"
                 + disposition_text

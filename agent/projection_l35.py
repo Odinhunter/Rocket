@@ -35,6 +35,7 @@ from agent.schema import (
     BehavioralSignalDistribution,
     FunnelProjection,
     FunnelRates,
+    FunnelStageMeta,
     SegmentProjection,
 )
 from agent.synthesis_types import L3Summary
@@ -43,6 +44,24 @@ from agent.synthesis_types import L3Summary
 # prediction (Phase 7 calibration scaffolding) is always attributable to a
 # specific calibration regime.
 MULTIPLIER_TABLE_VERSION = "heuristic_v1"
+
+# Stage -> (observable label, measurement_basis, inputs that GROUND it).
+# Each funnel stage names the real ad-platform metric it predicts. A stage is
+# "grounded" only when every required input was provided this run; otherwise
+# it is a "scenario" (image-only) row. `stop` is MODELED for static creatives
+# (no direct pre-click observable on a static image) and `visit` stays MODELED
+# until landing-page analysis is wired — both have no required inputs, so they
+# are always grounded. `click` needs the ad copy, `convert` needs the offer.
+# NOTE for a future calibration fit: predictions whose stage status is
+# "scenario" are image-only and MUST be filtered out before fitting that stage.
+STAGE_OBSERVABLES: list[tuple[str, str, str, list[str]]] = [
+    ("stop", "thumbstop / hook rate (modeled — no direct observable for a static creative)",
+     "modeled", []),
+    ("click", "CTR (link click-through rate)", "direct_observable", ["ad_copy"]),
+    ("visit", "landing-page-view rate (modeled — landing-page analysis not yet wired)",
+     "modeled", []),
+    ("convert", "purchase rate", "direct_observable", ["offer"]),
+]
 
 # Used when the customer has not supplied their own baseline funnel. These
 # are conservative mid-market D2C-on-Meta placeholders; baseline_source
@@ -176,12 +195,21 @@ def project_funnel(
     baseline_funnel: dict[str, float] | None = None,
     *,
     baseline_source: str | None = None,
+    provided_inputs: list[str] | None = None,
 ) -> FunnelProjection:
     """Produce a FunnelProjection from L3's behavioral-signal distributions.
 
     baseline_funnel: the customer's real funnel rates (stop/click/visit/
     convert, each a float in 0..1). When None, DEFAULT_BASELINE_FUNNEL is
     used and baseline_source records that explicitly.
+
+    provided_inputs: the creative inputs supplied this run (e.g. "ad_copy",
+    "offer" — see RunConfig.provided_inputs()). Drives per-stage gating: a
+    stage whose required inputs are all present is "grounded", else
+    "scenario" (image-only). Rates are computed for all four stages
+    regardless; gating only sets each stage's status (for display + a future
+    calibration fit). Defaults to none provided (all stages that need an
+    input render as scenario).
     """
     if baseline_funnel is None:
         baseline = dict(DEFAULT_BASELINE_FUNNEL)
@@ -212,6 +240,17 @@ def project_funnel(
             l3_summary.segment_behavioral_distributions.items()
         )
     ]
+    provided = set(provided_inputs or [])
+    stage_meta = [
+        FunnelStageMeta(
+            stage_key=key,
+            observable_label=label,
+            measurement_basis=basis,
+            required_inputs=list(reqs),
+            status="grounded" if set(reqs) <= provided else "scenario",
+        )
+        for key, label, basis, reqs in STAGE_OBSERVABLES
+    ]
     return FunnelProjection(
         overall=overall,
         by_segment=by_segment,
@@ -219,4 +258,6 @@ def project_funnel(
             l3_summary.population_behavioral_distribution
         ),
         calibration_note=_CALIBRATION_NOTE,
+        provided_inputs=sorted(provided),
+        stage_meta=stage_meta,
     )

@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-from agent.config import AssetSpec, RunConfig
+from agent.config import AssetSpec, CreativeInputs, RunConfig
 from agent.entities import AudienceSpec
 from agent.panel import PanelAgent
 from agent.projection_l35 import project_funnel
@@ -104,6 +104,8 @@ def _config_from_run_json(run_dir: Path) -> RunConfig:
         baseline_funnel=c.get("baseline_funnel"),
         library_id=c.get("library_id", ""),
         audience_id=c.get("audience_id", ""),
+        creative_inputs=CreativeInputs.from_dict(c.get("creative_inputs")),
+        declared_targeting=c.get("declared_targeting", ""),
     )
 
 
@@ -148,7 +150,9 @@ async def _replay(run_dir: Path) -> None:
     l3 = await asyncio.to_thread(synthesize_population, l2_summaries, tc, config)
     print(f"# L3 in {time.time()-t0:.1f}s")
 
-    projection = project_funnel(l3, config.baseline_funnel)
+    projection = project_funnel(
+        l3, config.baseline_funnel, provided_inputs=config.provided_inputs()
+    )
     print(f"# L3.5 projection (basis: {projection.overall.basis})")
 
     t0 = time.time()

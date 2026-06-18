@@ -153,6 +153,44 @@ class AssetSpec:
 
 
 @dataclass
+class CreativeInputs:
+    """The ad's accompanying copy + offer — the causal inputs that drive the
+    lower funnel. `offer` carries price and any promo (e.g. "₹2,699, 20% off
+    first order"). Optional and per-run (one creative test, one offer), so
+    they live on RunConfig, not on AssetSpec (which is the image and may be
+    multiple under the focal+anchor upsell). When provided, runtime feeds them
+    to the agents, and the funnel's click/convert stages become grounded
+    rather than image-only scenarios. See agent/projection_l35.STAGE_OBSERVABLES.
+    """
+
+    primary_text: str = ""   # the ad's body / primary caption
+    headline: str = ""       # the ad's headline
+    offer: str = ""          # price + promo, e.g. "₹2,699, 20% off first order"
+
+    def has_ad_copy(self) -> bool:
+        return bool(self.primary_text.strip() or self.headline.strip())
+
+    def has_offer(self) -> bool:
+        return bool(self.offer.strip())
+
+    def to_dict(self) -> dict:
+        return {
+            "primary_text": self.primary_text,
+            "headline": self.headline,
+            "offer": self.offer,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict | None) -> "CreativeInputs":
+        data = data or {}
+        return cls(
+            primary_text=data.get("primary_text", ""),
+            headline=data.get("headline", ""),
+            offer=data.get("offer", ""),
+        )
+
+
+@dataclass
 class RunConfig:
     """Single source of truth for a Creative Read run.
 
@@ -222,6 +260,23 @@ class RunConfig:
     # Entity references for the two-phase run + filesystem entity model.
     library_id: str = ""
     audience_id: str = ""
+    # creative_inputs: ad copy + offer accompanying the image. When present
+    # they are fed to the agents and ground the funnel's lower stages.
+    creative_inputs: CreativeInputs = field(default_factory=CreativeInputs)
+    # declared_targeting: the customer's stated Meta audience (free text). A
+    # hint to the target classifier ONLY — it must not override the creative-
+    # derived inferred_audience the demographic-mismatch guard depends on.
+    declared_targeting: str = ""
+
+    def provided_inputs(self) -> list[str]:
+        """The creative inputs supplied this run, as the keys L3.5 gates the
+        funnel stages on (see agent/projection_l35.STAGE_OBSERVABLES)."""
+        out: list[str] = []
+        if self.creative_inputs.has_ad_copy():
+            out.append("ad_copy")
+        if self.creative_inputs.has_offer():
+            out.append("offer")
+        return out
 
     def total_agents(self) -> int:
         return self.dispositions_per_run * self.contexts_per_run * self.seeds_per_cell
@@ -290,4 +345,6 @@ class RunConfig:
             ),
             "library_id": self.library_id,
             "audience_id": self.audience_id,
+            "creative_inputs": self.creative_inputs.to_dict(),
+            "declared_targeting": self.declared_targeting,
         }

@@ -28,7 +28,7 @@ load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
-from agent.config import AssetSpec, RunConfig
+from agent.config import AssetSpec, CreativeInputs, RunConfig
 from agent.entities import AudienceSpec
 from agent.run_service import RunPreparation, RunService
 from agent.schema import Report
@@ -89,6 +89,7 @@ def _print_report(report: Report) -> None:
     fp = report.funnel_projection
     if fp is not None:
         o = fp.overall
+        meta_by_key = {m.stage_key: m for m in fp.stage_meta}
         print("\n" + "-" * 78)
         print(f"PROJECTED FUNNEL  (overall — basis: {o.basis})")
         print("-" * 78)
@@ -98,15 +99,35 @@ def _print_report(report: Report) -> None:
             ("visit", o.visit_rate, o.visit_band),
             ("convert", o.convert_rate, o.convert_band),
         ):
-            print(f"  {stage:>8}: {rate*100:6.3f}%   "
-                  f"[{band[0]*100:.3f}% – {band[1]*100:.3f}%]")
+            m = meta_by_key.get(stage)
+            label = f"  {stage:>8}"
+            if m:  # observable mapping (legacy projections have no stage_meta)
+                label += f" → {m.observable_label}"
+            line = (f"{label}: {rate*100:6.3f}%   "
+                    f"[{band[0]*100:.3f}% – {band[1]*100:.3f}%]")
+            if m and m.status == "scenario":
+                need = ", ".join(m.required_inputs) or "its input"
+                line += f"   (SCENARIO — image-only; provide {need} to ground)"
+            print(line)
         print(f"\n  {fp.calibration_note}")
         if fp.by_segment:
+            convert_meta = meta_by_key.get("convert")
+            convert_scenario = bool(
+                convert_meta and convert_meta.status == "scenario"
+            )
             print("\n  By segment (convert rate):")
+            if convert_scenario:
+                need = ", ".join(convert_meta.required_inputs) or "an offer"
+                print(f"    (SCENARIO — image-only; no {need} provided — "
+                      "ungrounded estimates, not purchase predictions)")
             floored = False
             for seg in fp.by_segment:
                 rates = seg.funnel_rates
-                if seg.behavioral_distribution.would_act_within_week_count == 0:
+                # Run-level convert SCENARIO wins over per-segment floor
+                # suppression: with no offer reaching the agents, the whole
+                # convert column is ungrounded and the asterisk is moot.
+                if (not convert_scenario
+                        and seg.behavioral_distribution.would_act_within_week_count == 0):
                     lo, hi = rates.convert_band
                     print(f"    {seg.segment_label:<42} "
                           f"   —    [{lo*100:.3f}% – {hi*100:.3f}%] *")
@@ -220,6 +241,21 @@ def main() -> None:
                         help="L2 fan-out granularity. Default disposition_chaos_band.")
     parser.add_argument("--library-id", default="", help="Disposition library id.")
     parser.add_argument("--audience-id", default="", help="Saved audience id.")
+    parser.add_argument("--primary-text", default="",
+                        help="Ad body / primary caption. Grounds the click stage "
+                             "and reaches the agents' reaction.")
+    parser.add_argument("--headline", default="",
+                        help="Ad headline. Grounds the click stage with --primary-text.")
+    parser.add_argument("--offer", default="",
+                        help="Offer + price, e.g. '₹2,699, 20%% off first order'. "
+                             "Grounds the convert stage and reaches the agents.")
+    parser.add_argument("--creative-json", default=None,
+                        help="Path to a JSON file with primary_text / headline / "
+                             "offer (alternative to the individual flags).")
+    parser.add_argument("--declared-targeting", default="",
+                        help="The customer's stated Meta audience (free text). A "
+                             "hint to the target classifier; does not override the "
+                             "creative-derived inferred audience.")
     parser.add_argument("--yes", action="store_true",
                         help="Skip the confirmation prompt; auto-commit.")
     parser.add_argument("--acknowledge-demographic-mismatch", action="store_true",
@@ -242,6 +278,17 @@ def main() -> None:
     if args.baseline_funnel:
         baseline_funnel = json.loads(Path(args.baseline_funnel).read_text())
 
+    # Creative inputs: a JSON file (if given) provides the defaults; individual
+    # flags override any field they set.
+    creative_data = {}
+    if args.creative_json:
+        creative_data = json.loads(Path(args.creative_json).read_text())
+    creative_inputs = CreativeInputs(
+        primary_text=args.primary_text or creative_data.get("primary_text", ""),
+        headline=args.headline or creative_data.get("headline", ""),
+        offer=args.offer or creative_data.get("offer", ""),
+    )
+
     config = RunConfig(
         asset=AssetSpec(image_path=str(asset_path), label=asset_label),
         archetype=args.archetype,
@@ -255,6 +302,8 @@ def main() -> None:
         baseline_funnel=baseline_funnel,
         library_id=args.library_id,
         audience_id=args.audience_id,
+        creative_inputs=creative_inputs,
+        declared_targeting=args.declared_targeting,
     )
 
     print("# Rocket Creative Read (rocket-2.0.0)")

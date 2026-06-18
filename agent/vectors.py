@@ -87,6 +87,41 @@ class DemographicPoint:
         )
 
 
+@dataclass
+class DemographicBundle:
+    """A coherent (DemographicPoint, weight) pair for per-disposition
+    population sampling. `weight` is the bundle's share of its disposition's
+    agents (weights across a disposition's bundles are normalized, so the
+    absolute scale is free — percentages summing to 100 are conventional).
+
+    A bundle keeps gender / age / income / occupation / geography mutually
+    consistent ("settled doctor, 45-54, affluent" — never "family head on
+    <₹3.5L"), so a library can encode a realistic per-disposition income
+    distribution without minting incoherent personas. When a disposition
+    carries bundles, agent/panel.py draws its agents from them (weighted);
+    otherwise it falls back to the audience-level demographics."""
+
+    point: DemographicPoint
+    weight: float = 1.0
+
+    def validate(self) -> None:
+        self.point.validate()
+        if not self.weight > 0:
+            raise ValueError(
+                f"DemographicBundle.weight must be > 0, got {self.weight!r}"
+            )
+
+    def to_dict(self) -> dict:
+        return {"point": self.point.to_dict(), "weight": self.weight}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "DemographicBundle":
+        return cls(
+            point=DemographicPoint.from_dict(data["point"]),
+            weight=float(data.get("weight", 1.0)),
+        )
+
+
 # ---- Axis 2: Disposition (category-attitudinal) — 8-dimension vector ----
 
 CategoryRelationship = Literal[
@@ -193,11 +228,14 @@ class NamedDisposition:
     provisional: bool = False
     notes: str = ""
     anchor: str = ""
+    demographic_bundles: list["DemographicBundle"] = field(default_factory=list)
 
     def validate(self) -> None:
         if not self.label or not self.label.strip():
             raise ValueError("NamedDisposition.label must be non-empty")
         self.vector.validate()
+        for bundle in self.demographic_bundles:
+            bundle.validate()
 
     def to_dict(self) -> dict:
         return {
@@ -206,6 +244,7 @@ class NamedDisposition:
             "provisional": self.provisional,
             "notes": self.notes,
             "anchor": self.anchor,
+            "demographic_bundles": [b.to_dict() for b in self.demographic_bundles],
         }
 
     @classmethod
@@ -216,6 +255,10 @@ class NamedDisposition:
             provisional=bool(data.get("provisional", False)),
             notes=data.get("notes", ""),
             anchor=data.get("anchor", ""),
+            demographic_bundles=[
+                DemographicBundle.from_dict(b)
+                for b in data.get("demographic_bundles", [])
+            ],
         )
 
 
