@@ -1,0 +1,103 @@
+{
+  "demographics": [
+    {
+      "gender": "male",
+      "age_band": "25_34",
+      "income_tier": "upper_mid",
+      "geography": "Bangalore / metro tier-1",
+      "occupation_hint": "software engineer at a mid-stage SaaS startup",
+      "household_hint": "shares a 3BHK with flatmates, sends money home monthly"
+    }
+  ],
+  "disposition_labels": [
+    "loyalist_airdopes",
+    "enthusiast_specs",
+    "aspirant_airpods",
+    "skeptic_warranty",
+    "pragmatist_urgent_replacement",
+    "purist_wired"
+  ],
+  "context_envelope": [
+    {
+      "label": "commute_scroll",
+      "vector": {
+        "attention_level": "low",
+        "device_posture": "commute",
+        "intent_state": "killing_time",
+        "energy_state": "drained",
+        "social_setting": "public"
+      }
+    },
+    {
+      "label": "pre_purchase_research",
+      "vector": {
+        "attention_level": "high",
+        "device_posture": "desk",
+        "intent_state": "actively_shopping",
+        "energy_state": "alert",
+        "social_setting": "alone"
+      }
+    },
+    {
+      "label": "late_night_wind_down",
+      "vector": {
+        "attention_level": "low",
+        "device_posture": "lying_down",
+        "intent_state": "killing_time",
+        "energy_state": "drained",
+        "social_setting": "alone"
+      }
+    },
+    {
+      "label": "weekend_afternoon_browse",
+      "vector": {
+        "attention_level": "medium",
+        "device_posture": "couch",
+        "intent_state": "passive_browse",
+        "energy_state": "neutral",
+        "social_setting": "alone"
+      }
+    }
+  ],
+  "chaos_distribution": {
+    "weighted": [
+      {
+        "profile": {
+          "label": "impulsive",
+          "vector": {
+            "decision_velocity": "impulsive",
+            "suggestibility": "high",
+            "consistency": "erratic",
+            "risk_tolerance": "seeking"
+          }
+        },
+        "weight": 0.2
+      },
+      {
+        "profile": {
+          "label": "moderate",
+          "vector": {
+            "decision_velocity": "moderate",
+            "suggestibility": "medium",
+            "consistency": "variable",
+            "risk_tolerance": "balanced"
+          }
+        },
+        "weight": 0.45
+      },
+      {
+        "profile": {
+          "label": "deliberate",
+          "vector": {
+            "decision_velocity": "deliberate",
+            "suggestibility": "low",
+            "consistency": "steady",
+            "risk_tolerance": "averse"
+          }
+        },
+        "weight": 0.35
+      }
+    ]
+  },
+  "panel_size": 60
+}

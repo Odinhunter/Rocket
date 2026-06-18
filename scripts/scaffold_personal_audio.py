@@ -1,22 +1,34 @@
-"""Scaffold a starter v2 disposition library + AudienceSpec for the
+"""Scaffold a starter disposition library + AudienceSpec for the
 personal_audio category.
 
-This is the "hand-mapping" onboarding step the v2 plan describes — done
-once, by hand, here: the 7 v1 (urban_indian_male_22_30, personal_audio)
-dispositions translated into 8-dimension DispositionVectors, with anchors
-where the abstract vector alone can't pin the object of the stance.
+────────────────────────────────────────────────────────────────────────
+DISPOSITIONS WIPED 2026-05-26 — REWRITE UNDER PROTOCOL v2 BEFORE USE.
+────────────────────────────────────────────────────────────────────────
 
-Running this script materializes, idempotently:
-  runs/<account>/<account>/<brand>/entities/account.json
-  runs/<account>/<brand>/entities/brand_profile.json
-  runs/<account>/<brand>/entities/library.json          (7 dispositions)
-  runs/<account>/<brand>/entities/audiences/<id>.json   (one SavedAudience)
-  specs/personal_audio_cold_traffic.json                (standalone AudienceSpec)
-  specs/personal_audio_baseline.json                    (sample baseline funnel)
+All 7 prior dispositions (loyalist_airdopes, enthusiast_specs,
+aspirant_airpods, enthusiast_nothing_design, pragmatist_urgent_replacement,
+skeptic_warranty, purist_wired) were retired because they produced
+consultant-voice agents under render-5 (see cmf_ad runs 2026-05-18 +
+REVIEW.md §5 issue #1).
 
-Then a v2 Creative Read is one command (see the printout at the end).
+NEXT STEPS:
+  1. Read docs/disposition_protocol_v2.md (the active protocol)
+  2. Read data/voice_samples/personal_audio.md (manual mini-corpus —
+     create this if not yet present; ~1-2 hr of curated Indian buyer
+     voice from Amazon India / Reddit / YouTube)
+  3. Rewrite the 6-7 dispositions below under the 5-line format
+  4. Re-run this scaffold to regenerate runs/demo/boat_audio/
+     entities/library.json
+  5. Run a validation cmf_ad against the new library
 
-Run: python scripts/scaffold_personal_audio.py
+This file's structure (entity tenancy IDs, demographic frame, context
+envelope, baseline funnel) is preserved so the rewrite is plug-and-play
+once new dispositions are authored.
+
+Old commit reference: scaffold dispositions live at git rev 46c8f84
+(personal_audio at lines 60-202) if you need to read them for the
+rewrite — they describe the right stances even though the prose was
+over-extreme.
 """
 
 from __future__ import annotations
@@ -50,155 +62,40 @@ LIBRARY_ID = "personal_audio_lib_v1"
 AUDIENCE_ID = "cold_traffic_v1"
 
 
-# ---- The 7 hand-mapped personal_audio dispositions ----
-# Each is a v1 disposition.py prose block translated into the 8-dimension
-# vector. The `anchor` is set wherever the abstract vector can't, on its
-# own, pin WHAT the stance is about (the filter-coffee-vs-d2c-roaster
-# lesson from the Phase 1 vividness gate).
+# ---- Dispositions: WIPED 2026-05-26 — rewrite under protocol v2 ----
+#
+# See module docstring above for context. The 7 prior dispositions
+# produced consultant-voice agents in cmf_ad runs and were all retired.
+#
+# To rewrite:
+#   1. Read docs/disposition_protocol_v2.md (active protocol)
+#   2. Curate data/voice_samples/personal_audio.md (manual mini-corpus,
+#      ~20-30 real Indian buyer voice samples from Amazon India / Reddit
+#      / YouTube — see protocol v2 §5 Lever 4)
+#   3. Author 6-7 NamedDisposition entries in the dispositions list
+#      below, following the 5-line format
+#   4. Distribute across involvement tiers per protocol v2 §5 Lever 3
+#      (~1 obsessive, ~2 high, ~1-2 medium, ~1-2 low — NOT all engaged)
+#   5. Ishan reviews each disposition before commit (§5 Lever 5)
+#
+# Old anchors (for reference during rewrite) are at git rev 46c8f84:
+#   git show 46c8f84:scripts/scaffold_personal_audio.py
+# The stance/anchor-key LABELS were appropriate; the prose was extreme.
 
 def _library() -> DispositionLibrary:
-    dispositions = [
-        NamedDisposition(
-            label="loyalist_airdopes",
-            vector=DispositionVector(
-                category_relationship="regular",
-                brand_stance="loyalist",
-                price_orientation="value_calculator",
-                decision_driver="habit",
-                category_involvement="high",
-                prior_experience_valence="positive",
-                channel_behavior="marketplace",
-                life_stage="early_career",
-            ),
-            anchor=(
-                "Boat — specifically the ₹1,000-2,500 Airdopes line; on his "
-                "third pair, buys by default, knows the lineup by SKU, reads "
-                "'AI-ENx' as 'Boat being Boat'. Sees CMF/Nothing as 'a phones "
-                "brand doing earbuds for show'."
-            ),
-        ),
-        NamedDisposition(
-            label="enthusiast_specs",
-            vector=DispositionVector(
-                category_relationship="regular",
-                brand_stance="neutral",
-                price_orientation="quality_first",
-                decision_driver="function",
-                category_involvement="obsessive",
-                prior_experience_valence="mixed",
-                channel_behavior="marketplace",
-                life_stage="early_career",
-            ),
-            anchor=(
-                "the published spec sheet itself — driver size in mm, ANC "
-                "depth in dB, codec list (AAC / aptX / LDAC), multipoint "
-                "support, mic pickup pattern. Treats any TWS ad that leads "
-                "with marketing shorthand like 'AI-ENx' or '4 mics' without "
-                "published measurements as a non-signal regardless of price "
-                "— will not click. Brand-agnostic; keeps a Notion comparison "
-                "doc; watches Geekyranjit before any purchase above ₹1,000."
-            ),
-        ),
-        NamedDisposition(
-            label="aspirant_airpods",
-            vector=DispositionVector(
-                category_relationship="regular",
-                brand_stance="skeptical",
-                price_orientation="quality_first",
-                decision_driver="identity",
-                category_involvement="high",
-                prior_experience_valence="mixed",
-                channel_behavior="marketplace",
-                life_stage="early_career",
-            ),
-            anchor=(
-                "the aspiration gap — AirPods Pro 2 tabbed open for months, "
-                "knows the markup by heart. Treats the ₹1,000-3,000 "
-                "Indian-brand tier as a compromise zone; CMF / Nothing Ear (a) "
-                "are the 'bridge tier' that lets him not feel like he's "
-                "buying down. Uses a gifted Boat pair but won't post a photo "
-                "of it."
-            ),
-        ),
-        NamedDisposition(
-            label="enthusiast_nothing_design",
-            vector=DispositionVector(
-                category_relationship="regular",
-                brand_stance="loyalist",
-                price_orientation="quality_first",
-                decision_driver="identity",
-                category_involvement="high",
-                prior_experience_valence="positive",
-                channel_behavior="d2c_direct",
-                life_stage="early_career",
-            ),
-            anchor=(
-                "the Nothing / CMF design ecosystem — bought the Phone (2a) on "
-                "launch day, follows Carl Pei, watches the keynotes. Earbuds "
-                "are a style object as much as audio gear; Boat is 'what "
-                "people who don't care buy' and he wouldn't be caught with a "
-                "Boat case visible in a Saturday photo."
-            ),
-        ),
-        NamedDisposition(
-            label="pragmatist_urgent_replacement",
-            vector=DispositionVector(
-                category_relationship="regular",
-                brand_stance="neutral",
-                price_orientation="price_first",
-                decision_driver="function",
-                category_involvement="low",
-                prior_experience_valence="neutral",
-                channel_behavior="quick_commerce",
-                life_stage="early_career",
-            ),
-            anchor=(
-                "an urgent unplanned replacement — lost an earbud on the "
-                "Metro, has a 10:30am standup tomorrow, ₹2,000 budget cap "
-                "because this is unplanned cost. Brand barely matters; needs "
-                "whatever ships same-day with 4+ stars on 50,000+ reviews."
-            ),
-        ),
-        NamedDisposition(
-            label="skeptic_warranty",
-            vector=DispositionVector(
-                category_relationship="regular",
-                brand_stance="skeptical",
-                price_orientation="value_calculator",
-                decision_driver="function",
-                category_involvement="medium",
-                prior_experience_valence="mixed",
-                channel_behavior="marketplace",
-                life_stage="early_career",
-            ),
-            anchor=(
-                "service and the return-window — believes every sub-₹3,000 "
-                "TWS is the same Chinese OEM hardware with a different logo "
-                "and 'AI-ENx Technology' is three syllables of nothing. The "
-                "only real differentiator is whether the brand replaces it "
-                "when it dies in month 9 — Boat did, after a tweet."
-            ),
-        ),
-        NamedDisposition(
-            label="purist_wired",
-            vector=DispositionVector(
-                category_relationship="occasional",
-                brand_stance="neutral",
-                price_orientation="price_first",
-                decision_driver="function",
-                category_involvement="low",
-                prior_experience_valence="neutral",
-                channel_behavior="marketplace",
-                life_stage="early_career",
-            ),
-            anchor=(
-                "TWS as a throwaway utility category — his real audio life is "
-                "wired (Moondrop Aria 2 IEMs into a Topping DAC, Sennheiser "
-                "HD 560S). TWS earbuds are only for podcasts on the walk, "
-                "calls, and the gym; replaced with 'whatever is cheapest and "
-                "reliable', zero feelings about the current pair."
-            ),
-        ),
+    dispositions: list[NamedDisposition] = [
+        # TODO(protocol_v2): rewrite 6-7 personal_audio dispositions here.
+        # Stance labels to populate (drawn from the wiped v1 set):
+        #   - loyalist_airdopes              (high involvement, brand-loyal)
+        #   - enthusiast_specs               (obsessive — rewrite carefully
+        #                                     to avoid Notion-doc voice)
+        #   - aspirant_airpods               (high involvement, identity-driven)
+        #   - enthusiast_nothing_design      (high involvement, design-loyal)
+        #   - pragmatist_urgent_replacement  (LOW — load-bearing for realism)
+        #   - skeptic_warranty               (medium, value-skeptical)
+        #   - purist_wired                   (LOW — the "this isn't for me" voice)
+        # Per protocol v2, audience should NOT include all 7 — pick 6-ish
+        # mixing involvement tiers per Lever 3.
     ]
     return DispositionLibrary(
         library_id=LIBRARY_ID,
@@ -256,24 +153,18 @@ _CONTEXT_ENVELOPE = [
 
 
 def _audience_spec() -> AudienceSpec:
-    """A 'cold acquisition traffic' cut: 5 of the 7 dispositions (the ones a
-    cold-traffic acquisition ad realistically reaches — drops the urgent
-    replacement_buyer and the barely-in-category wired_audio_purist), a
-    4-context envelope, the personal_audio pack's default chaos mix, and a
-    modest panel_size for an affordable first breadth-eval run.
+    """Cold acquisition traffic AudienceSpec.
 
-    Edit specs/personal_audio_cold_traffic.json to add the other two
-    dispositions or raise panel_size toward the 200 ceiling."""
+    disposition_labels EMPTY until dispositions are rewritten under
+    protocol v2 (see module docstring). Per protocol v2 §5 Lever 3,
+    the rewritten audience MUST mix involvement tiers — include at
+    least one low-involvement disposition (pragmatist_urgent_replacement
+    or purist_wired) so cold-traffic isn't over-indexed on engaged
+    buyers."""
     pack = load_pack("personal_audio")
     return AudienceSpec(
         demographics=[_DEMOGRAPHIC],
-        disposition_labels=[
-            "loyalist_airdopes",
-            "enthusiast_specs",
-            "aspirant_airpods",
-            "enthusiast_nothing_design",
-            "skeptic_warranty",
-        ],
+        disposition_labels=[],  # populate after dispositions are written
         context_envelope=_CONTEXT_ENVELOPE,
         chaos_distribution=pack.default_chaos_distribution,
         panel_size=60,
@@ -291,7 +182,23 @@ _BASELINE_FUNNEL = {
 
 
 def main() -> None:
-    print("=== scaffolding personal_audio v2 starter ===")
+    # Guard: refuse to run while dispositions are empty.
+    # Remove this block once dispositions are rewritten under protocol v2.
+    library = _library()
+    if not library.dispositions:
+        print("=== ABORT — personal_audio dispositions are wiped ===")
+        print()
+        print("This scaffold cannot run until 6-7 dispositions are")
+        print("rewritten under docs/disposition_protocol_v2.md.")
+        print()
+        print("Running anyway would emit an empty library.json that")
+        print("would break any subsequent audience build (panel.py")
+        print("requires at least 1 NamedDisposition).")
+        print()
+        print("See module docstring for the rewrite checklist.")
+        sys.exit(1)
+
+    print("=== scaffolding personal_audio starter ===")
 
     # 1. Validate the artifact pack exists (the render engine needs it).
     pack = load_pack("personal_audio")

@@ -63,11 +63,144 @@ from agent.entities import (
 )
 from agent.vectors import (
     ContextVector,
+    DemographicBundle,
     DemographicPoint,
     DispositionVector,
     NamedContext,
     NamedDisposition,
 )
+
+
+def _b(
+    weight: float, gender: str, age: str, income: str, geo: str,
+    occ: str, household: str,
+) -> DemographicBundle:
+    """Terse DemographicBundle constructor for the per-disposition income
+    distributions (see docs/disposition_demographic_bundles.md). `weight` is
+    the bundle's % of that disposition's agents; the weights per disposition
+    reproduce its row in docs/disposition_income_brackets.md."""
+    return DemographicBundle(
+        point=DemographicPoint(
+            gender=gender, age_band=age, income_tier=income, geography=geo,
+            occupation_hint=occ, household_hint=household,
+        ),
+        weight=weight,
+    )
+
+
+# Per-disposition coherent demographic bundles. Income varies realistically
+# AND every occupation/geo stays consistent with its tier (no "family head on
+# <₹3.5L"). Grounded in MBB/Kantar/PRICE/category research — see
+# docs/disposition_income_brackets.md (distributions) and
+# docs/disposition_demographic_bundles.md (the personas).
+
+_BUNDLES_ENTHUSIAST = [  # [12, 26, 38, 18, 6] — young, male-skewed
+    _b(12, "male", "18_24", "mass", "tier-2/3 town",
+       "college student / gym trainee; stretches budget for a value whey tub",
+       "lives with family; limited spare cash"),
+    _b(26, "male", "25_34", "lower_mid", "tier-2 city",
+       "junior sales/field exec or assistant gym trainer; buys MuscleBlaze on discount",
+       "shares a flat with flatmates"),
+    _b(38, "male", "25_34", "upper_mid", "Bangalore / metro tier-1",
+       "software/ops professional on a 5-day push/pull/legs routine",
+       "1-2BHK metro, single"),
+    _b(18, "male", "35_44", "affluent", "metro tier-1",
+       "established professional / small-business owner; imported whey (ON)",
+       "owns a flat, married"),
+    _b(6, "male", "35_44", "premium", "metro tier-1",
+       "senior manager / founder; boutique gym + personal coach",
+       "premium high-rise, family"),
+]
+
+_BUNDLES_ASPIRANT = [  # [5, 17, 45, 26, 7] — woman, 25-40, metro
+    _b(5, "female", "25_34", "mass", "tier-2 city",
+       "aspirational wellness-influencer follower; rarely converts at premium price",
+       "lives with family"),
+    _b(17, "female", "25_34", "lower_mid", "tier-1 / tier-2",
+       "early-career content/marketing exec; buys occasional OZiva on sale",
+       "shares a flat"),
+    _b(45, "female", "25_34", "upper_mid", "Mumbai / Bangalore metro",
+       "marketing/design/product professional; Instagram-discovered wellness buyer",
+       "1-2BHK metro, single or recently married"),
+    _b(26, "female", "35_44", "affluent", "metro tier-1",
+       "settled professional / small entrepreneur; regular premium D2C wellness",
+       "owns home, young kids"),
+    _b(7, "female", "35_44", "premium", "metro tier-1",
+       "affluent founder / homemaker; full premium wellness stack",
+       "premium metro, household help"),
+]
+
+_BUNDLES_SWITCHER = [  # [12, 30, 39, 16, 3] — working women, 25-44, broad
+    _b(12, "female", "25_34", "mass", "tier-2/3",
+       "value-seeker chasing hair/skin fixes via cheap Amazon biotin",
+       "lives with family"),
+    _b(30, "female", "25_34", "lower_mid", "tier-1 / tier-2",
+       "salaried (BPO / retail / teaching); mid-market gummies, switches on no result",
+       "shared or family flat"),
+    _b(39, "female", "25_34", "upper_mid", "metro / tier-1",
+       "working professional; Nykaa/Amazon collagen & biotin, outcome-driven",
+       "metro flat"),
+    _b(16, "female", "35_44", "affluent", "metro tier-1",
+       "settled professional; mixes premium + mid brands, results-led",
+       "owns home"),
+    _b(3, "female", "35_44", "premium", "metro tier-1",
+       "affluent; dermatologist-guided premium nutricosmetics",
+       "premium metro"),
+]
+
+_BUNDLES_SKEPTIC = [  # [20, 32, 32, 12, 4] — mirrors enthusiast, lapsed/value
+    _b(20, "male", "18_24", "mass", "tier-2/3",
+       "tried a trainer-pushed tub, quit on cost; back to home food",
+       "family / shared, tier-2"),
+    _b(32, "male", "25_34", "lower_mid", "tier-2 city",
+       "salaried; bought discount whey once, churned on price + doubt",
+       "shares a flat"),
+    _b(32, "any", "25_34", "upper_mid", "metro / tier-1",
+       "professional; lapsed after the mislabeling news, now skeptical",
+       "metro flat"),
+    _b(12, "any", "35_44", "affluent", "metro tier-1",
+       "settled; tried premium, didn't see the value, dropped it",
+       "owns home"),
+    _b(4, "any", "35_44", "premium", "metro tier-1",
+       "affluent; tried & abandoned, indifferent to the category",
+       "premium metro"),
+]
+
+_BUNDLES_SNACKER = [  # [6, 18, 40, 26, 10] — 25-44, mixed, metro, no mass tail
+    _b(6, "any", "25_34", "mass", "tier-2",
+       "occasional bar buyer at quick-commerce, price-aware",
+       "family / shared"),
+    _b(18, "any", "25_34", "lower_mid", "tier-1 / tier-2",
+       "young salaried; grabs a Yogabar on Blinkit sometimes",
+       "shares a flat"),
+    _b(40, "any", "25_34", "upper_mid", "metro tier-1",
+       "busy professional; protein bar as a convenient snack",
+       "metro flat, single or married"),
+    _b(26, "any", "35_44", "affluent", "metro tier-1",
+       "settled professional; mindful-indulgence snacker, premium bars",
+       "owns home, kids"),
+    _b(10, "any", "35_44", "premium", "metro tier-1",
+       "affluent; habitual premium D2C snacking",
+       "premium metro"),
+]
+
+_BUNDLES_PURIST = [  # [12, 22, 34, 24, 8] — older 35-55, traditional
+    _b(12, "any", "45_54", "mass", "tier-2/3",
+       "value household; home-cooked dal-rice, no spare for supplements",
+       "joint family, tier-2"),
+    _b(22, "any", "35_44", "lower_mid", "tier-2 city",
+       "salaried / small-business; traditional diet, rejects supplements on cost + principle",
+       "family home"),
+    _b(34, "any", "35_44", "upper_mid", "metro / tier-1",
+       "established professional; traditional eater, 'real food is enough'",
+       "family home, metro"),
+    _b(24, "any", "45_54", "affluent", "metro tier-1",
+       "settled professional / doctor; affluent traditionalist who distrusts the category",
+       "owns home"),
+    _b(8, "any", "55_plus", "premium", "metro tier-1",
+       "affluent elder / senior professional; full home-cooked, philosophically anti-supplement",
+       "premium metro, household help"),
+]
 
 # --- target tenancy ---
 ACCOUNT_ID = "demo"
@@ -118,6 +251,7 @@ def _library() -> DispositionLibrary:
                 "first-time brand switch, then defaults to Biozyme for the "
                 "fourth tub running — 'I'm not changing what works.'"
             ),
+            demographic_bundles=_BUNDLES_ENTHUSIAST,
         ),
         # 2 — HIGH. Coherence: favorable (not loyalist — they'd switch) +
         # identity + value_calculator + mixed valence = Insta-discovered,
@@ -151,6 +285,7 @@ def _library() -> DispositionLibrary:
                 "Batra reel; mixes a scoop into oat milk before yoga; would "
                 "switch for a cleaner brand under ₹1,500."
             ),
+            demographic_bundles=_BUNDLES_ASPIRANT,
         ),
         # 3 — HIGH, skeptical. Coherence: skeptical + value_calculator +
         # function + mixed = serial switching driven by lack of visible proof.
@@ -184,6 +319,7 @@ def _library() -> DispositionLibrary:
                 "it eight more weeks, then switch to HK Vitals or Setu if the "
                 "shedding doesn't visibly slow."
             ),
+            demographic_bundles=_BUNDLES_SWITCHER,
         ),
         # 4 — MEDIUM. Coherence: neutral + price_first + function + family =
         # brand-indifferent, doctor-driven, "medicine not lifestyle".
@@ -251,6 +387,7 @@ def _library() -> DispositionLibrary:
                 "nothing when I tried it'; would scroll past unless it named "
                 "the exact failure they lived."
             ),
+            demographic_bundles=_BUNDLES_SKEPTIC,
         ),
         # 6 — LOW/occasional. Coherence: occasional + neutral + price_first +
         # habit = the "snack not supplement" mental model. Load-bearing.
@@ -283,6 +420,7 @@ def _library() -> DispositionLibrary:
                 "because none of it feels made for someone who just wants a "
                 "non-junky snack between meetings."
             ),
+            demographic_bundles=_BUNDLES_SNACKER,
         ),
         # 7 — LOW, hostile-to-category. Coherence: never + hostile +
         # quality_first(food) + identity + low = the food-first rejecter who
@@ -318,6 +456,7 @@ def _library() -> DispositionLibrary:
                 "eyes — 'ghee and dal did the job for generations'; the more "
                 "'scientific' the claim, the more they distrust it."
             ),
+            demographic_bundles=_BUNDLES_PURIST,
         ),
     ]
     return DispositionLibrary(

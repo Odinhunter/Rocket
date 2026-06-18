@@ -1,31 +1,31 @@
-"""Scaffold a starter v2 disposition library + AudienceSpec for the
-chocolate category, anchored to Cadbury's actual India buyer base.
+"""Scaffold a starter disposition library + AudienceSpec for the
+chocolate category, anchored to Cadbury's India buyer base.
 
-This is the "hand-mapping" onboarding step the v2 plan describes — done
-once, by hand, here: 6 NamedDispositions covering Cadbury's category-
-spanning buyer reality (Dairy Milk impulse loyalist, premium upgrader,
-festive household gifter, health-conscious dark-chocolate buyer, Silk
-dating-gesture, millennial nostalgia).
+────────────────────────────────────────────────────────────────────────
+DISPOSITIONS WIPED 2026-05-26 — REWRITE UNDER PROTOCOL v2 BEFORE USE.
+────────────────────────────────────────────────────────────────────────
 
-Each disposition is an 8-dimension DispositionVector + concrete anchor.
-The cold_traffic_v1 audience splits across three demographic frames
-(~67% weight on 25-34, ~33% on 35-44 household decision-maker) —
-approximating the 70/30 split Mondelez India's dual playbook implies,
-research-backed against Business Standard, Mordor, WARC, and thecore.in
-interviews with Mondelez India's CMO (see HANDOFF for source list).
+All 6 prior dispositions (loyalist_dairymilk, upgrader_premium,
+gifter_festive, skeptic_health_dark, gifter_silk_dating,
+loyalist_nostalgic) were retired alongside boat_audio / bru_coffee
+under the cross-library wipe — they share the same consultant-voice
+risk pattern (anchor prose drifts to 99th-percentile behaviors).
 
-Running this script materializes, idempotently:
-  runs/demo/cadbury_chocolate/entities/account.json
-  runs/demo/cadbury_chocolate/entities/brand_profile.json
-  runs/demo/cadbury_chocolate/entities/library.json            (6 dispositions)
-  runs/demo/cadbury_chocolate/entities/audiences/<id>.json     (one SavedAudience)
-  specs/cadbury_chocolate_cold_traffic.json                    (standalone AudienceSpec)
-  specs/cadbury_chocolate_baseline.json                        (sample baseline funnel)
+NEXT STEPS:
+  1. Read docs/disposition_protocol_v2.md (the active protocol)
+  2. Create data/voice_samples/chocolate.md (manual mini-corpus —
+     ~20-30 real Indian chocolate-buyer voices from Amazon India /
+     Reddit / YouTube comments under FoodFood / unboxing channels;
+     ~1-2 hr of curation)
+  3. Rewrite the 6 dispositions below under the 5-line format
+  4. Re-run this scaffold to regenerate runs/demo/cadbury_chocolate/
+     entities/library.json
+  5. Run a validation cadbury_ad against the new library
 
-Then a v2 Creative Read on the cadbury ad is one command (see the
-printout at the end).
+This file's structure (3 demographic frames, 4 context envelope, baseline
+funnel) is preserved.
 
-Run: python scripts/scaffold_cadbury_chocolate.py
+Old commit reference: git show 46c8f84:scripts/scaffold_cadbury_chocolate.py
 """
 
 from __future__ import annotations
@@ -59,176 +59,26 @@ LIBRARY_ID = "cadbury_chocolate_lib_v1"
 AUDIENCE_ID = "cold_traffic_v1"
 
 
-# ---- The 6 hand-mapped Cadbury chocolate dispositions ----
+# ---- Dispositions: WIPED 2026-05-26 — rewrite under protocol v2 ----
 #
-# Each is a v1-style category-attitudinal cell translated into the 8-
-# dimension vector. The `anchor` pins the specific object of each
-# disposition's stance — the lesson from the Phase 1 vividness gate that
-# an abstract vector cannot, on its own, distinguish "loyalty to mass
-# chocolate" from "loyalty to premium dark" or "loyalty to a specific
-# SKU." The brand name appears explicitly in every anchor so the render
-# engine's artifact validator (agent/render.py:_validate_no_invented_
-# artifacts) credits it as pack-grounded.
+# See module docstring above for context. Old anchors at git rev 46c8f84.
+#
+# Stance labels to populate (drawn from wiped v1 set):
+#   - loyalist_dairymilk          (low involvement, brand-loyal habit)
+#   - upgrader_premium            (medium, identity-driven, skeptical of Cadbury)
+#   - gifter_festive              (high involvement, occasion-driven, family stage)
+#   - skeptic_health_dark         (medium, function-driven, anti-mass-market)
+#   - gifter_silk_dating          (low/occasional, social-proof, young-adult)
+#   - loyalist_nostalgic          (low/occasional, memory-anchored, identity)
+#
+# Per protocol v2 §5 Lever 3: chocolate library distribution is OK with
+# more low-involvement than personal_audio — chocolate is a low-engagement
+# CPG category by nature. But still avoid all-loyalist composition;
+# include at least 1 skeptic + 1 upgrader/switcher voice.
 
 def _library() -> DispositionLibrary:
-    dispositions = [
-        NamedDisposition(
-            label="loyalist_dairymilk",
-            vector=DispositionVector(
-                category_relationship="regular",
-                brand_stance="loyalist",
-                price_orientation="value_calculator",
-                decision_driver="habit",
-                category_involvement="low",
-                prior_experience_valence="positive",
-                channel_behavior="offline_first",
-                life_stage="settled",
-            ),
-            anchor=(
-                "Cadbury Dairy Milk as the default home sweet — there's a "
-                "half-finished slab in the fridge right now from a kirana "
-                "run two days ago, ₹50 of habit. Eats it absentmindedly "
-                "while watching reels; doesn't see 'chocolate' as a category "
-                "to compare across — Cadbury Dairy Milk just IS chocolate "
-                "the way Maggi IS noodles. Treats Cadbury Silk as 'Dairy "
-                "Milk for gifting at 1.5x' and won't pay the markup at "
-                "home. Has never read the back of the wrapper. If Cadbury "
-                "Dairy Milk vanished off shelves tomorrow the substitute "
-                "pick would be panicked, not researched."
-            ),
-        ),
-        NamedDisposition(
-            label="upgrader_premium",
-            vector=DispositionVector(
-                category_relationship="regular",
-                brand_stance="skeptical",
-                price_orientation="quality_first",
-                decision_driver="identity",
-                category_involvement="medium",
-                prior_experience_valence="mixed",
-                channel_behavior="marketplace",
-                life_stage="settled",
-            ),
-            anchor=(
-                "Cadbury Dairy Milk feels juvenile now — at the Lindt "
-                "Excellence 70% / Ferrero Rocher tier, picks up a bar at "
-                "Nature's Basket or Amazon weekly. Has opinions about "
-                "ganache, knows which Toblerone batch tastes nuttier. Posts "
-                "the Lindt packaging on stories with no caption. Treats "
-                "Cadbury as the floor of the category — 'Cadbury Silk is "
-                "just marketing applied to Dairy Milk; same Thane factory.' "
-                "Will still buy a Cadbury Celebrations box for the office "
-                "Diwali pool, never for the home shelf. Tracks the 24-pc "
-                "Ferrero Rocher price drop window on Blinkit before "
-                "Valentine's and waits the three days."
-            ),
-        ),
-        NamedDisposition(
-            label="gifter_festive",
-            vector=DispositionVector(
-                category_relationship="regular",
-                brand_stance="favorable",
-                price_orientation="value_calculator",
-                decision_driver="social_proof",
-                category_involvement="high",
-                prior_experience_valence="positive",
-                channel_behavior="offline_first",
-                life_stage="family",
-            ),
-            anchor=(
-                "Three weeks before every gifting occasion the mental "
-                "spreadsheet opens — Raksha Bandhan for the brother-in-law, "
-                "Diwali stacks for the maid and the building staff, "
-                "Valentine's for the husband if reminded. Walks Nature's "
-                "Basket and supermarket aisles physically to size up "
-                "Cadbury Celebrations stacks against Ferrero Rocher "
-                "pyramids. Knows the per-piece math: Cadbury Silk Heart at "
-                "₹550 reads more like effort than Cadbury Dairy Milk "
-                "Celebrations at the same per-gram math, even though the "
-                "chocolate is from the same Thane plant. WhatsApp aunty "
-                "groups polling 'silk heart box or ferrero 24-pc?' hit "
-                "weekly every February. Treats chocolate as logistics, not "
-                "indulgence — the chocolate inside IS structural support "
-                "for the gift act."
-            ),
-        ),
-        NamedDisposition(
-            label="skeptic_health_dark",
-            vector=DispositionVector(
-                category_relationship="regular",
-                brand_stance="skeptical",
-                price_orientation="quality_first",
-                decision_driver="function",
-                category_involvement="medium",
-                prior_experience_valence="mixed",
-                channel_behavior="marketplace",
-                life_stage="early_career",
-            ),
-            anchor=(
-                "Dark chocolate as the 'acceptable sweet' — 70%+ cacao, low "
-                "sugar, fits the 1g-per-square macro budget. Buys Lindt "
-                "Excellence 70% on Amazon subscription, occasionally a "
-                "Toblerone dark variant at Nature's Basket. Tracks every "
-                "gram in MyFitnessPal or HealthifyMe (sourced from the "
-                "category's wellness culture, not the pack). Reads back-of-"
-                "pack sugar per 100g before anything else, will pay 3x for "
-                "half the sugar. Cynical about Cadbury Dairy Milk — 'milk "
-                "chocolate' is 'kids' sugar water with cocoa added.' Posts "
-                "the Lindt Excellence 90% wrapper to stories with no "
-                "caption; the percentage is the caption."
-            ),
-        ),
-        NamedDisposition(
-            label="gifter_silk_dating",
-            vector=DispositionVector(
-                category_relationship="occasional",
-                brand_stance="favorable",
-                price_orientation="value_calculator",
-                decision_driver="social_proof",
-                category_involvement="low",
-                prior_experience_valence="positive",
-                channel_behavior="quick_commerce",
-                life_stage="early_career",
-            ),
-            anchor=(
-                "Cadbury Silk as the 'I brought you something' prop on a "
-                "third Bumble date or a relationship anniversary. Knows "
-                "Cadbury Silk is Dairy Milk at a markup with a softer "
-                "texture and a wrapper that does the work — accepts the "
-                "math because the heart-shaped box does ₹300 worth of 'I "
-                "thought about you' in a single visible object. Wouldn't "
-                "be caught with a Ferrero Rocher pyramid (too aunty, reads "
-                "as a wedding gift), wouldn't show up empty-handed (too "
-                "callow). Picks it up at Blinkit on the way over; arrives "
-                "with the receipt still warm. Doesn't buy chocolate any "
-                "other time of year."
-            ),
-        ),
-        NamedDisposition(
-            label="loyalist_nostalgic",
-            vector=DispositionVector(
-                category_relationship="occasional",
-                brand_stance="loyalist",
-                price_orientation="value_calculator",
-                decision_driver="identity",
-                category_involvement="low",
-                prior_experience_valence="positive",
-                channel_behavior="offline_first",
-                life_stage="early_career",
-            ),
-            anchor=(
-                "Cadbury Dairy Milk codes as 1990s/early-2000s childhood — "
-                "the school tuck-shop slab, the Diwali bonus from "
-                "grandparents, the school-fete prize. Eats one occasionally "
-                "and the first bite triggers the memory layer before the "
-                "taste layer. Doesn't buy chocolate the rest of the year. "
-                "Treats Cadbury Silk as a betrayal of the original — too "
-                "soft, not 'chocolate-y' the way the old foil wrapper was. "
-                "Won't engage with new SKUs — they're not THE Cadbury Dairy "
-                "Milk. Buys at the kirana the way it was bought at age 9, "
-                "not Blinkit."
-            ),
-        ),
+    dispositions: list[NamedDisposition] = [
+        # TODO(protocol_v2): rewrite 6 cadbury_chocolate dispositions here.
     ]
     return DispositionLibrary(
         library_id=LIBRARY_ID,
@@ -314,25 +164,16 @@ _CONTEXT_ENVELOPE = [
 
 
 def _audience_spec() -> AudienceSpec:
-    """A 'cold acquisition traffic' audience for Cadbury chocolate. All 6
-    dispositions, three demographics (~67% 25-34 / ~33% 35-44), the
-    chocolate pack's default chaos mix (35/45/20 — chocolate skews
-    impulsive), panel_size 100 for L2 cells averaging ~5-6 agents each
-    (boat-comparable density).
+    """Cold acquisition traffic AudienceSpec for Cadbury chocolate.
 
-    Edit specs/cadbury_chocolate_cold_traffic.json to narrow the
-    disposition set or change panel_size."""
+    disposition_labels EMPTY until dispositions are rewritten under
+    protocol v2 (see module docstring). Per protocol v2 §5 Lever 3,
+    chocolate is OK with more low-involvement than personal_audio
+    but should still include at least one skeptic + one upgrader voice."""
     pack = load_pack("chocolate")
     return AudienceSpec(
         demographics=[_DEMO_DATING_YOUNG, _DEMO_YOUNG_FAMILY, _DEMO_HOUSEHOLD],
-        disposition_labels=[
-            "loyalist_dairymilk",
-            "upgrader_premium",
-            "gifter_festive",
-            "skeptic_health_dark",
-            "gifter_silk_dating",
-            "loyalist_nostalgic",
-        ],
+        disposition_labels=[],  # populate after dispositions are written
         context_envelope=_CONTEXT_ENVELOPE,
         chaos_distribution=pack.default_chaos_distribution,
         panel_size=100,
@@ -353,7 +194,19 @@ _BASELINE_FUNNEL = {
 
 
 def main() -> None:
-    print("=== scaffolding cadbury_chocolate v2 starter ===")
+    # Guard: refuse to run while dispositions are empty.
+    # Remove this block once dispositions are rewritten under protocol v2.
+    library = _library()
+    if not library.dispositions:
+        print("=== ABORT — cadbury_chocolate dispositions are wiped ===")
+        print()
+        print("This scaffold cannot run until 6 dispositions are")
+        print("rewritten under docs/disposition_protocol_v2.md.")
+        print()
+        print("See module docstring for the rewrite checklist.")
+        sys.exit(1)
+
+    print("=== scaffolding cadbury_chocolate starter ===")
 
     # 1. Validate the artifact pack exists.
     pack = load_pack("chocolate")
