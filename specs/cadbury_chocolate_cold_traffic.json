@@ -2,24 +2,30 @@
   "demographics": [
     {
       "gender": "any",
-      "age_band": "25_34",
-      "income_tier": "upper_mid",
+      "age_min": 25,
+      "age_max": 34,
+      "income_lpa_min": 7.0,
+      "income_lpa_max": 17.0,
       "geography": "Bangalore / Mumbai / Delhi metro",
       "occupation_hint": "early/mid-career — startup, consulting, design",
       "household_hint": "single or dating; lives with flatmates or partner"
     },
     {
       "gender": "any",
-      "age_band": "25_34",
-      "income_tier": "upper_mid",
+      "age_min": 25,
+      "age_max": 34,
+      "income_lpa_min": 7.0,
+      "income_lpa_max": 17.0,
       "geography": "Bangalore / Mumbai / Pune metro",
       "occupation_hint": "early/mid-career — corporate, startup",
       "household_hint": "recently married or new parent; own 2BHK"
     },
     {
       "gender": "female",
-      "age_band": "35_44",
-      "income_tier": "upper_mid",
+      "age_min": 35,
+      "age_max": 44,
+      "income_lpa_min": 7.0,
+      "income_lpa_max": 17.0,
       "geography": "Pune / Mumbai / Indore tier-1 + tier-2",
       "occupation_hint": "household decision-maker; part-time work or full-time-mom",
       "household_hint": "married with 1-2 school-age kids; 3BHK; runs household"

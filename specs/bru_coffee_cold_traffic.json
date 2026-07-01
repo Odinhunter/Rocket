@@ -2,24 +2,30 @@
   "demographics": [
     {
       "gender": "female",
-      "age_band": "35_44",
-      "income_tier": "upper_mid",
+      "age_min": 35,
+      "age_max": 44,
+      "income_lpa_min": 7.0,
+      "income_lpa_max": 17.0,
       "geography": "Chennai / Bangalore / Hyderabad metro",
       "occupation_hint": "household decision-maker; some part-time work",
       "household_hint": "married with 1-2 kids; 3BHK; runs household groceries"
     },
     {
       "gender": "female",
-      "age_band": "35_44",
-      "income_tier": "lower_mid",
+      "age_min": 35,
+      "age_max": 44,
+      "income_lpa_min": 3.5,
+      "income_lpa_max": 7.0,
       "geography": "Indore / Lucknow / Pune tier-2",
       "occupation_hint": "full-time homemaker or part-time work",
       "household_hint": "married with 1-2 school-age kids; 2BHK; tea-to-coffee converter household"
     },
     {
       "gender": "any",
-      "age_band": "25_34",
-      "income_tier": "upper_mid",
+      "age_min": 25,
+      "age_max": 34,
+      "income_lpa_min": 7.0,
+      "income_lpa_max": 17.0,
       "geography": "Mumbai / Bangalore / Delhi metro",
       "occupation_hint": "early/mid-career — corporate, startup, consulting",
       "household_hint": "single, dating, or recently married; flat or 2BHK"

@@ -2,8 +2,10 @@
   "demographics": [
     {
       "gender": "male",
-      "age_band": "25_34",
-      "income_tier": "upper_mid",
+      "age_min": 25,
+      "age_max": 34,
+      "income_lpa_min": 7.0,
+      "income_lpa_max": 17.0,
       "geography": "Bangalore / metro tier-1",
       "occupation_hint": "software engineer at a mid-stage SaaS startup",
       "household_hint": "shares a 3BHK with flatmates, sends money home monthly"
