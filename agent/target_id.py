@@ -25,14 +25,16 @@ from typing import Any
 import anthropic
 
 from agent.config import RunConfig
+from agent.entities import AudienceSpec
 from agent.synthesis_types import (
+    CoverageWarning,
     DemographicMismatch,
     DispositionTarget,
     InferredAudience,
     TargetClassification,
 )
 from agent.telemetry import call_with_telemetry
-from agent.vectors import DemographicPoint
+from agent.vectors import _BAND_TO_AGE_RANGE, DemographicPoint, NamedDisposition
 
 
 _log = logging.getLogger(__name__)
@@ -374,14 +376,26 @@ def _image_block(image_path: str) -> dict:
 # subtle "declared 25-34, reads 30-45" kind. Distinct from the
 # disposition-level pool mismatch (no_match_note).
 
-_AGE_ORDER = {"18_24": 0, "25_34": 1, "35_44": 2, "45_54": 3, "55_plus": 4}
-_AGE_GROSS_DISTANCE = 3   # nearest declared band this many positions away = gross
+# rocket-2.1.0: the declared audience is range-based; the inferred audience is
+# still a band (vision output). Bridge the band to a range and compare ranges.
+_AGE_GROSS_GAP_YEARS = 18  # nearest declared range this many years off = gross
+# (18_24 vs 45_54 -> gap 21 fires; 18_24 vs 35_44 -> gap 11 does not — matching
+# the pre-2.1 "3 bands apart" behaviour.)
 
 _GENDER_WORD = {"male": "men", "female": "women"}
 _AGE_WORD = {
     "18_24": "18-24", "25_34": "25-34", "35_44": "35-44",
     "45_54": "45-54", "55_plus": "55+",
 }
+
+
+def _range_gap(a0: float, a1: float, b0: float, b1: float) -> float:
+    """Years between two ranges; 0 if they overlap."""
+    if a1 < b0:
+        return b0 - a1
+    if b1 < a0:
+        return a0 - b1
+    return 0.0
 
 
 def detect_gross_demographic_mismatch(
@@ -402,17 +416,15 @@ def detect_gross_demographic_mismatch(
         if not wildcard and declared_genders == {opposite}:
             axes.append("gender")
 
-    # AGE — fire only when the nearest declared band is >= _AGE_GROSS_DISTANCE
-    # positions from the ad's apparent band (opposite ends of the age range).
-    if inferred.age_band in _AGE_ORDER:
-        declared_bands = [d.age_band for d in declared if d.age_band in _AGE_ORDER]
-        if declared_bands:
-            nearest = min(
-                abs(_AGE_ORDER[inferred.age_band] - _AGE_ORDER[b])
-                for b in declared_bands
-            )
-            if nearest >= _AGE_GROSS_DISTANCE:
-                axes.append("age")
+    # AGE — bridge the inferred band to a range and compare against the
+    # declared RANGE audience. Fire only when the nearest declared range is a
+    # wide gap from the ad's apparent band (opposite ends of the age spectrum).
+    # 'unspecified'/'mixed'/'unclear' inferred bands never fire.
+    if inferred.age_band in _BAND_TO_AGE_RANGE and inferred.age_band != "unspecified":
+        i0, i1 = _BAND_TO_AGE_RANGE[inferred.age_band]
+        gaps = [_range_gap(i0, i1, d.age_min, d.age_max) for d in declared]
+        if gaps and min(gaps) >= _AGE_GROSS_GAP_YEARS:
+            axes.append("age")
 
     if not axes:
         return None
@@ -435,7 +447,6 @@ def detect_gross_demographic_mismatch(
 
 def _summarize_declared(declared: list[DemographicPoint]) -> str:
     genders = {d.gender for d in declared}
-    bands = [d.age_band for d in declared if d.age_band in _AGE_ORDER]
     if {"any", "unspecified"} & genders or genders == {"male", "female"}:
         g = "all genders"
     elif genders == {"male"}:
@@ -444,12 +455,9 @@ def _summarize_declared(declared: list[DemographicPoint]) -> str:
         g = "women"
     else:
         g = "/".join(sorted(genders))
-    if bands:
-        lo = min(bands, key=lambda b: _AGE_ORDER[b])
-        hi = max(bands, key=lambda b: _AGE_ORDER[b])
-        a = _AGE_WORD[lo] if lo == hi else f"{_AGE_WORD[lo]}–{_AGE_WORD[hi]}"
-        return f"{g} aged {a}"
-    return g
+    lo = min(d.age_min for d in declared)
+    hi = max(d.age_max for d in declared)
+    return f"{g} aged {lo}-{hi}"
 
 
 def _summarize_inferred(inferred: InferredAudience) -> str:
@@ -462,3 +470,44 @@ def _summarize_inferred(inferred: InferredAudience) -> str:
     if a:
         return f"people aged {a}"
     return "an unclear demographic"
+
+
+# ---- Coverage guard (rocket-2.1.0) — sibling of the mismatch guard ----
+
+_MIN_ELIGIBLE_PERSONAS = 2  # below this, the declared slice has too few personas
+
+
+def detect_thin_coverage(
+    spec: AudienceSpec,
+    dispositions: list[NamedDisposition],
+) -> CoverageWarning | None:
+    """Return a CoverageWarning iff the declared audience intersects too few
+    library personas to compose a diverse marketer-led panel. Advisory (never
+    blocks); doubles as the white-glove authoring signal for that slice."""
+    from agent.panel import eligible_dispositions  # local: avoid import cycle
+
+    eligible = eligible_dispositions(spec, dispositions)
+    labels = [d.label for d, _ in eligible]
+    if len(eligible) >= _MIN_ELIGIBLE_PERSONAS:
+        return None
+
+    declared = _summarize_declared(spec.demographics)
+    if not eligible:
+        message = (
+            f"No library persona lives in the declared audience ({declared}). "
+            f"The panel falls back to all dispositions at the declared "
+            f"demographics — author personas for this slice before trusting "
+            f"the read."
+        )
+    else:
+        message = (
+            f"Only 1 library persona ({labels[0]}) lives in the declared "
+            f"audience ({declared}); the panel has no attitudinal diversity. "
+            f"Author more personas for this slice."
+        )
+    return CoverageWarning(
+        eligible_count=len(eligible),
+        total_count=len(dispositions),
+        eligible_labels=labels,
+        message=message,
+    )

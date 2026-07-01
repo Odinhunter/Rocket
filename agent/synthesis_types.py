@@ -251,6 +251,36 @@ class DemographicMismatch:
 
 
 @dataclass
+class CoverageWarning:
+    """A deterministic pre-run advisory that the DECLARED audience intersects
+    too few library personas to compose a diverse marketer-led panel — a
+    library-coverage gap for this slice. Advisory (never blocks); doubles as
+    the white-glove authoring signal ('author more personas for this slice').
+    Sibling of DemographicMismatch."""
+    eligible_count: int
+    total_count: int
+    eligible_labels: list[str]
+    message: str
+
+    def to_dict(self) -> dict:
+        return {
+            "eligible_count": self.eligible_count,
+            "total_count": self.total_count,
+            "eligible_labels": list(self.eligible_labels),
+            "message": self.message,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "CoverageWarning":
+        return cls(
+            eligible_count=int(data["eligible_count"]),
+            total_count=int(data["total_count"]),
+            eligible_labels=list(data.get("eligible_labels", [])),
+            message=data["message"],
+        )
+
+
+@dataclass
 class TargetClassification:
     """Produced by an Opus vision call that sees the asset + disposition pool
     but no agent reactions. Target is a property of the ad, not of who
