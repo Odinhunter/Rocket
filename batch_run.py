@@ -215,6 +215,12 @@ def _print_preparation(prep: RunPreparation) -> None:
         print("   --acknowledge-demographic-mismatch. Otherwise fix the declared")
         print("   audience, or check you uploaded the right creative.")
         print("!" * 78)
+    if prep.coverage_warning is not None:
+        c = prep.coverage_warning
+        print("\n" + "~" * 78)
+        print(f"⚠  THIN AUDIENCE COVERAGE  —  {c.eligible_count}/{c.total_count} personas in the declared slice")
+        print(f"   {c.message}")
+        print("~" * 78)
     print(f"\nEstimated cost: ~${prep.estimated_cost_usd:.2f}   "
           f"(persona cores rendered: {prep.persona_cores_rendered})")
     print("=" * 78)
@@ -264,6 +270,15 @@ def main() -> None:
                         help="The customer's stated Meta audience (free text). A "
                              "hint to the target classifier; does not override the "
                              "creative-derived inferred audience.")
+    parser.add_argument("--marketer-led", action="store_true",
+                        help="rocket-2.1.0: compose the panel from the declared "
+                             "audience (spec.demographics) — select/weight personas "
+                             "that live in the buy, simulate at the declared "
+                             "demographics. Off by default (legacy composition).")
+    parser.add_argument("--tail-fraction", type=float, default=0.0,
+                        help="Marketer-led discovery tail: fraction (0..1) of the "
+                             "panel reserved for out-of-frame personas, segregated "
+                             "from the declared-audience numbers. Default 0.")
     parser.add_argument("--yes", action="store_true",
                         help="Skip the confirmation prompt; auto-commit.")
     parser.add_argument("--acknowledge-demographic-mismatch", action="store_true",
@@ -312,6 +327,8 @@ def main() -> None:
         audience_id=args.audience_id,
         creative_inputs=creative_inputs,
         declared_targeting=args.declared_targeting,
+        marketer_led=args.marketer_led,
+        tail_fraction=args.tail_fraction,
     )
 
     print("# Rocket Creative Read (rocket-2.0.0)")

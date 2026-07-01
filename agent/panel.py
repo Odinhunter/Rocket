@@ -580,10 +580,12 @@ def compute_panel_version(
     category: str,
     segment_granularity: SegmentGranularity,
     seed: int,
+    marketer_led: bool = False,
+    tail_fraction: float = 0.0,
 ) -> str:
     """SHA-1 of the fully resolved panel inputs — so a re-run with a changed
-    audience, disposition library, category or seed is detectable on the run
-    record. Mirrors RunConfig.compute_disposition_version."""
+    audience, disposition library, category, seed, or composition mode is
+    detectable on the run record. Mirrors RunConfig.compute_disposition_version."""
     h = hashlib.sha1()
     payload = {
         "spec": spec.to_dict(),
@@ -591,6 +593,8 @@ def compute_panel_version(
         "category": category,
         "segment_granularity": segment_granularity,
         "seed": seed,
+        "marketer_led": marketer_led,
+        "tail_fraction": tail_fraction,
     }
     h.update(json.dumps(payload, sort_keys=True).encode("utf-8"))
     return h.hexdigest()[:12]

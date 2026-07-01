@@ -182,6 +182,20 @@ def test_to_dict_serializable() -> None:
     print("  OK  to_dict JSON-serializable")
 
 
+def test_marketer_led_fields() -> None:
+    base = dict(
+        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        archetype="urban_indian_male_22_30",
+        category="personal_audio",
+    )
+    d = RunConfig(**base).to_dict()
+    assert d["marketer_led"] is False and d["tail_fraction"] == 0.0, d
+    d2 = RunConfig(**base, marketer_led=True, tail_fraction=0.15).to_dict()
+    assert d2["marketer_led"] is True and d2["tail_fraction"] == 0.15, d2
+    assert PROTOCOL_VERSION == "rocket-2.1.0", PROTOCOL_VERSION
+    print("  OK  marketer_led / tail_fraction serialize (protocol rocket-2.1.0)")
+
+
 def test_default_temperatures_match_advisor_schedule() -> None:
     """The 1.1.0 temperature schedule is load-bearing for verdict stability
     and L4 voice fidelity. Changing any of these is a methodology shift
@@ -261,6 +275,7 @@ def main() -> None:
     test_flat_fallback_when_unset()
     test_disposition_version_hash()
     test_to_dict_serializable()
+    test_marketer_led_fields()
     test_default_temperatures_match_advisor_schedule()
     test_temperatures_round_trip_through_to_dict()
     test_default_efforts_match_advisor_schedule()

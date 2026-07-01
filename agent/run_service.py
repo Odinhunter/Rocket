@@ -55,8 +55,16 @@ from agent.schema import AgentTranscript, Report
 from agent.synthesis_l2 import synthesize_segment_async
 from agent.synthesis_l3 import synthesize_population
 from agent.synthesis_l4 import L4_PROMPT_VERSION, synthesize_memo
-from agent.synthesis_types import DemographicMismatch, TargetClassification
-from agent.target_id import detect_gross_demographic_mismatch, identify_target
+from agent.synthesis_types import (
+    CoverageWarning,
+    DemographicMismatch,
+    TargetClassification,
+)
+from agent.target_id import (
+    detect_gross_demographic_mismatch,
+    detect_thin_coverage,
+    identify_target,
+)
 from agent.telemetry import (
     current_account_id,
     current_brand_profile_id,
@@ -111,6 +119,9 @@ class RunPreparation:
     # None when the ad's apparent demographic is consistent with / broad
     # enough for the declared audience. When set, batch_run overrides --yes.
     demographic_mismatch: DemographicMismatch | None = None
+    # rocket-2.1.0: declared audience intersects too few personas for a diverse
+    # marketer-led panel (advisory; also the white-glove authoring signal).
+    coverage_warning: CoverageWarning | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -126,6 +137,10 @@ class RunPreparation:
             "demographic_mismatch": (
                 self.demographic_mismatch.to_dict()
                 if self.demographic_mismatch is not None else None
+            ),
+            "coverage_warning": (
+                self.coverage_warning.to_dict()
+                if self.coverage_warning is not None else None
             ),
         }
 
@@ -223,15 +238,27 @@ class RunService:
         )
         dispositions = library.resolve(spec.disposition_labels)
 
-        # Build the panel (deterministic stratified allocation).
+        # Build the panel (deterministic stratified allocation). Marketer-led
+        # composition (rocket-2.1.0) is opt-in via config.marketer_led.
         panel = build_panel(
             spec, dispositions, category=config.category,
             segment_granularity=config.segment_granularity, seed=config.seed,
+            marketer_led=config.marketer_led, tail_fraction=config.tail_fraction,
         )
         panel_version = compute_panel_version(
             spec, dispositions, category=config.category,
             segment_granularity=config.segment_granularity, seed=config.seed,
+            marketer_led=config.marketer_led, tail_fraction=config.tail_fraction,
         )
+
+        # Coverage guard (marketer-led only): does the declared audience
+        # intersect enough personas to compose a diverse panel? Advisory.
+        coverage_warning = (
+            detect_thin_coverage(spec, dispositions)
+            if config.marketer_led else None
+        )
+        if coverage_warning is not None:
+            _log.warning("thin audience coverage: %s", coverage_warning.message)
 
         # target_id FIRST — classify each disposition against the ad.
         disposition_pool = [
@@ -294,6 +321,7 @@ class RunService:
             estimated_cost_usd=estimated_cost,
             persona_cores_rendered=rendered, panel_version=panel_version,
             demographic_mismatch=demographic_mismatch,
+            coverage_warning=coverage_warning,
         )
         _persist_json(rd / "preparation.json", prep.to_dict())
         _persist_json(rd / "panel.json", [a.to_dict() for a in panel])

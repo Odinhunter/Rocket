@@ -267,6 +267,13 @@ class RunConfig:
     # hint to the target classifier ONLY — it must not override the creative-
     # derived inferred_audience the demographic-mismatch guard depends on.
     declared_targeting: str = ""
+    # rocket-2.1.0 marketer-led composition. When True, the declared audience
+    # (audience_spec.demographics) selects/weights which personas appear and
+    # agents are simulated at the declared demographics. Off by default so
+    # legacy runs are byte-unchanged. tail_fraction (0..1) reserves a segregated
+    # discovery tail of out-of-frame personas.
+    marketer_led: bool = False
+    tail_fraction: float = 0.0
 
     def provided_inputs(self) -> list[str]:
         """The creative inputs supplied this run, as the keys L3.5 gates the
@@ -347,4 +354,6 @@ class RunConfig:
             "audience_id": self.audience_id,
             "creative_inputs": self.creative_inputs.to_dict(),
             "declared_targeting": self.declared_targeting,
+            "marketer_led": self.marketer_led,
+            "tail_fraction": self.tail_fraction,
         }
