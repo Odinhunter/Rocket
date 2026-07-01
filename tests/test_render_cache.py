@@ -92,7 +92,7 @@ def test_persona_core_hash_sensitive() -> None:
     )
     # Change a demographic field.
     dm2 = _demo()
-    dm2.age_band = "35_44"
+    dm2.age_min, dm2.age_max = 35, 44
     assert persona_core_hash(dm2, _disposition(), _chaos(), "coffee") != base, (
         "hash did not change on a demographic field change"
     )

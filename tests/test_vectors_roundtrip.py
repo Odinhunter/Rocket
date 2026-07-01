@@ -12,6 +12,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agent.vectors import (
+    _BAND_TO_AGE_RANGE,
+    _TIER_TO_LPA_RANGE,
     ChaosDistribution,
     ChaosProfile,
     ChaosVector,
@@ -98,6 +100,73 @@ def test_demographic_roundtrip() -> None:
     print("  OK  DemographicPoint round-trip")
 
 
+def test_demographic_range_native() -> None:
+    """rocket-2.1.0: age/income authored as continuous ranges."""
+    d = DemographicPoint(
+        gender="female",
+        age_min=20, age_max=24,
+        income_lpa_min=0.0, income_lpa_max=14.0,
+        geography="tier-1 metro",
+    )
+    d.validate()
+    dd = d.to_dict()
+    assert "age_band" not in dd and "income_tier" not in dd, dd
+    assert DemographicPoint.from_dict(dd) == d, "range-native round-trip mismatch"
+    print("  OK  range-native DemographicPoint round-trip")
+
+
+def test_demographic_legacy_dual_read() -> None:
+    """Legacy band/tier JSON dual-reads into ranges and re-round-trips; the
+    legacy kwarg constructor path converts identically."""
+    legacy = {
+        "gender": "male", "age_band": "55_plus", "income_tier": "affluent",
+        "geography": "metro",
+    }
+    d = DemographicPoint.from_dict(legacy)
+    assert (d.age_min, d.age_max) == (55, 75), d.to_dict()
+    assert (d.income_lpa_min, d.income_lpa_max) == (17.0, 40.0), d.to_dict()
+    dd = d.to_dict()
+    assert "age_band" not in dd and "income_tier" not in dd, dd
+    assert DemographicPoint.from_dict(dd) == d, "legacy -> range not stable"
+    assert DemographicPoint(
+        gender="male", age_band="55_plus", income_tier="affluent",
+        geography="metro",
+    ) == d, "legacy kwarg constructor diverged from legacy JSON"
+    print("  OK  legacy band/tier dual-read -> ranges")
+
+
+def test_demographic_conversion_maps() -> None:
+    assert _BAND_TO_AGE_RANGE["18_24"] == (18, 24)
+    assert _BAND_TO_AGE_RANGE["55_plus"][0] == 55
+    assert _TIER_TO_LPA_RANGE["mass"] == (0.0, 3.5)
+    assert _TIER_TO_LPA_RANGE["upper_mid"] == (7.0, 17.0)
+    print("  OK  legacy band/tier -> range conversion maps")
+
+
+def test_demographic_validate_rejects_bad_range() -> None:
+    bad_age = DemographicPoint(
+        gender="any", age_min=30, age_max=20,
+        income_lpa_min=0.0, income_lpa_max=5.0, geography="x",
+    )
+    try:
+        bad_age.validate()
+    except ValueError as e:
+        assert "age range" in str(e)
+    else:
+        raise AssertionError("validate should reject age_min > age_max")
+    bad_income = DemographicPoint(
+        gender="any", age_min=20, age_max=30,
+        income_lpa_min=10.0, income_lpa_max=2.0, geography="x",
+    )
+    try:
+        bad_income.validate()
+    except ValueError as e:
+        assert "income range" in str(e)
+    else:
+        raise AssertionError("validate should reject income min > max")
+    print("  OK  validate rejects inverted age/income ranges")
+
+
 def test_disposition_vector_roundtrip() -> None:
     v = _disposition_vector()
     v.validate()
@@ -182,6 +251,10 @@ def test_escape_hatch_value_accepted() -> None:
 def main() -> None:
     print("=== vectors round-trip smoke ===")
     test_demographic_roundtrip()
+    test_demographic_range_native()
+    test_demographic_legacy_dual_read()
+    test_demographic_conversion_maps()
+    test_demographic_validate_rejects_bad_range()
     test_disposition_vector_roundtrip()
     test_context_vector_roundtrip()
     test_chaos_distribution_roundtrip()

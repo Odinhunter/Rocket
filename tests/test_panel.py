@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from agent.entities import AudienceSpec
 from agent.panel import PanelAgent, build_panel, compute_panel_version
 from agent.vectors import (
+    _TIER_TO_LPA_RANGE,
     ChaosDistribution,
     ChaosProfile,
     ChaosVector,
@@ -28,6 +29,15 @@ from agent.vectors import (
     NamedContext,
     NamedDisposition,
 )
+
+# rocket-2.1.0: demographics are continuous ranges. These bundled tests were
+# authored against the legacy income_tier bucket; derive the tier back from the
+# income range so the distribution assertions keep their original meaning.
+_RANGE_TO_TIER = {rng: tier for tier, rng in _TIER_TO_LPA_RANGE.items()}
+
+
+def _tier_of(demo: DemographicPoint) -> str | None:
+    return _RANGE_TO_TIER.get((demo.income_lpa_min, demo.income_lpa_max))
 
 
 def _chaos_distribution() -> ChaosDistribution:
@@ -265,8 +275,8 @@ def test_bundled_income_distribution_matches() -> None:
     spec = _bundled_spec(200, [dA, dB])
     panel = build_panel(spec, [dA, dB], category="health_wellness", seed=71)
     assert len(panel) == 200
-    incA = Counter(a.demographic.income_tier for a in panel if a.disposition_label == "affluent_disp")
-    incB = Counter(a.demographic.income_tier for a in panel if a.disposition_label == "mass_disp")
+    incA = Counter(_tier_of(a.demographic) for a in panel if a.disposition_label == "affluent_disp")
+    incB = Counter(_tier_of(a.demographic) for a in panel if a.disposition_label == "mass_disp")
     nA, nB = sum(incA.values()), sum(incB.values())
     # No cross-tier contamination: each disposition only shows its own tiers.
     assert incA["mass"] == 0 and incA["lower_mid"] == 0, incA
@@ -285,11 +295,11 @@ def test_bundled_coherence_no_contamination() -> None:
     spec = _bundled_spec(200, [dA, dB])
     panel = build_panel(spec, [dA, dB], category="health_wellness", seed=71)
     allowed = {
-        "affluent_disp": {(b.point.income_tier, b.point.geography) for b in dA.demographic_bundles},
-        "mass_disp": {(b.point.income_tier, b.point.geography) for b in dB.demographic_bundles},
+        "affluent_disp": {(_tier_of(b.point), b.point.geography) for b in dA.demographic_bundles},
+        "mass_disp": {(_tier_of(b.point), b.point.geography) for b in dB.demographic_bundles},
     }
     for a in panel:
-        key = (a.demographic.income_tier, a.demographic.geography)
+        key = (_tier_of(a.demographic), a.demographic.geography)
         assert key in allowed[a.disposition_label], f"{a.disposition_label} got alien demo {key}"
     print("  OK  bundled agents draw only from their own disposition's bundles")
 
@@ -322,7 +332,7 @@ def test_bundled_mixed_fallback() -> None:
     # The fallback disposition uses the spec's single demographic frame.
     assert all(a.demographic.geography == "fallback metro" for a in plain), "fallback did not use spec.demographics"
     bundled = [a for a in panel if a.disposition_label == "affluent_disp"]
-    assert all(a.demographic.income_tier in {"affluent", "premium"} for a in bundled)
+    assert all(_tier_of(a.demographic) in {"affluent", "premium"} for a in bundled)
     print("  OK  mixed library: bundled disposition uses bundles, plain disposition falls back to spec.demographics")
 
 

@@ -23,12 +23,13 @@ pydantic. validate() raises ValueError on a bad value.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import InitVar, asdict, dataclass, field
 from typing import Literal
 
 # Render protocol version. Bumps when the vector schemas OR the render
-# engine prompt change — both invalidate cached persona renders.
-VECTOR_SCHEMA_VERSION = "rocket-2.0.0"
+# engine prompt change — both invalidate cached persona renders. Bumped to
+# rocket-2.1.0 for the DemographicPoint band/tier -> continuous-range reshape.
+VECTOR_SCHEMA_VERSION = "rocket-2.1.0"
 
 _ESCAPE = "unspecified"
 
@@ -36,38 +37,91 @@ _ESCAPE = "unspecified"
 # ---- Axis 1: Demographics (addressability) ----
 
 Gender = Literal["male", "female", "nonbinary", "any", "unspecified"]
+# AgeBand / IncomeTier are the LEGACY discrete buckets. Since rocket-2.1.0
+# DemographicPoint stores continuous ranges; these literals + the conversion
+# maps below survive only to dual-read legacy band/tier data (libraries,
+# specs, stored runs) into ranges. New data is authored as ranges.
 AgeBand = Literal["18_24", "25_34", "35_44", "45_54", "55_plus", "unspecified"]
 IncomeTier = Literal[
     "mass", "lower_mid", "upper_mid", "affluent", "premium", "unspecified"
 ]
 
 _VALID_GENDER = {"male", "female", "nonbinary", "any", _ESCAPE}
-_VALID_AGE_BAND = {"18_24", "25_34", "35_44", "45_54", "55_plus", _ESCAPE}
-_VALID_INCOME_TIER = {"mass", "lower_mid", "upper_mid", "affluent", "premium", _ESCAPE}
+
+# Legacy band/tier -> continuous range, for back-compat dual-read only.
+# Income tiers are annual HOUSEHOLD income in LPA (lakhs/yr), per
+# docs/disposition_income_brackets.md. "55_plus" caps at a nominal 75.
+_BAND_TO_AGE_RANGE: dict[str, tuple[int, int]] = {
+    "18_24": (18, 24),
+    "25_34": (25, 34),
+    "35_44": (35, 44),
+    "45_54": (45, 54),
+    "55_plus": (55, 75),
+    _ESCAPE: (18, 65),
+}
+_TIER_TO_LPA_RANGE: dict[str, tuple[float, float]] = {
+    "mass": (0.0, 3.5),
+    "lower_mid": (3.5, 7.0),
+    "upper_mid": (7.0, 17.0),
+    "affluent": (17.0, 40.0),
+    "premium": (40.0, 100.0),
+    _ESCAPE: (0.0, 100.0),
+}
 
 
 @dataclass
 class DemographicPoint:
-    """One addressability point. gender/age_band/income_tier are enumerated;
-    geography is free string (region taxonomies vary too much to enumerate).
-    occupation_hint / household_hint are optional render-engine seeds drawn
-    from the artifact pack's demographic_defaults."""
+    """One addressability point. Since rocket-2.1.0 age and income are
+    continuous RANGES — age in years, income in LPA (annual household income,
+    lakhs/yr) — so a marketer's declared audience is honored exactly instead
+    of snapped to a bucket. gender stays enumerated; geography is a free
+    string. occupation_hint / household_hint are optional render-engine seeds.
+
+    Back-compat: legacy callers/data may still pass `age_band` / `income_tier`
+    (InitVar). They are converted to ranges in __post_init__ and never stored
+    as fields, so to_dict()/equality see the range form only.
+    """
 
     gender: Gender
-    age_band: AgeBand
-    income_tier: IncomeTier
-    geography: str
+    age_min: int = -1
+    age_max: int = -1
+    income_lpa_min: float = -1.0
+    income_lpa_max: float = -1.0
+    geography: str = ""
     occupation_hint: str = ""
     household_hint: str = ""
+    # Legacy discrete inputs — converted to ranges below, not stored.
+    age_band: InitVar[str | None] = None
+    income_tier: InitVar[str | None] = None
+
+    def __post_init__(
+        self, age_band: str | None, income_tier: str | None
+    ) -> None:
+        if age_band is not None and self.age_min < 0 and self.age_max < 0:
+            self.age_min, self.age_max = _BAND_TO_AGE_RANGE.get(
+                age_band, _BAND_TO_AGE_RANGE[_ESCAPE]
+            )
+        if (
+            income_tier is not None
+            and self.income_lpa_min < 0
+            and self.income_lpa_max < 0
+        ):
+            self.income_lpa_min, self.income_lpa_max = _TIER_TO_LPA_RANGE.get(
+                income_tier, _TIER_TO_LPA_RANGE[_ESCAPE]
+            )
 
     def validate(self) -> None:
         if self.gender not in _VALID_GENDER:
             raise ValueError(f"DemographicPoint.gender invalid: {self.gender!r}")
-        if self.age_band not in _VALID_AGE_BAND:
-            raise ValueError(f"DemographicPoint.age_band invalid: {self.age_band!r}")
-        if self.income_tier not in _VALID_INCOME_TIER:
+        if not (0 <= self.age_min <= self.age_max <= 120):
             raise ValueError(
-                f"DemographicPoint.income_tier invalid: {self.income_tier!r}"
+                f"DemographicPoint age range invalid: "
+                f"[{self.age_min}, {self.age_max}]"
+            )
+        if not (0.0 <= self.income_lpa_min <= self.income_lpa_max):
+            raise ValueError(
+                f"DemographicPoint income range invalid: "
+                f"[{self.income_lpa_min}, {self.income_lpa_max}] LPA"
             )
         if not self.geography or not self.geography.strip():
             raise ValueError("DemographicPoint.geography must be a non-empty string")
@@ -77,10 +131,23 @@ class DemographicPoint:
 
     @classmethod
     def from_dict(cls, data: dict) -> "DemographicPoint":
+        # Dual-read: legacy band/tier shape -> ranges via the InitVars; new
+        # shape reads the range fields directly.
+        if "age_band" in data or "income_tier" in data:
+            return cls(
+                gender=data["gender"],
+                geography=data["geography"],
+                occupation_hint=data.get("occupation_hint", ""),
+                household_hint=data.get("household_hint", ""),
+                age_band=data.get("age_band"),
+                income_tier=data.get("income_tier"),
+            )
         return cls(
             gender=data["gender"],
-            age_band=data["age_band"],
-            income_tier=data["income_tier"],
+            age_min=int(data["age_min"]),
+            age_max=int(data["age_max"]),
+            income_lpa_min=float(data["income_lpa_min"]),
+            income_lpa_max=float(data["income_lpa_max"]),
             geography=data["geography"],
             occupation_hint=data.get("occupation_hint", ""),
             household_hint=data.get("household_hint", ""),
