@@ -36,7 +36,7 @@ from agent.projection_l35 import project_funnel
 from agent.schema import AgentTranscript, validate_report
 from agent.synthesis_l2 import synthesize_segment_async
 from agent.synthesis_l3 import synthesize_population
-from agent.synthesis_l4 import synthesize_memo
+from agent.synthesis_l4 import L4_PROMPT_VERSION, synthesize_memo
 from agent.synthesis_types import TargetClassification
 from agent.telemetry import (
     current_account_id,
@@ -160,11 +160,14 @@ async def _replay(run_dir: Path) -> None:
         synthesize_memo, l3, tc, projection, config,
     )
     validate_report(report)
-    print(f"# L4 in {time.time()-t0:.1f}s")
+    print(f"# L4 in {time.time()-t0:.1f}s (prompt {L4_PROMPT_VERSION})")
 
     print()
     print("=" * 78)
     print(f"REPLAY — verdict: {report.verdict} confidence={report.confidence}")
+    if report.audience_match is not None:
+        am = report.audience_match
+        print(f"audience-match: {am.verdict}  (declared {am.declared_summary} | creative reads {am.inferred_summary})")
     print("=" * 78)
     print(f"bet_ranking ({len(report.bet_ranking)} bets):")
     for i, bet in enumerate(report.bet_ranking, 1):

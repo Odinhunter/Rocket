@@ -42,6 +42,14 @@ _DEFAULT_CATEGORY = "personal_audio"
 
 
 def _print_target_and_changes(report: Report) -> None:
+    am = report.audience_match
+    if am is not None:
+        mark = "✓" if am.verdict == "aligned" else "⚠"
+        print(f"\nAudience match [{am.verdict}] {mark}")
+        print(f"  declared: {am.declared_summary}  |  creative reads: {am.inferred_summary}")
+        if am.verdict == "mismatched":
+            print(f"  {am.message}")
+
     print("\nTarget reach:")
     for d in report.target_match.reached:
         print(f"  ✓ {d.disposition}  ({d.classification})")

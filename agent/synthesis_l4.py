@@ -34,6 +34,7 @@ from agent.schema import (
     validate_report,
 )
 from agent.synthesis_types import L3Summary, TargetClassification
+from agent.target_id import build_audience_match
 from agent.telemetry import call_with_telemetry
 
 _log = logging.getLogger(__name__)
@@ -41,7 +42,19 @@ _log = logging.getLogger(__name__)
 
 # ---- Prompt ----
 #
-# Editing this prompt re-zeros the validation library — treat it as locked.
+# Editing this prompt re-zeros verdict/recommendation calibration. Bump
+# L4_PROMPT_VERSION on EVERY change so the calibration log can separate
+# pre/post regimes (the run record stamps it).
+#   l4-1 — the original locked prompt.
+#   l4-2 — added the control-surface scope constraint (recommendations must be
+#          creative / media-buy / offer levers the marketer controls; product,
+#          base-price, SKU, formulation, distribution are out) and reframed the
+#          structural-vs-execution test around that same in-scope control surface.
+#   l4-3 — rocket-2.1.0 two-axis verdict: surfaces the AUDIENCE-MATCH input
+#          (declared vs ad-inferred) so a disjoint audience routes the remedy to
+#          targeting (a media-buy lever), distinct from a bad-creative verdict.
+L4_PROMPT_VERSION = "l4-3"
+
 _L4_SYSTEM = """\
 You are a senior consumer-research strategist writing the structured output of a Creative Read for a brand team. The audience is a D2C performance marketer who has paid for real strategic insight and will discard another AI-summary memo on sight. Your output is JSON, not prose — but the *thinking* behind the JSON is strategist-grade: confident, specific, calibrated, traceable to evidence.
 
@@ -82,8 +95,11 @@ A reminder: METHODOLOGY_GAP in 1.2.0 only fires at conditions (1) and (2). Pre-1
 
 This is how you tell creative failure from execution friction.
 
-- **Structural** = damage that persists after the obvious fix. MRP-inflation suspicion remains even after the price is shown. Brand-permission gaps persist even after positioning tweaks. Distrust is not about a missing detail — it's about what the ad reveals.
-- **Execution-level** = friction the obvious fix removes. Missing price chip, unclear pack size, discount asterisk without anchor. The disposition would buy if the missing piece were filled in.
+The fix you weigh must be one the performance marketer actually controls. The marketer's control surface is exactly three lever classes: (a) the CREATIVE — visual, headline, copy, hook, format, and how the claim / price / proof is *presented*; (b) the MEDIA BUY — targeting, placement, budget allocation, sequencing; (c) the OFFER / PROMO on the product AS CURRENTLY SOLD — a discount, bundle, or payment term on an existing SKU. The base price architecture, the product itself, a NEW or SMALLER PACK SIZE (a "trial size" / "250g pouch" is a new SKU, not an offer), the formulation, and the distribution footprint are OUT of scope — the marketer cannot action them from inside an ad.
+
+- **Execution-level** = friction an IN-SCOPE lever removes. Missing price chip, unclear pack size, discount asterisk without anchor, a too-high *effective entry price* a stronger first-order promo could plausibly lower. The disposition would buy if that in-scope piece were filled in.
+- **Structural** = damage that persists after every in-scope lever is exhausted. MRP-inflation suspicion remains even after the price is shown. Brand-permission gaps persist even after positioning tweaks. A base-price gap no in-scope offer can close (e.g. the product simply costs ~2x the incumbent) is structural too — no creative, targeting, or promo move removes it. Distrust is not about a missing detail — it's about what the ad reveals.
+- **"They'd buy if the product were cheaper / smaller / reformulated / sold elsewhere" is NOT an execution fix** — those are out-of-scope (base price, new SKU, formulation, distribution). If the only thing that would resolve the friction is out-of-scope, it is structural: report it as a finding and pivot to an in-scope move (see top_3_changes). Do NOT prescribe the out-of-scope change.
 - **If you cannot tell which, it's MIXED, not FAILING.** Do not pick FAILING as a safe rhetorical default; the verdict comes from the durability of the damage.
 
 # The counterweight rule (don't over-fire on FAILING)
@@ -109,6 +125,7 @@ Within-target rejection on concrete-resolvable grounds — price chip, pack size
 - `target_match.missed`: dispositions with `classification == "outside"`. Use exact label string.
 
 - `top_3_changes`: EXACTLY 3 entries unless verdict == METHODOLOGY_GAP (then empty). Each change must be specific to THIS ad: not "improve messaging," not "leverage the strength," not "sharpen the proposition." Something like: "Add the original price next to the deal price." Each `why` traces back to specific within-target evidence. **Each `evidence_quotes` array MUST contain 1-3 quotes pulled from the L3 representative_quotes pool.** DO NOT invent quotes. If no quote in the pool directly supports a change you want to make, pick a different change — the changes must be evidence-backed. `within_target_corroboration` is a one-sentence summary like "2 of 2 within-target dispositions flagged this on R6 friction grounds."
+  **Scope — stay on the marketer's control surface.** Every change MUST be a lever the performance marketer can actually pull: the CREATIVE (visual, headline, copy, hook, format, how the claim / price / proof is *presented*), the MEDIA BUY (targeting, placement, budget allocation, sequencing), or the OFFER / PROMO on the product as currently sold (a discount, bundle, or payment term on an existing SKU). NEVER prescribe a change to the product itself, the base price architecture, a new or smaller pack size, the formulation, or the distribution footprint — the marketer cannot action those, and a Creative Read that says "launch a trial SKU" or "lower the price" reads as out-of-lane consultancy. A "trial size," "250g pouch," or "smaller first-time pack" is a NEW SKU — out of scope even when you phrase it as an "offer" or a "CTA"; an offer is only a discount / bundle / term on the pack the brand already sells. In-scope: "Add the original price next to the deal price," "lead with a first-order discount on the 1kg," "reframe the price as cost-per-scoop vs the incumbent." Out: "ship a 250g trial SKU," "introduce a smaller pack." When the dominant blocker IS out-of-scope (most often a base-price gap vs an incumbent that no in-scope discount can close), do NOT prescribe the product/price change: name the blocker plainly inside `change`/`why` as a finding, and make the actionable move an in-scope one — concentrate spend on the segment and context where the creative already earns motion, lead with the strongest in-scope offer, or hold/pull spend until the blocker is resolved upstream.
 
 - `strengths_to_preserve`: features the brand should not change. WORKING verdict requires >= 1 entry. MIXED can have 0-3. FAILING usually has 0, but include 1-2 if there's a clear protect-this finding even amid structural damage. METHODOLOGY_GAP usually empty.
 
@@ -123,6 +140,7 @@ Within-target rejection on concrete-resolvable grounds — price chip, pack size
   - `"single_within_target"` — set when exactly one disposition is "within". Confidence <= 50.
   - `"homogenization_high"` — set when `confidence_signals.homogenization_flag_count >= 2` in the L3 input. Independent of the target axis; can co-occur with other flags.
   - `"single_context_only"` — set when the L3 `context_fit` has only one entry. Independent of the target axis.
+  - `"declared_audience_disjoint"` — rocket-2.1.0: the AUDIENCE-MATCH input reads `mismatched` (the declared audience is grossly disjoint from the ad's apparent target). Set deterministically in Python — you need not emit it; if you do, only when `audience_match.verdict == "mismatched"`.
 
   Include EVERY flag whose trigger applies. Empty list is correct when the data is clean. The flags are how the brand sees what we trust about the run; do not omit a flag to make the run look stronger than it is.
 
@@ -133,12 +151,24 @@ Within-target rejection on concrete-resolvable grounds — price chip, pack size
 - Citing comparative metrics as bullet points or tables → use them only as evidence in `why` fields, not as standalone findings.
 - Inventing quotes that weren't in the L3 input → only use provided verbatims. If you need a stronger quote and the input doesn't have one, your `evidence_quotes` array can be empty for that change — that's honest.
 - Overclaiming on confidence when the L3 input flags weak signal — use the anchors, not your read of the prose.
+- Prescribing a product, base-price, new-SKU, formulation, or distribution change ("launch a trial pack," "lower the price," "reformulate without X," "get into more stores") → out of the marketer's control surface. Name the blocker as a finding and recommend the in-scope creative / media / offer move instead.
 
 # rocket-2.0.0: the bet ranking is the headline
 
 You also receive a FUNNEL PROJECTION — projected stop / click / visit / convert rates, overall and per segment, derived from the agents' R7 behavioral signals applied as multipliers to the customer's own baseline funnel. It is an INPUT. You must NOT emit it, alter it, or invent any funnel rate, percentage, or absolute number. Reference it ONLY as evidence inside `why` fields and to inform the bet ranking. The funnel numbers are heuristic and directional — never present them as precise.
 
 `bet_ranking` is the NEW HEADLINE of the report — an ordered list of strategic bets, highest expected marketing-ROI payoff first. Each entry is one concrete sentence a D2C performance marketer can act on, grounded in the within-target evidence AND the funnel projection — e.g. "Put cold-traffic spend behind the impulsive segment: its projected click lift is the strongest in the run; hold the deliberate-retarget budget until the comprehension fix lands." Non-empty for every verdict except METHODOLOGY_GAP. The verdict, confidence and methodology_flags are supporting metadata now — the bet ranking is what the brand manager reads first, so it must carry the real decision.
+
+# rocket-2.1.0: the audience-match axis (two-axis verdict)
+
+You may also receive an AUDIENCE-MATCH input — the relationship between the marketer's DECLARED audience (who they are buying media against) and the demographic the ad APPEARS to target. `verdict` is "aligned" or "mismatched". This is a SECOND axis, orthogonal to creative effectiveness; use it to disambiguate WHY a funnel is weak:
+
+- When `audience_match.verdict == "mismatched"`, the creative may be perfectly good but shown to the wrong people. The remedy is TARGETING — a media-buy lever the marketer controls — NOT a creative rewrite. LEAD `bet_ranking` with the realignment move, e.g. "Your buy is {declared_summary}, but this creative reads {inferred_summary} — realign targeting to the audience the creative actually speaks to, or hold spend until it's reshot for {declared_summary}." Do not burn all three top_3_changes rewriting a creative that a retarget would rescue.
+- When `audience_match.verdict == "aligned"` (or the input is absent), proceed normally — the declared audience and the ad's target agree, so a weak funnel is a creative/offer problem, not a targeting one.
+
+Never treat the audience-match as the verdict itself — the verdict is still creative effectiveness against the within-target reactions. Audience-match tells the marketer which lever to pull.
+
+The same scope rule binds the bets: they are CREATIVE, MEDIA-BUY, or OFFER/PROMO moves the marketer can execute — never product, base-price, SKU, formulation, or distribution changes. When the binding constraint is out-of-scope (e.g. a base-price gap vs an incumbent), the highest-ROI bet is usually to concentrate or hold spend — e.g. "Hold scale on this creative until the price-vs-incumbent gap is addressed upstream; until then run it only into the pre-purchase-research placements where it earns seek-info" — NOT to tell the brand to change its product.
 
 # Report schema (your output must match this exactly)
 
@@ -340,10 +370,20 @@ def synthesize_memo(
     deterministically in Python — the model never touches a funnel rate.
     """
     provisional = list(provisional_dispositions or [])
+    # rocket-2.1.0: the audience-match axis (declared vs ad-inferred) is
+    # deterministic; computed here, fed to the model, and attached to the
+    # Report. None when the run carries no declared audience.
+    audience_match = None
+    if config.audience_spec is not None and config.audience_spec.demographics:
+        audience_match = build_audience_match(
+            config.audience_spec.demographics,
+            target_classification.inferred_audience,
+        )
     client = anthropic.Anthropic(max_retries=5)
     model = config.model_versions["l4"]
     user_payload = _build_user_payload(
-        l3_summary, target_classification, funnel_projection, config
+        l3_summary, target_classification, funnel_projection, config,
+        audience_match,
     )
     pool_size = len(l3_summary.representative_quotes)
 
@@ -375,6 +415,13 @@ def synthesize_memo(
             report.provisional_dispositions = provisional
             if provisional and "provisional_disposition_present" not in report.methodology_flags:
                 report.methodology_flags.append("provisional_disposition_present")
+            report.audience_match = audience_match
+            if (
+                audience_match is not None
+                and audience_match.verdict == "mismatched"
+                and "declared_audience_disjoint" not in report.methodology_flags
+            ):
+                report.methodology_flags.append("declared_audience_disjoint")
             _suppress_homog_high(report, l3_summary.confidence_signals)
             validate_report(report)
             _validate_l4_coverage(report, pool_size)
@@ -408,6 +455,7 @@ def _build_user_payload(
     tc: TargetClassification,
     funnel_projection: FunnelProjection,
     config: RunConfig,
+    audience_match=None,
 ) -> str:
     payload = {
         "asset_label": config.asset.label,
@@ -417,6 +465,8 @@ def _build_user_payload(
         "l3_summary": l3.to_dict(),
         "funnel_projection": funnel_projection.to_dict(),
     }
+    if audience_match is not None:
+        payload["audience_match"] = audience_match.to_dict()
     return (
         "INPUTS FOR STRATEGIC MEMO\n"
         "===========================\n\n"

@@ -41,6 +41,7 @@ METHODOLOGY_FLAG = Literal[
     "homogenization_high",           # L3 reported many tight-variance cells
     "single_context_only",           # only one context label in the run
     "provisional_disposition_present",  # rocket-2.0.0: an on-the-spot disposition
+    "declared_audience_disjoint",    # rocket-2.1.0: declared audience vs ad-inferred target grossly disjoint
 ]
 _VALID_METHODOLOGY_FLAGS = {
     "pool_archetype_mismatch",
@@ -50,6 +51,7 @@ _VALID_METHODOLOGY_FLAGS = {
     "homogenization_high",
     "single_context_only",
     "provisional_disposition_present",
+    "declared_audience_disjoint",
 }
 
 # rocket-2.0.0: R7 behavioral signal action enum. The agent emits one of
@@ -83,6 +85,41 @@ class DispositionRef:
 class TargetMatch:
     reached: list[DispositionRef] = field(default_factory=list)
     missed: list[DispositionRef] = field(default_factory=list)
+
+
+@dataclass
+class AudienceMatch:
+    """rocket-2.1.0 (two-axis verdict): the relationship between the marketer's
+    DECLARED audience and the demographic the ad APPEARS to target. 'aligned'
+    when the creative's apparent target is consistent with the declared buy;
+    'mismatched' on a gross gap — in which case the remedy is TARGETING (a
+    media-buy lever), not the creative. Promotes the pre-run mismatch guard to
+    a first-class report output; the delta this captures is what lets the read
+    tell a bad creative from a good creative shown to the wrong audience."""
+    verdict: Literal["aligned", "mismatched"]
+    declared_summary: str
+    inferred_summary: str
+    axes: list[str] = field(default_factory=list)   # {"gender","age"} when mismatched
+    message: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "verdict": self.verdict,
+            "declared_summary": self.declared_summary,
+            "inferred_summary": self.inferred_summary,
+            "axes": list(self.axes),
+            "message": self.message,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "AudienceMatch":
+        return cls(
+            verdict=data["verdict"],
+            declared_summary=data.get("declared_summary", ""),
+            inferred_summary=data.get("inferred_summary", ""),
+            axes=list(data.get("axes", [])),
+            message=data.get("message", ""),
+        )
 
 
 @dataclass
@@ -342,6 +379,10 @@ class Report:
     bet_ranking: list[str] = field(default_factory=list)
     funnel_projection: "FunnelProjection | None" = None
     provisional_dispositions: list[str] = field(default_factory=list)
+    # rocket-2.1.0: declared-vs-ad-inferred audience axis (attached
+    # deterministically in Python, like funnel_projection). None on legacy
+    # reports and runs without a declared audience.
+    audience_match: "AudienceMatch | None" = None
 
     def to_dict(self) -> dict:
         return {
@@ -380,6 +421,11 @@ class Report:
                 else None
             ),
             "provisional_dispositions": list(self.provisional_dispositions),
+            "audience_match": (
+                self.audience_match.to_dict()
+                if self.audience_match is not None
+                else None
+            ),
         }
 
     def to_json(self, indent: int | None = 2) -> str:
@@ -426,6 +472,11 @@ class Report:
                 else None
             ),
             provisional_dispositions=list(data.get("provisional_dispositions", [])),
+            audience_match=(
+                AudienceMatch.from_dict(data["audience_match"])
+                if data.get("audience_match") is not None
+                else None
+            ),
         )
 
     @classmethod

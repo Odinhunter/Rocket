@@ -224,6 +224,7 @@ def test_methodology_flags_accept_valid_values() -> None:
         "single_within_target",
         "homogenization_high",
         "single_context_only",
+        "declared_audience_disjoint",
     ]
     validate_report(r)
     print("  OK  methodology_flags accepts valid enum values")
@@ -389,6 +390,28 @@ def test_provisional_disposition_flag_accepted() -> None:
     print("  OK  'provisional_disposition_present' methodology flag accepted")
 
 
+def test_audience_match_roundtrip() -> None:
+    from agent.schema import AudienceMatch
+    r = _make_fixture_report()
+    r.audience_match = AudienceMatch(
+        verdict="mismatched",
+        declared_summary="women aged 20-24",
+        inferred_summary="men aged 45-54",
+        axes=["gender", "age"],
+        message="the creative reads 45-54 but the buy is 20-24",
+    )
+    r.methodology_flags = ["declared_audience_disjoint"]
+    validate_report(r)
+    r2 = Report.from_json(r.to_json())
+    assert r2.audience_match is not None
+    assert r2.audience_match.verdict == "mismatched"
+    assert r2.audience_match.axes == ["gender", "age"]
+    assert Report.from_dict(r.to_dict()).to_dict() == r.to_dict(), "audience_match not byte-stable"
+    # legacy report without audience_match round-trips to None
+    assert Report.from_json(_make_fixture_report().to_json()).audience_match is None
+    print("  OK  audience_match + declared_audience_disjoint round-trip (incl. legacy None)")
+
+
 def test_agent_transcript_behavioral_signal_roundtrip() -> None:
     t = AgentTranscript(
         agent_id=0,
@@ -438,6 +461,7 @@ def main() -> None:
     test_validate_rejects_inverted_funnel_band()
     test_validate_rejects_rate_outside_band()
     test_provisional_disposition_flag_accepted()
+    test_audience_match_roundtrip()
     test_agent_transcript_behavioral_signal_roundtrip()
     print("PASS — schema is locked.")
 

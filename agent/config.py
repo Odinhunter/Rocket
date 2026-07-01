@@ -59,7 +59,7 @@ def _base64_encoded_size(raw_bytes: int) -> int:
 #        produced bucket flips. Cost dropped ~18% and latency ~30%. This
 #        obsoletes the previously-planned ensemble-target_id lever — single
 #        deterministic call is the right shape.
-PROTOCOL_VERSION = "rocket-2.0.0"
+PROTOCOL_VERSION = "rocket-2.1.0"
 
 
 # Default model assignments per layer. Locked after 2026-05-12 telemetry +

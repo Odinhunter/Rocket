@@ -511,3 +511,36 @@ def detect_thin_coverage(
         eligible_labels=labels,
         message=message,
     )
+
+
+def build_audience_match(
+    declared: list[DemographicPoint],
+    inferred: InferredAudience,
+):
+    """Promote the pre-run mismatch guard to the first-class audience-match
+    axis: 'aligned' when the ad's apparent target is consistent with the
+    declared buy, 'mismatched' on a gross gap (remedy = targeting, not the
+    creative). Returns a schema.AudienceMatch."""
+    from agent.schema import AudienceMatch  # local: schema is a leaf module
+
+    declared_summary = _summarize_declared(declared)
+    inferred_summary = _summarize_inferred(inferred)
+    mm = detect_gross_demographic_mismatch(declared, inferred)
+    if mm is None:
+        return AudienceMatch(
+            verdict="aligned",
+            declared_summary=declared_summary,
+            inferred_summary=inferred_summary,
+            axes=[],
+            message=(
+                f"The creative's apparent target ({inferred_summary}) is "
+                f"consistent with the declared audience ({declared_summary})."
+            ),
+        )
+    return AudienceMatch(
+        verdict="mismatched",
+        declared_summary=declared_summary,
+        inferred_summary=inferred_summary,
+        axes=mm.axes,
+        message=mm.message,
+    )
