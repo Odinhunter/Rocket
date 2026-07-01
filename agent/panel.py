@@ -42,6 +42,10 @@ class PanelAgent:
     chaos: ChaosProfile
     category: str
     segment_granularity: SegmentGranularity = "disposition_chaos_band"
+    # rocket-2.1.0 (marketer-led composition): True for agents inside the
+    # declared audience frame; False for discovery-tail agents drawn from
+    # personas outside it. Legacy panels (no key) default True.
+    in_declared_frame: bool = True
 
     @property
     def chaos_band(self) -> str:
@@ -86,6 +90,7 @@ class PanelAgent:
             "chaos": self.chaos.to_dict(),
             "category": self.category,
             "segment_granularity": self.segment_granularity,
+            "in_declared_frame": self.in_declared_frame,
             "segment_key": self.segment_key,
             "chaos_band": self.chaos_band,
             "persona_core_hash": self.persona_core_hash,
@@ -103,6 +108,7 @@ class PanelAgent:
             segment_granularity=data.get(
                 "segment_granularity", "disposition_chaos_band"
             ),
+            in_declared_frame=bool(data.get("in_declared_frame", True)),
         )
 
 
@@ -253,6 +259,228 @@ def _choose_cells_bundled(
     return cells
 
 
+# ---- Marketer-led composition (rocket-2.1.0) ----
+#
+# The declared audience (spec.demographics) is the sampling frame: it selects
+# and weights which personas appear, and agents are simulated at the declared
+# demographics. Disposition stays the response model. See docs/v2_1.
+
+
+def _range_overlap_frac(
+    lo_a: float, hi_a: float, lo_b: float, hi_b: float
+) -> float:
+    """Fraction of [lo_a, hi_a] that falls within [lo_b, hi_b], in [0, 1]."""
+    span = hi_a - lo_a
+    inter = max(0.0, min(hi_a, hi_b) - max(lo_a, lo_b))
+    if span <= 0:  # degenerate point range: in-or-out
+        return 1.0 if lo_b <= lo_a <= hi_b else 0.0
+    return inter / span
+
+
+def _gender_compatible(a: str, b: str) -> bool:
+    wild = {"any", "unspecified"}
+    return a in wild or b in wild or a == b
+
+
+def demographic_overlap(
+    persona: DemographicPoint, declared: DemographicPoint
+) -> float:
+    """How much of `persona` falls within the `declared` audience frame, in
+    [0, 1]: gender compatibility (a hard 0/1 gate) × age-overlap × income-
+    overlap. Zero when the persona is disjoint from the declared frame on any
+    axis."""
+    if not _gender_compatible(persona.gender, declared.gender):
+        return 0.0
+    age = _range_overlap_frac(
+        persona.age_min, persona.age_max, declared.age_min, declared.age_max
+    )
+    inc = _range_overlap_frac(
+        persona.income_lpa_min, persona.income_lpa_max,
+        declared.income_lpa_min, declared.income_lpa_max,
+    )
+    return age * inc
+
+
+def audience_mass(
+    disposition: NamedDisposition, declared: list[DemographicPoint]
+) -> float:
+    """The fraction of a disposition's buyers that live inside the declared
+    audience, in [0, 1] — a weighted average of each bundle's best overlap
+    with any declared frame. A disposition with no bundles is demographically
+    unspecified ('lives everywhere') and returns 1.0. This is the marketer-led
+    weight: a disposition with more of its population in the buy gets more of
+    the panel."""
+    if not disposition.demographic_bundles:
+        return 1.0
+    wsum = sum(b.weight for b in disposition.demographic_bundles)
+    if wsum <= 0:
+        return 0.0
+    total = 0.0
+    for b in disposition.demographic_bundles:
+        best = max(
+            (demographic_overlap(b.point, f) for f in declared), default=0.0
+        )
+        total += b.weight * best
+    return total / wsum
+
+
+def _clip_point(
+    persona: DemographicPoint, frame: DemographicPoint
+) -> DemographicPoint:
+    """The persona clipped to a declared frame — the slice of this persona
+    that is actually in the buy. age/income intersect the frame; gender takes
+    the specific side; the persona's geography/occupation/household context is
+    preserved so the render stays coherent."""
+    gender = persona.gender if persona.gender not in ("any", "unspecified") else frame.gender
+    return DemographicPoint(
+        gender=gender,
+        age_min=max(persona.age_min, frame.age_min),
+        age_max=min(persona.age_max, frame.age_max),
+        income_lpa_min=max(persona.income_lpa_min, frame.income_lpa_min),
+        income_lpa_max=min(persona.income_lpa_max, frame.income_lpa_max),
+        geography=persona.geography,
+        occupation_hint=persona.occupation_hint,
+        household_hint=persona.household_hint,
+    )
+
+
+def _clipped_bundle_points(
+    disposition: NamedDisposition, declared: list[DemographicPoint]
+) -> tuple[list[DemographicPoint], list[float]]:
+    """The (points, weights) to draw a CORE disposition's agents from: each
+    overlapping bundle clipped to its best declared frame, weighted by
+    bundle.weight × overlap. Falls back to the declared frames themselves
+    (equal weight) when the disposition has no bundles or none overlap."""
+    points: list[DemographicPoint] = []
+    weights: list[float] = []
+    for b in disposition.demographic_bundles:
+        best_f: DemographicPoint | None = None
+        best_ov = 0.0
+        for f in declared:
+            ov = demographic_overlap(b.point, f)
+            if ov > best_ov:
+                best_f, best_ov = f, ov
+        if best_f is not None and best_ov > 0:
+            points.append(_clip_point(b.point, best_f))
+            weights.append(b.weight * best_ov)
+    if not points:
+        points = list(declared)
+        weights = [1.0] * len(declared)
+    return points, weights
+
+
+def _natural_points(
+    disposition: NamedDisposition, declared: list[DemographicPoint]
+) -> tuple[list[DemographicPoint], list[float]]:
+    """The (points, weights) for a TAIL disposition — its natural, unclipped
+    demographics (it is out of the declared frame by definition)."""
+    if disposition.demographic_bundles:
+        return (
+            [b.point for b in disposition.demographic_bundles],
+            [b.weight for b in disposition.demographic_bundles],
+        )
+    return list(declared), [1.0] * len(declared)
+
+
+def eligible_dispositions(
+    spec: AudienceSpec, dispositions: list[NamedDisposition]
+) -> list[tuple[NamedDisposition, float]]:
+    """Dispositions with non-zero mass in the declared audience, paired with
+    that mass. The marketer-led core; also the coverage-guard input."""
+    out = [(d, audience_mass(d, spec.demographics)) for d in dispositions]
+    return [(d, m) for d, m in out if m > 0]
+
+
+def _fill_disposition_cells(
+    disp: NamedDisposition,
+    points: list[DemographicPoint],
+    weights: list[float],
+    ctxs: list[NamedContext],
+    n_d: int,
+) -> list[tuple[DemographicPoint, NamedDisposition, NamedContext]]:
+    """Apportion n_d agents for one disposition across its demographic points
+    (by weight) and contexts (uniform), both even-spread — same discipline as
+    the bundled path."""
+    wsum = sum(weights)
+    demo_counts = _largest_remainder([w / wsum for w in weights], n_d)
+    demo_seq = _even_spread(
+        {str(i): demo_counts[i] for i in range(len(points))}
+    )
+    ctx_counts = _largest_remainder([1.0 / len(ctxs)] * len(ctxs), n_d)
+    ctx_seq = _even_spread({str(i): ctx_counts[i] for i in range(len(ctxs))})
+    return [
+        (points[int(demo_seq[j])], disp, ctxs[int(ctx_seq[j])])
+        for j in range(n_d)
+    ]
+
+
+def _choose_cells_marketer_led(
+    spec: AudienceSpec,
+    dispositions: list[NamedDisposition],
+    tail_fraction: float,
+) -> tuple[list[tuple[DemographicPoint, NamedDisposition, NamedContext]], list[bool]]:
+    """Marketer-led cell selection. Returns (cells, in_frame_flags).
+
+    CORE: personas with non-zero mass in the declared audience, weighted by
+    that mass, simulated at the declared demographics (bundles clipped to the
+    buy). TAIL (optional, off by default): personas outside the declared frame
+    at their natural demographics, tagged out-of-frame for discovery — kept
+    segregated from the core so the declared-audience numbers stay clean."""
+    declared = spec.demographics
+    ctxs = spec.context_envelope
+    N = spec.panel_size
+
+    core = eligible_dispositions(spec, dispositions)
+    core_labels = {d.label for d, _ in core}
+    excluded = [d for d in dispositions if d.label not in core_labels]
+
+    n_tail = (
+        int(round(N * tail_fraction))
+        if (tail_fraction > 0 and excluded)
+        else 0
+    )
+    n_core = N - n_tail
+
+    # Degenerate: no persona lives in the declared audience. Compose all
+    # dispositions at the declared demographics so the run still yields a
+    # panel; the coverage guard (Phase 3) flags this loudly.
+    if not core:
+        core = [(d, 1.0) for d in dispositions]
+        excluded = []
+        n_core, n_tail = N, 0
+
+    cells: list[tuple[DemographicPoint, NamedDisposition, NamedContext]] = []
+    frame: list[bool] = []
+
+    core_disps = [d for d, _ in core]
+    core_masses = [m for _, m in core]
+    msum = sum(core_masses)
+    disp_counts = _largest_remainder([m / msum for m in core_masses], n_core)
+    for d_idx, disp in enumerate(core_disps):
+        n_d = disp_counts[d_idx]
+        if n_d == 0:
+            continue
+        points, weights = _clipped_bundle_points(disp, declared)
+        dcells = _fill_disposition_cells(disp, points, weights, ctxs, n_d)
+        cells.extend(dcells)
+        frame.extend([True] * len(dcells))
+
+    if n_tail and excluded:
+        tail_counts = _largest_remainder(
+            [1.0 / len(excluded)] * len(excluded), n_tail
+        )
+        for d_idx, disp in enumerate(excluded):
+            n_d = tail_counts[d_idx]
+            if n_d == 0:
+                continue
+            points, weights = _natural_points(disp, declared)
+            dcells = _fill_disposition_cells(disp, points, weights, ctxs, n_d)
+            cells.extend(dcells)
+            frame.extend([False] * len(dcells))
+
+    return cells, frame
+
+
 # ---- Public API ----
 
 
@@ -263,6 +491,8 @@ def build_panel(
     category: str,
     segment_granularity: SegmentGranularity = "disposition_chaos_band",
     seed: int = 71,
+    marketer_led: bool = False,
+    tail_fraction: float = 0.0,
 ) -> list[PanelAgent]:
     """Resolve an AudienceSpec into exactly spec.panel_size PanelAgents.
 
@@ -279,16 +509,24 @@ def build_panel(
     if len(dispositions) != len(spec.disposition_labels):
         raise ValueError("build_panel: `dispositions` has duplicate labels")
 
-    # Per-disposition bundles (a realistic income distribution per
-    # disposition) take over whenever any selected disposition carries them;
-    # otherwise the uniform audience-level grid is used, unchanged.
-    if any(d.demographic_bundles for d in dispositions):
+    # Marketer-led: the declared audience selects/weights personas and agents
+    # are simulated at the declared demographics. Otherwise the legacy paths —
+    # per-disposition bundles take over when any selected disposition carries
+    # them; else the uniform audience-level grid.
+    if marketer_led:
+        cells, frame_flags = _choose_cells_marketer_led(
+            spec, dispositions, tail_fraction
+        )
+    elif any(d.demographic_bundles for d in dispositions):
         cells = _choose_cells_bundled(spec, dispositions)
+        frame_flags = [True] * len(cells)
     else:
         cells = _choose_cells(spec, dispositions)
+        frame_flags = [True] * len(cells)
     assert len(cells) == spec.panel_size, (
         f"cell selection produced {len(cells)} != panel_size {spec.panel_size}"
     )
+    assert len(frame_flags) == spec.panel_size
 
     # Chaos profiles, apportioned to match the distribution as closely as the
     # panel size allows, then evenly spread so chaos does not correlate with
@@ -304,7 +542,10 @@ def build_panel(
 
     # Zip cells with the spread chaos sequence into the agent multiset.
     agents_unordered: list[tuple] = [
-        (cells[i][0], cells[i][1], cells[i][2], profile_by_label[chaos_seq[i]])
+        (
+            cells[i][0], cells[i][1], cells[i][2],
+            profile_by_label[chaos_seq[i]], frame_flags[i],
+        )
         for i in range(spec.panel_size)
     ]
 
@@ -315,7 +556,7 @@ def build_panel(
 
     panel: list[PanelAgent] = []
     for agent_id, slot in enumerate(order):
-        demo, disp, ctx, chaos = agents_unordered[slot]
+        demo, disp, ctx, chaos, in_frame = agents_unordered[slot]
         panel.append(
             PanelAgent(
                 agent_id=agent_id,
@@ -325,6 +566,7 @@ def build_panel(
                 chaos=chaos,
                 category=category,
                 segment_granularity=segment_granularity,
+                in_declared_frame=in_frame,
             )
         )
     panel.sort(key=lambda a: a.agent_id)

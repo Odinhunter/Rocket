@@ -16,7 +16,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agent.entities import AudienceSpec
-from agent.panel import PanelAgent, build_panel, compute_panel_version
+from agent.panel import (
+    PanelAgent,
+    build_panel,
+    compute_panel_version,
+    eligible_dispositions,
+)
 from agent.vectors import (
     _TIER_TO_LPA_RANGE,
     ChaosDistribution,
@@ -336,6 +341,127 @@ def test_bundled_mixed_fallback() -> None:
     print("  OK  mixed library: bundled disposition uses bundles, plain disposition falls back to spec.demographics")
 
 
+# ---- Phase 2: marketer-led composition (rocket-2.1.0) ----
+
+
+def _ml_bundle(gender, a0, a1, i0, i1, w, geo="metro"):
+    return DemographicBundle(
+        point=DemographicPoint(
+            gender=gender, age_min=a0, age_max=a1,
+            income_lpa_min=float(i0), income_lpa_max=float(i1), geography=geo,
+        ),
+        weight=w,
+    )
+
+
+def _ml_disposition(label, bundles):
+    d = _disposition(label)
+    d.demographic_bundles = bundles
+    return d
+
+
+def _declared_female_2024():
+    return [
+        DemographicPoint(
+            gender="female", age_min=20, age_max=24,
+            income_lpa_min=0.0, income_lpa_max=14.0, geography="tier-1 metro",
+        )
+    ]
+
+
+def _ml_spec(declared, dispositions, panel_size):
+    return AudienceSpec(
+        demographics=declared,
+        disposition_labels=[d.label for d in dispositions],
+        context_envelope=[_context(f"ctx_{i}") for i in range(3)],
+        chaos_distribution=_chaos_distribution(),
+        panel_size=panel_size,
+    )
+
+
+def test_ml_excludes_disjoint_personas() -> None:
+    young = _ml_disposition("young_fem", [
+        _ml_bundle("female", 18, 24, 3.5, 7, 60),
+        _ml_bundle("female", 25, 34, 7, 17, 40),
+    ])
+    older = _ml_disposition("older_male", [_ml_bundle("male", 45, 54, 17, 40, 100)])
+    spec = _ml_spec(_declared_female_2024(), [young, older], 60)
+    panel = build_panel(spec, [young, older], category="hw", marketer_led=True, seed=71)
+    assert {a.disposition_label for a in panel} == {"young_fem"}, "disjoint persona not excluded"
+    print("  OK  marketer-led excludes personas disjoint from the declared audience")
+
+
+def test_ml_clips_agents_to_declared() -> None:
+    # A persona spanning beyond the buy on both age and income.
+    young = _ml_disposition("young_fem", [_ml_bundle("female", 18, 30, 3.5, 20, 100)])
+    spec = _ml_spec(_declared_female_2024(), [young], 60)
+    panel = build_panel(spec, [young], category="hw", marketer_led=True, seed=71)
+    for a in panel:
+        d = a.demographic
+        assert d.gender == "female", d.gender
+        assert 20 <= d.age_min and d.age_max <= 24, (d.age_min, d.age_max)
+        assert 0.0 <= d.income_lpa_min and d.income_lpa_max <= 14.0, (d.income_lpa_min, d.income_lpa_max)
+        assert a.in_declared_frame
+    print("  OK  marketer-led clips every agent to the declared audience")
+
+
+def test_ml_weights_by_mass() -> None:
+    high = _ml_disposition("high", [_ml_bundle("female", 20, 24, 0, 14, 100)])   # fully in buy -> mass 1.0
+    low = _ml_disposition("low", [
+        _ml_bundle("female", 20, 24, 0, 14, 25),    # 25% in buy
+        _ml_bundle("female", 30, 40, 0, 14, 75),    # out of buy
+    ])
+    spec = _ml_spec(_declared_female_2024(), [high, low], 200)
+    panel = build_panel(spec, [high, low], category="hw", marketer_led=True, seed=71)
+    c = Counter(a.disposition_label for a in panel)
+    assert c["high"] > c["low"], c
+    # masses 1.0 vs 0.25 -> shares ~0.8 / 0.2
+    assert abs(c["high"] / 200 - 0.8) < 0.05, c
+    print(f"  OK  marketer-led weights by in-slice mass: {dict(c)}")
+
+
+def test_ml_deterministic_and_sized() -> None:
+    for n in (15, 100, 200):
+        young = _ml_disposition("young_fem", [
+            _ml_bundle("female", 18, 24, 3.5, 7, 60),
+            _ml_bundle("female", 22, 28, 7, 14, 40),
+        ])
+        spec = _ml_spec(_declared_female_2024(), [young], n)
+        p1 = build_panel(spec, [young], category="hw", marketer_led=True, seed=71)
+        p2 = build_panel(spec, [young], category="hw", marketer_led=True, seed=71)
+        assert len(p1) == n, f"panel size {len(p1)} != {n}"
+        assert [a.to_dict() for a in p1] == [a.to_dict() for a in p2], "not reproducible"
+    print("  OK  marketer-led: exact size + reproducible at 15/100/200")
+
+
+def test_ml_discovery_tail() -> None:
+    ins = _ml_disposition("ins", [_ml_bundle("female", 20, 24, 0, 14, 100)])
+    out = _ml_disposition("out", [_ml_bundle("male", 45, 54, 17, 40, 100)])
+    spec = _ml_spec(_declared_female_2024(), [ins, out], 100)
+    off = build_panel(spec, [ins, out], category="hw", marketer_led=True, seed=71)
+    assert all(a.in_declared_frame for a in off), "tail off should leave no out-of-frame agents"
+    assert {a.disposition_label for a in off} == {"ins"}
+    on = build_panel(spec, [ins, out], category="hw", marketer_led=True, tail_fraction=0.2, seed=71)
+    tail = [a for a in on if not a.in_declared_frame]
+    core = [a for a in on if a.in_declared_frame]
+    assert len(on) == 100
+    assert tail and {a.disposition_label for a in tail} == {"out"}, "tail not from excluded personas"
+    assert {a.disposition_label for a in core} == {"ins"}
+    assert abs(len(tail) / 100 - 0.2) < 0.02, len(tail)
+    print("  OK  discovery tail: off=in-frame only; on=excluded personas segregated + tagged")
+
+
+def test_ml_eligible_dispositions() -> None:
+    ins = _ml_disposition("ins", [_ml_bundle("female", 20, 24, 0, 14, 100)])
+    out = _ml_disposition("out", [_ml_bundle("male", 45, 54, 17, 40, 100)])
+    nobundle = _disposition("nobundle")  # no bundles -> demographically universal
+    spec = _ml_spec(_declared_female_2024(), [ins, out, nobundle], 60)
+    elig = {d.label: m for d, m in eligible_dispositions(spec, [ins, out, nobundle])}
+    assert "out" not in elig, "disjoint persona should not be eligible"
+    assert elig["ins"] == 1.0 and elig["nobundle"] == 1.0, elig
+    print("  OK  eligible_dispositions returns in-audience personas (no-bundle = universal)")
+
+
 def main() -> None:
     print("=== population construction (panel) smoke ===")
     test_panel_size_exact()
@@ -352,6 +478,12 @@ def main() -> None:
     test_bundled_coherence_no_contamination()
     test_bundled_reproducible_and_sizes()
     test_bundled_mixed_fallback()
+    test_ml_excludes_disjoint_personas()
+    test_ml_clips_agents_to_declared()
+    test_ml_weights_by_mass()
+    test_ml_deterministic_and_sized()
+    test_ml_discovery_tail()
+    test_ml_eligible_dispositions()
     print("PASS — panels reproducibly match target distributions.")
 
 
