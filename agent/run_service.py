@@ -54,7 +54,7 @@ from agent.runtime import run_agent_async
 from agent.schema import AgentTranscript, Report
 from agent.synthesis_l2 import synthesize_segment_async
 from agent.synthesis_l3 import synthesize_population
-from agent.synthesis_l4 import synthesize_memo
+from agent.synthesis_l4 import L4_PROMPT_VERSION, synthesize_memo
 from agent.synthesis_types import DemographicMismatch, TargetClassification
 from agent.target_id import detect_gross_demographic_mismatch, identify_target
 from agent.telemetry import (
@@ -181,6 +181,7 @@ def _write_run_json(
         "run_id": run_id,
         "status": status,
         "protocol_version": config.protocol_version,
+        "l4_prompt_version": L4_PROMPT_VERSION,
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "config": config.to_dict(),
         "report": report.to_dict() if report is not None else None,
