@@ -63,6 +63,22 @@ _VALID_BEHAVIORAL_ACTIONS = {
     "scroll_past", "linger", "tap_cta", "save", "share", "seek_info"
 }
 
+# rocket-2.2.0 (v2.2 diagnosis rung): the PainMap axes. A Pain is a diagnosed
+# root cause, not a surface theme. funnel_stage locates where the pain bites;
+# severity says whether it is a structural (out-of-scope) or execution
+# (fixable-in-creative) problem; lever_class tags each recommendation's
+# marketer control surface.
+FUNNEL_STAGE = Literal[
+    "attention", "comprehension", "consideration", "conversion", "recall"
+]
+PAIN_SEVERITY = Literal["structural", "execution"]
+LEVER_CLASS = Literal["creative", "media_buy", "offer"]
+_VALID_FUNNEL_STAGES = {
+    "attention", "comprehension", "consideration", "conversion", "recall"
+}
+_VALID_PAIN_SEVERITY = {"structural", "execution"}
+_VALID_LEVER_CLASSES = {"creative", "media_buy", "offer"}
+
 
 # ---- Consumer-facing report ----
 
@@ -128,6 +144,12 @@ class TopChange:
     why: str
     evidence_quotes: list[Quote] = field(default_factory=list)
     within_target_corroboration: str = ""
+    # rocket-2.2.0: recommendations now derive from diagnosed pains (many
+    # pains -> one fix). evidence_quotes stays for legacy back-compat, but
+    # grounding moves up a level to the pains referenced here. lever_class tags
+    # the marketer control surface (creative / media_buy / offer).
+    derives_from_pains: list[str] = field(default_factory=list)
+    lever_class: str = ""
 
 
 @dataclass
@@ -140,6 +162,47 @@ class Strength:
 class ContextFitEntry:
     verdict: CONTEXT_VERDICT
     friction_summary: str
+
+
+@dataclass
+class Pain:
+    """rocket-2.2.0: a diagnosed root-cause pain from the assess pass. Not a
+    surface theme — a mechanism plus why it costs the brand. Recommendations
+    derive from pains (many pains -> one fix); grounding lives here (each pain
+    is backed by verbatim quotes), one level below the recommendation."""
+    id: str
+    pain: str
+    funnel_stage: FUNNEL_STAGE
+    severity: PAIN_SEVERITY
+    within_target: bool = False
+    prevalence: str = ""
+    cited_by: list[str] = field(default_factory=list)
+    evidence_quotes: list[Quote] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "pain": self.pain,
+            "funnel_stage": self.funnel_stage,
+            "severity": self.severity,
+            "within_target": self.within_target,
+            "prevalence": self.prevalence,
+            "cited_by": list(self.cited_by),
+            "evidence_quotes": [asdict(q) for q in self.evidence_quotes],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Pain":
+        return cls(
+            id=data["id"],
+            pain=data["pain"],
+            funnel_stage=data["funnel_stage"],
+            severity=data["severity"],
+            within_target=bool(data.get("within_target", False)),
+            prevalence=data.get("prevalence", ""),
+            cited_by=list(data.get("cited_by", [])),
+            evidence_quotes=[Quote(**q) for q in data.get("evidence_quotes", [])],
+        )
 
 
 # ---- rocket-2.0.0: R7 behavioral signal + funnel projection ----
@@ -383,6 +446,11 @@ class Report:
     # deterministically in Python, like funnel_projection). None on legacy
     # reports and runs without a declared audience.
     audience_match: "AudienceMatch | None" = None
+    # rocket-2.2.0 (diagnosis rung): the PainMap from the assess pass. The
+    # verdict / confidence / strengths / context_fit / verbatim come from that
+    # same raw-corpus reading; top_3_changes / bet_ranking are derived from
+    # these pains by a separate prescribe pass. Empty on legacy reports.
+    pain_map: list[Pain] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -398,6 +466,8 @@ class Report:
                     "why": c.why,
                     "evidence_quotes": [asdict(q) for q in c.evidence_quotes],
                     "within_target_corroboration": c.within_target_corroboration,
+                    "derives_from_pains": list(c.derives_from_pains),
+                    "lever_class": c.lever_class,
                 }
                 for c in self.top_3_changes
             ],
@@ -426,6 +496,7 @@ class Report:
                 if self.audience_match is not None
                 else None
             ),
+            "pain_map": [p.to_dict() for p in self.pain_map],
         }
 
     def to_json(self, indent: int | None = 2) -> str:
@@ -447,6 +518,8 @@ class Report:
                     why=c["why"],
                     evidence_quotes=[Quote(**q) for q in c.get("evidence_quotes", [])],
                     within_target_corroboration=c.get("within_target_corroboration", ""),
+                    derives_from_pains=list(c.get("derives_from_pains", [])),
+                    lever_class=c.get("lever_class", ""),
                 )
                 for c in data.get("top_3_changes", [])
             ],
@@ -477,6 +550,7 @@ class Report:
                 if data.get("audience_match") is not None
                 else None
             ),
+            pain_map=[Pain.from_dict(p) for p in data.get("pain_map", [])],
         )
 
     @classmethod
@@ -530,6 +604,35 @@ def validate_report(report: Report) -> None:
                 f"methodology_flags entry {flag!r} is not in the valid set: "
                 f"{sorted(_VALID_METHODOLOGY_FLAGS)}"
             )
+    # rocket-2.2.0: PainMap axis validity + recommendation->pain referential
+    # integrity. A recommendation may only cite pains that exist in the map —
+    # this is the grounding invariant (rec -> pain -> quote) enforced at the
+    # schema seam, replacing the old rec -> quote coverage rule.
+    pain_ids: set[str] = set()
+    for p in report.pain_map:
+        if p.funnel_stage not in _VALID_FUNNEL_STAGES:
+            raise SchemaError(
+                f"pain {p.id!r} funnel_stage must be one of "
+                f"{sorted(_VALID_FUNNEL_STAGES)}, got {p.funnel_stage!r}"
+            )
+        if p.severity not in _VALID_PAIN_SEVERITY:
+            raise SchemaError(
+                f"pain {p.id!r} severity must be structural/execution, "
+                f"got {p.severity!r}"
+            )
+        pain_ids.add(p.id)
+    for c in report.top_3_changes:
+        if c.lever_class and c.lever_class not in _VALID_LEVER_CLASSES:
+            raise SchemaError(
+                f"TopChange.lever_class must be one of "
+                f"{sorted(_VALID_LEVER_CLASSES)} (or empty), got {c.lever_class!r}"
+            )
+        for pid in c.derives_from_pains:
+            if pid not in pain_ids:
+                raise SchemaError(
+                    f"TopChange derives_from_pains references unknown pain id "
+                    f"{pid!r}; known ids: {sorted(pain_ids)}"
+                )
     # rocket-2.0.0: funnel projection internal consistency, when present.
     if report.funnel_projection is not None:
         _validate_funnel_projection(report.funnel_projection)

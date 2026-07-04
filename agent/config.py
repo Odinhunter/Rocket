@@ -59,7 +59,13 @@ def _base64_encoded_size(raw_bytes: int) -> int:
 #        produced bucket flips. Cost dropped ~18% and latency ~30%. This
 #        obsoletes the previously-planned ensemble-target_id lever — single
 #        deterministic call is the right shape.
-PROTOCOL_VERSION = "rocket-2.1.0"
+# 2.2.0 (diagnosis rung): split L4 into an assess pass (raw-corpus reading ->
+#        PainMap + verdict/confidence) and a prescribe pass (recommendations
+#        derived from the frozen PainMap). Adds Report.pain_map +
+#        TopChange.derives_from_pains/lever_class. Bumping resets the
+#        calibration_log regime — intended, since v2.2 re-anchors the
+#        confidence scale for raw-corpus reading.
+PROTOCOL_VERSION = "rocket-2.2.0"
 
 
 # Default model assignments per layer. Locked after 2026-05-12 telemetry +
