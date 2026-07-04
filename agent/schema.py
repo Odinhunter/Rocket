@@ -604,6 +604,24 @@ def validate_report(report: Report) -> None:
                 f"methodology_flags entry {flag!r} is not in the valid set: "
                 f"{sorted(_VALID_METHODOLOGY_FLAGS)}"
             )
+    # rocket-2.2.0: structural-verdict confidence caps. These are cross-field
+    # invariants (like METHODOLOGY_GAP -> 0 changes above): where low confidence
+    # is a matter of PRINCIPLE, not evidence, the number cannot run high no
+    # matter how vivid the reactions read. METHODOLOGY_GAP means "we can't
+    # assess"; zero within-target means the verdict rests on outside-target
+    # reactions that are informational, not verdict-load-bearing. single-within
+    # is deliberately NOT capped here (the flag fires for transparency, but a
+    # vivid/unanimous single-audience read can earn a high number). The assess
+    # pass clamps to these ceilings before validation; this is the guarantee.
+    if report.verdict == "METHODOLOGY_GAP" and report.confidence > 20:
+        raise SchemaError(
+            f"METHODOLOGY_GAP confidence must be <= 20, got {report.confidence}"
+        )
+    if "no_within_target_evidence" in report.methodology_flags and report.confidence > 35:
+        raise SchemaError(
+            f"no_within_target_evidence run confidence must be <= 35, "
+            f"got {report.confidence}"
+        )
     # rocket-2.2.0: PainMap axis validity + recommendation->pain referential
     # integrity. A recommendation may only cite pains that exist in the map —
     # this is the grounding invariant (rec -> pain -> quote) enforced at the

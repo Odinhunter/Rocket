@@ -219,6 +219,10 @@ def test_methodology_gap_rejects_changes() -> None:
 
 def test_methodology_flags_accept_valid_values() -> None:
     r = _make_fixture_report()
+    # rocket-2.2.0: no_within_target_evidence caps confidence at <= 35, so this
+    # enum-validity fixture drops below that ceiling. (single_within_target is
+    # deliberately uncapped.)
+    r.confidence = 30
     r.methodology_flags = [
         "no_within_target_evidence",
         "single_within_target",
@@ -247,6 +251,7 @@ def test_methodology_flags_round_trip() -> None:
     and survive validate_report on both ends. Brand-facing render reads
     methodology_flags directly; silent drop would be a quality bug."""
     r = _make_fixture_report()
+    r.confidence = 30  # rocket-2.2.0: no_within_target_evidence caps confidence <= 35
     r.methodology_flags = ["no_within_target_evidence", "single_context_only"]
     s1 = r.to_json()
     r2 = Report.from_json(s1)

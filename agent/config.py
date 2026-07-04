@@ -76,7 +76,9 @@ DEFAULT_MODEL_VERSIONS: dict[str, str] = {
     "agent": "claude-sonnet-4-6",       # L1 Encoding + Reflection
     "l2": "claude-sonnet-4-6",          # L2 per-disposition
     "l3": "claude-sonnet-4-6",          # L3 population
-    "l4": "claude-opus-4-7",            # L4 strategic memo
+    "l4": "claude-opus-4-7",            # L4 strategic memo (legacy single-pass)
+    "assess": "claude-opus-4-8",        # rocket-2.2.0 L4a diagnosis (raw-corpus read)
+    "prescribe": "claude-opus-4-8",     # rocket-2.2.0 L4b prescription (from PainMap)
     "target_id": "claude-opus-4-7",     # Opus vision target classification
     "render": "claude-sonnet-4-6",      # rocket-2.0.0 Render Engine (persona prose)
 }
