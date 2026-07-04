@@ -28,11 +28,16 @@ import anthropic
 
 from agent.config import RunConfig
 from agent.schema import (
+    AgentTranscript,
+    DispositionRef,
     FunnelProjection,
     Report,
     SchemaError,
+    TargetMatch,
     validate_report,
 )
+from agent.synthesis_assess import AssessResult, assess_reactions
+from agent.synthesis_prescribe import PrescribeResult, prescribe_from_painmap
 from agent.synthesis_types import L3Summary, TargetClassification
 from agent.target_id import build_audience_match
 from agent.telemetry import call_with_telemetry
@@ -350,7 +355,106 @@ def _suppress_homog_high(report: Report, signals) -> None:
     )
 
 
-# ---- Public entry point ----
+# ---- rocket-2.2.0 orchestrator: assess -> prescribe -> assemble ----
+
+
+def _build_target_match(tc: TargetClassification) -> TargetMatch:
+    """Deterministic target_match from the classification (the assess pass does
+    not emit it). reached = within-target dispositions; missed = outside AND
+    ambiguous (conservative — an ambiguous disposition is not a claimed reach),
+    each tagged with its true classification so nothing is lost."""
+    reached: list[DispositionRef] = []
+    missed: list[DispositionRef] = []
+    for d in tc.disposition_classifications:
+        ref = DispositionRef(disposition=d.disposition_label, classification=d.classification)
+        (reached if d.classification == "within" else missed).append(ref)
+    return TargetMatch(reached=reached, missed=missed)
+
+
+def _assemble_report(
+    assess: AssessResult,
+    prescription: PrescribeResult,
+    tc: TargetClassification,
+    funnel_projection: FunnelProjection,
+    audience_match,
+    provisional: list[str],
+) -> Report:
+    """Graft the assess half (verdict/confidence/pains/strengths/context/voice/
+    flags) and the prescribe half (changes/bet_ranking) onto the locked Report,
+    plus the deterministic attaches (target_match, funnel, audience_match,
+    provisional). provisional_disposition_present is already set by the assess
+    pass; declared_audience_disjoint is attached here alongside audience_match
+    (the assess pass is blind to the audience axis)."""
+    flags = list(assess.methodology_flags)
+    if (
+        audience_match is not None
+        and audience_match.verdict == "mismatched"
+        and "declared_audience_disjoint" not in flags
+    ):
+        flags.append("declared_audience_disjoint")
+    return Report(
+        verdict=assess.verdict,
+        confidence=assess.confidence,
+        target_match=_build_target_match(tc),
+        top_3_changes=prescription.top_3_changes,
+        strengths_to_preserve=assess.strengths_to_preserve,
+        context_fit_map=assess.context_fit_map,
+        verbatim_consumer_voice=assess.verbatim_consumer_voice,
+        methodology_flags=flags,
+        bet_ranking=prescription.bet_ranking,
+        funnel_projection=funnel_projection,
+        provisional_dispositions=provisional,
+        audience_match=audience_match,
+        pain_map=assess.pain_map,
+    )
+
+
+def synthesize_report(
+    transcripts: list[AgentTranscript],
+    l3_summary: L3Summary,
+    target_classification: TargetClassification,
+    funnel_projection: FunnelProjection,
+    config: RunConfig,
+    *,
+    provisional_dispositions: list[str] | None = None,
+) -> Report:
+    """rocket-2.2.0 orchestrator. Pass A (assess) reads the raw reaction corpus
+    -> PainMap + verdict; Pass B (prescribe) reads only the frozen PainMap ->
+    recommendations. The two halves are assembled into the locked Report.
+
+    Replaces the single-call synthesize_memo below (kept for reference). The
+    funnel_projection and audience_match are attached deterministically; the
+    model never touches a funnel rate."""
+    provisional = list(provisional_dispositions or [])
+    audience_match = None
+    if config.audience_spec is not None and config.audience_spec.demographics:
+        audience_match = build_audience_match(
+            config.audience_spec.demographics,
+            target_classification.inferred_audience,
+        )
+    assess = assess_reactions(
+        transcripts, target_classification, l3_summary.confidence_signals,
+        config, provisional_dispositions=provisional,
+    )
+    prescription = prescribe_from_painmap(
+        assess.to_frozen_painmap(), funnel_projection, audience_match,
+        target_classification, config,
+    )
+    report = _assemble_report(
+        assess, prescription, target_classification, funnel_projection,
+        audience_match, provisional,
+    )
+    validate_report(report)
+    _validate_bet_ranking(report)
+    _log.info(
+        "synthesize_report: verdict=%s confidence=%d pains=%d bets=%d",
+        report.verdict, report.confidence, len(report.pain_map),
+        len(report.bet_ranking),
+    )
+    return report
+
+
+# ---- Legacy single-call entry point (pre-2.2; kept for reference) ----
 
 
 def synthesize_memo(

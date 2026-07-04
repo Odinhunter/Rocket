@@ -52,9 +52,11 @@ from agent.projection_l35 import project_funnel
 from agent.render import render_persona_core
 from agent.runtime import run_agent_async
 from agent.schema import AgentTranscript, Report
+from agent.synthesis_assess import ASSESS_PROMPT_VERSION, frozen_painmap_from_report
 from agent.synthesis_l2 import synthesize_segment_async
 from agent.synthesis_l3 import synthesize_population
-from agent.synthesis_l4 import L4_PROMPT_VERSION, synthesize_memo
+from agent.synthesis_l4 import L4_PROMPT_VERSION, synthesize_report
+from agent.synthesis_prescribe import PRESCRIBE_PROMPT_VERSION
 from agent.synthesis_types import (
     CoverageWarning,
     DemographicMismatch,
@@ -185,6 +187,25 @@ def _disposition_description(nd: NamedDisposition) -> str:
     return " ".join(parts)
 
 
+def _run_json_payload(
+    config: RunConfig, run_id: str, *, status: str, report: Report | None = None
+) -> dict:
+    """Assemble the run.json payload. rocket-2.2.0 stamps both prompt versions
+    (assess + prescribe); l4_prompt_version is retained for back-compat with
+    pre-2.2 run records and readers."""
+    return {
+        "run_id": run_id,
+        "status": status,
+        "protocol_version": config.protocol_version,
+        "l4_prompt_version": L4_PROMPT_VERSION,
+        "assess_prompt_version": ASSESS_PROMPT_VERSION,
+        "prescribe_prompt_version": PRESCRIBE_PROMPT_VERSION,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "config": config.to_dict(),
+        "report": report.to_dict() if report is not None else None,
+    }
+
+
 def _write_run_json(
     config: RunConfig, run_id: str, *, status: str, report: Report | None = None
 ) -> None:
@@ -192,16 +213,10 @@ def _write_run_json(
         run_id, account_id=config.account_id,
         brand_profile_id=config.brand_profile_id,
     )
-    payload = {
-        "run_id": run_id,
-        "status": status,
-        "protocol_version": config.protocol_version,
-        "l4_prompt_version": L4_PROMPT_VERSION,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-        "config": config.to_dict(),
-        "report": report.to_dict() if report is not None else None,
-    }
-    _persist_json(rd / "run.json", payload)
+    _persist_json(
+        rd / "run.json",
+        _run_json_payload(config, run_id, status=status, report=report),
+    )
 
 
 # ---- Public API ----
@@ -423,14 +438,18 @@ class RunService:
             projection, config.baseline_funnel,
         )
 
-        # ---- L4: strategic memo ----
+        # ---- L4: assess (raw corpus -> PainMap) -> prescribe (from PainMap) ----
         report = await asyncio.to_thread(
-            synthesize_memo, l3, prep.target_classification, projection,
-            config, provisional_dispositions=prep.provisional_dispositions,
+            synthesize_report, transcripts, l3, prep.target_classification,
+            projection, config,
+            provisional_dispositions=prep.provisional_dispositions,
         )
+        # The PainMap is a first-class, standalone brand-manager deliverable.
+        _persist_json(rd / "painmap.json", frozen_painmap_from_report(report))
         _log.info(
-            "L4 complete: verdict=%s confidence=%d bets=%d",
-            report.verdict, report.confidence, len(report.bet_ranking),
+            "L4 complete: verdict=%s confidence=%d pains=%d bets=%d",
+            report.verdict, report.confidence, len(report.pain_map),
+            len(report.bet_ranking),
         )
         return report
 

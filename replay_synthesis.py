@@ -34,9 +34,11 @@ from agent.entities import AudienceSpec
 from agent.panel import PanelAgent
 from agent.projection_l35 import project_funnel
 from agent.schema import AgentTranscript, validate_report
+from agent.synthesis_assess import ASSESS_PROMPT_VERSION, frozen_painmap_from_report
 from agent.synthesis_l2 import synthesize_segment_async
 from agent.synthesis_l3 import synthesize_population
-from agent.synthesis_l4 import L4_PROMPT_VERSION, synthesize_memo
+from agent.synthesis_l4 import synthesize_report
+from agent.synthesis_prescribe import PRESCRIBE_PROMPT_VERSION
 from agent.synthesis_types import TargetClassification
 from agent.telemetry import (
     current_account_id,
@@ -159,10 +161,13 @@ async def _replay(run_dir: Path) -> None:
 
     t0 = time.time()
     report = await asyncio.to_thread(
-        synthesize_memo, l3, tc, projection, config,
+        synthesize_report, transcripts, l3, tc, projection, config,
     )
     validate_report(report)
-    print(f"# L4 in {time.time()-t0:.1f}s (prompt {L4_PROMPT_VERSION})")
+    print(
+        f"# L4 assess->prescribe in {time.time()-t0:.1f}s "
+        f"(assess {ASSESS_PROMPT_VERSION} / prescribe {PRESCRIBE_PROMPT_VERSION})"
+    )
 
     print()
     print("=" * 78)
@@ -176,7 +181,10 @@ async def _replay(run_dir: Path) -> None:
         print(f"  {i}. {bet}")
     out_path = run_dir / "replay_report.json"
     out_path.write_text(report.to_json())
+    painmap_path = run_dir / "replay_painmap.json"
+    painmap_path.write_text(json.dumps(frozen_painmap_from_report(report), indent=2, ensure_ascii=False))
     print(f"\n# Replay report saved to {out_path}")
+    print(f"# Replay painmap saved to {painmap_path}  ({len(report.pain_map)} pains)")
 
 
 def main() -> None:

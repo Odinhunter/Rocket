@@ -227,16 +227,35 @@ class AssessResult:
         """The exact, minimal object the prescribe pass is allowed to see. No
         raw reactions — only the diagnosis. This is also the standalone,
         shippable brand-manager deliverable (painmap.json)."""
-        return {
-            "verdict": self.verdict,
-            "confidence": self.confidence,
-            "pain_map": [p.to_dict() for p in self.pain_map],
-            "strengths_to_preserve": [asdict(s) for s in self.strengths_to_preserve],
-            "context_fit": {
-                k: {"verdict": v.verdict, "friction_summary": v.friction_summary}
-                for k, v in self.context_fit_map.items()
-            },
-        }
+        return _frozen_painmap_dict(
+            self.verdict, self.confidence, self.pain_map,
+            self.strengths_to_preserve, self.context_fit_map,
+        )
+
+
+def _frozen_painmap_dict(verdict, confidence, pain_map, strengths, context_fit_map) -> dict:
+    """The frozen-painmap shape — shared by AssessResult (for the prescribe
+    handoff) and frozen_painmap_from_report (for persisting painmap.json off the
+    assembled Report), so the deliverable and the handoff never drift."""
+    return {
+        "verdict": verdict,
+        "confidence": confidence,
+        "pain_map": [p.to_dict() for p in pain_map],
+        "strengths_to_preserve": [asdict(s) for s in strengths],
+        "context_fit": {
+            k: {"verdict": v.verdict, "friction_summary": v.friction_summary}
+            for k, v in context_fit_map.items()
+        },
+    }
+
+
+def frozen_painmap_from_report(report) -> dict:
+    """Reconstruct the frozen-painmap deliverable (painmap.json) from an
+    assembled Report — the report already carries every field."""
+    return _frozen_painmap_dict(
+        report.verdict, report.confidence, report.pain_map,
+        report.strengths_to_preserve, report.context_fit_map,
+    )
 
 
 # ---- Deterministic confidence machinery ----
