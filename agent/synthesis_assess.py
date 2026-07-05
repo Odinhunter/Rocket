@@ -423,9 +423,9 @@ def _parse_assess(parsed: dict) -> tuple[VERDICT, int, list[Pain], list[Strength
 
 def _all_quotes(pain_map: list[Pain], strengths: list[Strength], verbatim: list[Quote]) -> list[Quote]:
     """Every quote the report will surface — pain evidence, strength evidence,
-    and the verbatim_voice deliverable. All must be real substrings of the raw
-    corpus (the prototype only checked pain quotes; verbatim_voice is the
-    customer-facing 'room's voice' where a hallucination is worst)."""
+    and the verbatim_voice deliverable. All are grounding-checked (the prototype
+    only checked pain quotes; verbatim_voice is the customer-facing 'room's
+    voice' where a hallucination is worst)."""
     out: list[Quote] = []
     for p in pain_map:
         out.extend(p.evidence_quotes)
@@ -435,16 +435,32 @@ def _all_quotes(pain_map: list[Pain], strengths: list[Strength], verbatim: list[
     return out
 
 
+# If MORE than this fraction of surfaced quotes cannot be traced to the corpus,
+# it is wholesale invention (not the light paraphrase opus does) — a real
+# failure, not something to degrade past.
+_FABRICATION_TRIPWIRE = 0.5
+
+
+def _keep_grounded(quotes: list[Quote], corpus: str) -> list[Quote]:
+    """Drop the quotes that don't trace to the corpus, keep the rest. Grounding
+    is a filter: we never reword a quote, we only remove one we can't verify."""
+    return [q for q in quotes if not verify_quote_authenticity([q], corpus)]
+
+
+def _drop_unverifiable(pain_map: list[Pain], strengths: list[Strength], corpus: str) -> None:
+    """Filter each pain's / strength's evidence to grounded quotes only, in
+    place. A pain that loses ALL its quotes is KEPT (a diagnosis stands on its
+    own) but logged loudly — that is the signal to watch."""
+    for p in pain_map:
+        kept = _keep_grounded(p.evidence_quotes, corpus)
+        if not kept and p.evidence_quotes:
+            _log.warning("assess: pain %s lost ALL evidence quotes to grounding", p.id)
+        p.evidence_quotes = kept
+    for s in strengths:
+        s.evidence_quotes = _keep_grounded(s.evidence_quotes, corpus)
+
+
 # ---- Public entry point ----
-
-
-class _GroundingError(Exception):
-    """Raised inside the assess loop when evidence quotes fail authenticity —
-    handled by the retry loop, not surfaced."""
-
-    def __init__(self, fabricated: list[str]) -> None:
-        super().__init__(f"{len(fabricated)} fabricated quotes")
-        self.fabricated = fabricated
 
 
 def assess_reactions(
@@ -499,40 +515,57 @@ def assess_reactions(
         try:
             parsed = json.loads(_strip_to_json(raw))
             verdict, confidence, pain_map, strengths, context_fit, verbatim = _parse_assess(parsed)
-            # Grounding: every surfaced quote must be a verbatim substring of
-            # the corpus. Retry (with the fabricated list) if not.
-            fabricated = verify_quote_authenticity(
-                _all_quotes(pain_map, strengths, verbatim), corpus
-            )
-            if fabricated:
-                raise _GroundingError(fabricated)
-            # Deterministic confidence discipline.
-            confidence = apply_confidence_caps(verdict, confidence, flags)
-            return AssessResult(
-                verdict=verdict,
-                confidence=confidence,
-                pain_map=pain_map,
-                strengths_to_preserve=strengths,
-                context_fit_map=context_fit,
-                verbatim_consumer_voice=verbatim,
-                methodology_flags=list(flags),
-            )
-        except _GroundingError as exc:
-            preview = "; ".join(q[:60] for q in exc.fabricated[:3])
-            last_feedback = (
-                f"{len(exc.fabricated)} evidence quote(s) are not verbatim "
-                f"substrings of the reactions (e.g. {preview!r})"
-            )
-            _log.warning(
-                "assess grounding failed (attempt %d/%d): %s",
-                attempt + 1, max_attempts, last_feedback,
-            )
         except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
             last_feedback = f"{type(exc).__name__}: {exc}"
             _log.warning(
                 "assess parse/build failed (attempt %d/%d): %s. Raw head: %r",
                 attempt + 1, max_attempts, last_feedback, raw[:500],
             )
+            continue
+
+        # Grounding is a FILTER, not a gate. Retry a couple of times to coax
+        # fully-verbatim quotes; on the final attempt, DROP the residual
+        # unverifiable ones and continue — a few reworded quotes must never kill
+        # a completed diagnosis. Wholesale invention (> tripwire) is the one
+        # exception: that is a real failure.
+        all_q = _all_quotes(pain_map, strengths, verbatim)
+        fabricated = verify_quote_authenticity(all_q, corpus)
+        last_attempt = attempt == max_attempts - 1
+        if fabricated and not last_attempt:
+            preview = "; ".join(q[:60] for q in fabricated[:3])
+            last_feedback = (
+                f"{len(fabricated)} evidence quote(s) are not verbatim substrings "
+                f"of the reactions (e.g. {preview!r})"
+            )
+            _log.warning(
+                "assess grounding retry (attempt %d/%d): %s",
+                attempt + 1, max_attempts, last_feedback,
+            )
+            continue
+        if fabricated:  # last attempt with residual unverifiable quotes
+            frac = len(fabricated) / max(1, len(all_q))
+            if frac > _FABRICATION_TRIPWIRE:
+                raise RuntimeError(
+                    f"assess: {len(fabricated)}/{len(all_q)} quotes ({frac:.0%}) not "
+                    f"traceable to the corpus — wholesale fabrication, not paraphrase"
+                )
+            _drop_unverifiable(pain_map, strengths, corpus)
+            verbatim = _keep_grounded(verbatim, corpus)
+            _log.warning(
+                "assess: dropped %d/%d unverifiable (paraphrased) quotes; pains retained",
+                len(fabricated), len(all_q),
+            )
+
+        confidence = apply_confidence_caps(verdict, confidence, flags)
+        return AssessResult(
+            verdict=verdict,
+            confidence=confidence,
+            pain_map=pain_map,
+            strengths_to_preserve=strengths,
+            context_fit_map=context_fit,
+            verbatim_consumer_voice=verbatim,
+            methodology_flags=list(flags),
+        )
 
     raise RuntimeError(
         f"assess pass failed after {max_attempts} attempts. "

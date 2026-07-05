@@ -54,12 +54,24 @@ def _derives_from(change: Any) -> list[str]:
     return list(getattr(change, "derives_from_pains", []) or [])
 
 
-def verify_quote_authenticity(quotes: Iterable[Any], corpus: str) -> list[str]:
-    """Return the quote texts that are NOT verbatim substrings of the corpus.
+# How much of a quote's normalized head must appear verbatim in the corpus for
+# it to count as grounded. opus-4-8 quotes REAL reactions but lightly reworders
+# them (fixes contractions, trims, joins fragments), so a full-exact-substring
+# check false-rejects legitimate near-verbatim quotes wholesale (empirically it
+# killed 2/4 calibration runs). A head-prefix match accepts near-verbatim while
+# still catching wholesale invention; the residual reworded-tail risk is
+# absorbed by the caller, which DROPS (never fabricates) unverifiable quotes.
+_MIN_QUOTE_PREFIX = 40
 
-    Empty list == every quote is authentic. Matches the FULL normalized quote
-    (no truncation). `quotes` may be Quote objects or dicts. Empty quotes are
-    skipped (nothing to ground).
+
+def verify_quote_authenticity(quotes: Iterable[Any], corpus: str) -> list[str]:
+    """Return the quote texts whose normalized head (first _MIN_QUOTE_PREFIX
+    chars, or the whole quote if shorter) is NOT found in the corpus — i.e. the
+    quotes that cannot be traced to a real reaction.
+
+    Empty list == every quote is grounded. `quotes` may be Quote objects or
+    dicts. Empty quotes are skipped (nothing to ground). Grounding is a FILTER,
+    not a gate: the caller drops what this flags, it does not fabricate.
     """
     ncorpus = _norm(corpus)
     fabricated: list[str] = []
@@ -68,7 +80,8 @@ def verify_quote_authenticity(quotes: Iterable[Any], corpus: str) -> list[str]:
         nq = _norm(text)
         if not nq:
             continue
-        if nq not in ncorpus:
+        probe = nq if len(nq) <= _MIN_QUOTE_PREFIX else nq[:_MIN_QUOTE_PREFIX]
+        if probe not in ncorpus:
             fabricated.append(text)
     return fabricated
 

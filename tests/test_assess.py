@@ -33,6 +33,8 @@ from agent.synthesis_assess import (
     build_corpus,
     compute_methodology_flags,
     _classification_map,
+    _drop_unverifiable,
+    _keep_grounded,
 )
 from agent.synthesis_types import (
     ConfidenceSignals,
@@ -203,6 +205,35 @@ def test_frozen_painmap_shape_has_no_raw_reactions() -> None:
     print("  OK  frozen painmap is prescribe-safe (no raw reactions) + JSON-serializable")
 
 
+_GROUND_CORPUS = "R1 GUT: another clean energy bar, they all say the same thing\nR6: what does it even cost"
+
+
+def test_keep_grounded_filters_unverifiable() -> None:
+    real = Quote(quote="another clean energy bar, they all say the same thing", disposition="a", round=1, context="c")
+    fake = Quote(quote="this line was never said by anyone in the room", disposition="a", round=1, context="c")
+    kept = _keep_grounded([real, fake], _GROUND_CORPUS)
+    assert kept == [real], "grounded filter kept the wrong set"
+    print("  OK  _keep_grounded keeps grounded quotes, drops invented ones")
+
+
+def test_drop_unverifiable_keeps_pain_logs_when_empty() -> None:
+    fake = Quote(quote="entirely invented sentence not present at all", disposition="a", round=1, context="c")
+    real = Quote(quote="another clean energy bar, they all say the same thing", disposition="a", round=1, context="c")
+    pains = [
+        Pain(id="P1", pain="x", funnel_stage="attention", severity="execution",
+             within_target=True, cited_by=["a"], evidence_quotes=[real, fake]),
+        Pain(id="P2", pain="y", funnel_stage="recall", severity="execution",
+             within_target=True, cited_by=["a"], evidence_quotes=[fake]),  # loses all -> kept, logged
+    ]
+    strengths = [Strength(strength="s", evidence_quotes=[real, fake])]
+    _drop_unverifiable(pains, strengths, _GROUND_CORPUS)
+    assert pains[0].evidence_quotes == [real]
+    assert pains[1].evidence_quotes == []          # pain retained, evidence emptied
+    assert len(pains) == 2                          # the diagnosis stands on its own
+    assert strengths[0].evidence_quotes == [real]
+    print("  OK  _drop_unverifiable filters quotes in place, keeps pains that lose all evidence")
+
+
 def main() -> None:
     print("=== assess pass deterministic machinery (rocket-2.2.0) ===")
     test_classification_map_and_corpus()
@@ -214,6 +245,8 @@ def main() -> None:
     test_confidence_caps()
     test_validate_report_enforces_structural_caps()
     test_frozen_painmap_shape_has_no_raw_reactions()
+    test_keep_grounded_filters_unverifiable()
+    test_drop_unverifiable_keeps_pain_logs_when_empty()
     print("PASS — assess deterministic machinery locked.")
 
 
