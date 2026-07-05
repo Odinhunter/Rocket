@@ -283,6 +283,14 @@ class RunConfig:
     marketer_led: bool = False
     tail_fraction: float = 0.0
 
+    def __post_init__(self) -> None:
+        # Backfill model_versions with defaults for any layer key missing from a
+        # provided or reconstructed dict. A pre-2.2 run.json config has no
+        # "assess" / "prescribe" key, so replaying it would KeyError without
+        # this. Stored values win; only genuinely-missing keys are filled. A new
+        # dict is built each time, so DEFAULT_MODEL_VERSIONS stays isolated.
+        self.model_versions = {**DEFAULT_MODEL_VERSIONS, **self.model_versions}
+
     def provided_inputs(self) -> list[str]:
         """The creative inputs supplied this run, as the keys L3.5 gates the
         funnel stages on (see agent/projection_l35.STAGE_OBSERVABLES)."""

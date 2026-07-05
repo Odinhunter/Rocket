@@ -196,6 +196,29 @@ def test_marketer_led_fields() -> None:
     print("  OK  marketer_led / tail_fraction serialize (protocol rocket-2.2.0)")
 
 
+def test_model_versions_backfills_missing_keys() -> None:
+    """rocket-2.2.0: a pre-2.2 run.json config carries model_versions WITHOUT
+    the assess/prescribe keys. RunConfig must backfill them from defaults (so
+    replay/old-run loading doesn't KeyError), preserve stored overrides, and
+    keep DEFAULT_MODEL_VERSIONS isolated."""
+    from agent.config import DEFAULT_MODEL_VERSIONS
+    legacy = {
+        "agent": "claude-sonnet-4-6", "l2": "claude-sonnet-4-6",
+        "l3": "claude-sonnet-4-6", "l4": "claude-opus-4-7",
+        "target_id": "claude-opus-4-7", "render": "claude-sonnet-4-6",
+    }
+    c = RunConfig(
+        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        archetype="unspecified", category="personal_audio",
+        model_versions=dict(legacy),
+    )
+    assert c.model_versions["assess"] == DEFAULT_MODEL_VERSIONS["assess"]
+    assert c.model_versions["prescribe"] == DEFAULT_MODEL_VERSIONS["prescribe"]
+    assert c.model_versions["l4"] == "claude-opus-4-7"  # stored override wins
+    assert "assess" not in legacy, "backfill must not mutate the caller's dict"
+    print("  OK  model_versions backfills assess/prescribe from defaults (back-compat)")
+
+
 def test_default_temperatures_match_advisor_schedule() -> None:
     """The 1.1.0 temperature schedule is load-bearing for verdict stability
     and L4 voice fidelity. Changing any of these is a methodology shift
@@ -276,6 +299,7 @@ def main() -> None:
     test_disposition_version_hash()
     test_to_dict_serializable()
     test_marketer_led_fields()
+    test_model_versions_backfills_missing_keys()
     test_default_temperatures_match_advisor_schedule()
     test_temperatures_round_trip_through_to_dict()
     test_default_efforts_match_advisor_schedule()
