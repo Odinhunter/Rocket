@@ -55,9 +55,17 @@ _log = logging.getLogger(__name__)
 # ASSESS_PROMPT_VERSION on EVERY change so the calibration log can separate
 # pre/post regimes (the run record stamps it).
 #   assess-1 — first production port of the painmap prototype's assess pass.
-#              Confidence anchors are the pre-v2.2 (summarized-engine) numbers;
-#              Phase 5 re-anchors them for raw-corpus reading.
-ASSESS_PROMPT_VERSION = "assess-1"
+#              Confidence anchors were the pre-v2.2 (summarized-engine) numbers.
+#   assess-2 — Phase 5 re-anchor for raw-corpus reading. Removed the stale
+#              "single-within <= 50" cap text (it contradicted decision 2 and
+#              the code, which the model ignored — landing single-within at 74);
+#              rewrote the anchor ladder so a single audience is placed by how
+#              vivid/unanimous ITS evidence is (thin ~45-57, vivid ~70-84) and
+#              only multi-audience consensus earns 85+. Kept the zero-within
+#              <=35 and METHODOLOGY_GAP <=20 anchors (those caps stand). Added a
+#              structural example: a parent-company reveal that breaks an
+#              indie-DTC brand's permission is structural, not execution.
+ASSESS_PROMPT_VERSION = "assess-2"
 
 
 _VERDICT_FRAMEWORK = """\
@@ -72,8 +80,11 @@ context. Resolve in this strict priority order — first match wins:
    verdict = "METHODOLOGY_GAP", confidence <= 20.
 3. Zero dispositions "within" (but neither 1 nor 2) -> verdict still lands
    (MIXED or FAILING on durability of damage), confidence <= 35.
-4. Exactly one "within" -> verdict lands, confidence <= 50.
-5. Two or more "within" -> evaluate against the within-target subset.
+4. Exactly one "within" -> verdict lands; confidence is EARNED by the vividness
+   and internal consistency of that single audience's signal (see the anchors),
+   NOT capped at a fixed number.
+5. Two or more "within" -> evaluate against the within-target subset; this is
+   what earns the high-confidence band.
 
 # Verdict definitions
 
@@ -99,9 +110,11 @@ a new SKU), formulation, and distribution are OUT of scope.
   unclear pack size). The buyer would act if that in-scope piece were filled.
 - Structural = damage that persists after every in-scope lever is exhausted
   (MRP-inflation suspicion after price is shown; a base-price gap no in-scope
-  offer can close; brand-permission gaps). "They'd buy if it were cheaper /
-  smaller / reformulated / sold elsewhere" is NOT an execution fix — it is
-  structural, because the resolving move is out of scope.
+  offer can close; brand-permission gaps — e.g. a parent-company / conglomerate
+  reveal that breaks an indie clean-label / DTC brand's permission is
+  structural, not execution). "They'd buy if it were cheaper / smaller /
+  reformulated / sold elsewhere" is NOT an execution fix — it is structural,
+  because the resolving move is out of scope.
 - If you cannot tell which, it is MIXED, not FAILING.
 
 # The counterweight rule (don't over-fire FAILING)
@@ -113,14 +126,31 @@ but decisive; execution friction is common and recoverable.
 
 # Confidence anchors
 
-- 90-100: robust within-target consensus across >= 3 dispositions, all
-  contexts agree, no flags.
-- 70-89: solid signal across 2-3 dispositions, most contexts agree.
-- 50-69: mixed within-target signal, or 2 dispositions disagree on mode, or
-  single-context-only corroboration of the headline finding.
-- 35-49: single-within-target case, or significant internal disagreement.
-- 20-34: zero within-target evidence (no explicit pool mismatch).
-- 0-19: METHODOLOGY_GAP.
+You read the FULL raw corpus, not a thrice-distilled summary — so you may
+justify more conviction than a summarized read could. But confidence is EARNED
+by the evidence in front of you, never defaulted. Confidence answers "how sure
+am I of the VERDICT," which is separate from "is the ad good": a vivid,
+near-unanimous rejection warrants HIGH confidence in a FAILING verdict.
+
+- 85-100: strong within-target consensus across >= 2 distinct dispositions, most
+  or all contexts agree, the signal is vivid and internally consistent.
+- 70-84: a clear read — EITHER multi-disposition agreement with some friction,
+  OR a SINGLE within-target disposition whose signal is vivid, high-volume, and
+  internally consistent across contexts. One audience reaches this band only
+  when its evidence is genuinely rich and unanimous.
+- 58-69: a solid but qualified read — a single within-target audience with
+  consistent-but-thinner signal, or two dispositions that disagree on mode, or a
+  headline resting on a single context.
+- 45-57: a single within-target audience whose signal is thin, mixed, or
+  ambiguous — the verdict lands but rests on limited evidence.
+- 20-34: zero within-target evidence (graded on outside-target reactions only,
+  no explicit pool mismatch). Capped here no matter how vivid the outside
+  reactions read — they are not verdict-load-bearing.
+- 0-19: METHODOLOGY_GAP (pool mismatch or a fully unsignaled target).
+
+A single within-target disposition does NOT sit at the ceiling by default: place
+it by how rich and unanimous THAT audience's evidence is. Multi-audience
+consensus is what earns the top band.
 """
 
 

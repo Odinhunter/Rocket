@@ -154,7 +154,7 @@ def test_run_json_stamps_both_prompt_versions() -> None:
         archetype="unspecified", category="personal_audio",
     )
     payload = _run_json_payload(cfg, "rid123", status="complete", report=None)
-    assert payload["assess_prompt_version"] == "assess-1"
+    assert payload["assess_prompt_version"] == "assess-2"
     assert payload["prescribe_prompt_version"] == "prescribe-1"
     assert "l4_prompt_version" in payload  # retained for back-compat
     assert payload["protocol_version"] == "rocket-2.2.0"
