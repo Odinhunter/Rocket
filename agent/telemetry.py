@@ -190,12 +190,18 @@ def telemetry_summary(
     rates = {
         "claude-sonnet-4-6": (3.0, 15.0, 0.3, 3.75),
         "claude-opus-4-7": (15.0, 75.0, 1.5, 18.75),
+        # rocket-2.2.0: assess/prescribe run on opus-4-8 (standard Opus tier).
+        "claude-opus-4-8": (15.0, 75.0, 1.5, 18.75),
     }
 
     lines = ["=" * 78, "TELEMETRY SUMMARY", "=" * 78]
     grand_in, grand_out, grand_cost = 0, 0, 0.0
     grand_retries, grand_failed = 0, 0
-    for layer in ("agent", "l2", "l3", "target_id", "strategist"):
+    # rocket-2.2.0: assessor/prescriber are the v2.2 L4 split (strategist is the
+    # legacy single-pass). Include any recorded layer not in the fixed order so
+    # a new layer never silently drops out of the cost total.
+    _known = ("agent", "l2", "l3", "target_id", "strategist", "assessor", "prescriber")
+    for layer in _known + tuple(sorted(set(by_layer) - set(_known))):
         layer_events = by_layer.get(layer, [])
         if not layer_events:
             continue
