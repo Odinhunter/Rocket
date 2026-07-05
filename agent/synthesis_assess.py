@@ -295,10 +295,16 @@ def compute_methodology_flags(
     tc: TargetClassification,
     signals: ConfidenceSignals,
     provisional_dispositions: list[str],
+    n_contexts: int,
 ) -> list[str]:
     """Compute the reaction-derived methodology flags DETERMINISTICALLY. The
     assess model emits none of these — Python owns them, so they finally have
     teeth (they were prompt-only, model-emitted-and-trusted in the old L4).
+
+    n_contexts is the count of distinct feed contexts in the run, derived from
+    the raw transcripts (rocket-2.2.0 Phase 7: L3 no longer produces a
+    context_fit, so single_context_only is computed here instead of from
+    signals.total_contexts).
 
     (declared_audience_disjoint is NOT computed here — it derives from the
     audience_match axis, which is attached at report-assembly time alongside
@@ -324,7 +330,7 @@ def compute_methodology_flags(
             flags.append("single_within_target")
     if provisional_dispositions:
         flags.append("provisional_disposition_present")
-    if signals.total_contexts == 1:
+    if n_contexts == 1:
         flags.append("single_context_only")
     # homogenization_high is never added — it is structurally the default under
     # the per-(disposition x chaos-band) layout and is suppressed. We keep the
@@ -528,8 +534,9 @@ def assess_reactions(
     cls = _classification_map(target_classification)
     corpus = build_corpus(transcripts, cls)
     base_payload = _build_assess_payload(target_classification, corpus)
+    n_contexts = len({t.context_label for t in transcripts})
     flags = compute_methodology_flags(
-        target_classification, confidence_signals, provisional
+        target_classification, confidence_signals, provisional, n_contexts
     )
 
     client = anthropic.Anthropic(max_retries=5)

@@ -59,11 +59,12 @@ def _tc(classifications: list[tuple[str, str]], *, ambiguity_note=None, no_match
     )
 
 
-def _signals(*, within_count: int, total_contexts: int = 3, tight: int = 8, segs: int = 12) -> ConfidenceSignals:
+def _signals(*, within_count: int, tight: int = 8, segs: int = 12) -> ConfidenceSignals:
+    # rocket-2.2.0 Phase 7: total_contexts/contexts_in_agreement are no longer
+    # produced by L3 (single_context_only now derives from n_contexts, passed to
+    # compute_methodology_flags straight from the transcripts).
     return ConfidenceSignals(
         within_target_disposition_count=within_count,
-        contexts_in_agreement=2,
-        total_contexts=total_contexts,
         homogenization_flag_count=tight,
         total_segments=segs,
     )
@@ -96,38 +97,38 @@ def test_classification_map_and_corpus() -> None:
 
 def test_flags_two_within_is_clean() -> None:
     tc = _tc([("a", "within"), ("b", "within"), ("c", "outside")])
-    flags = compute_methodology_flags(tc, _signals(within_count=2), [])
+    flags = compute_methodology_flags(tc, _signals(within_count=2), [], n_contexts=3)
     assert flags == [], flags  # no structural flags, no provisional, 3 contexts
     print("  OK  two within-target -> no structural flags")
 
 
 def test_flags_single_within() -> None:
     tc = _tc([("a", "within"), ("b", "outside")])
-    flags = compute_methodology_flags(tc, _signals(within_count=1), [])
+    flags = compute_methodology_flags(tc, _signals(within_count=1), [], n_contexts=3)
     assert flags == ["single_within_target"], flags
     print("  OK  single within-target -> single_within_target flag")
 
 
 def test_flags_zero_within_graded() -> None:
     tc = _tc([("a", "outside"), ("b", "outside")])
-    flags = compute_methodology_flags(tc, _signals(within_count=0), [])
+    flags = compute_methodology_flags(tc, _signals(within_count=0), [], n_contexts=3)
     assert flags == ["no_within_target_evidence"], flags
     print("  OK  zero within-target (graded) -> no_within_target_evidence flag")
 
 
 def test_flags_no_match_and_all_ambiguous() -> None:
     tc_nm = _tc([("a", "outside")], no_match_note="pool does not match the ad's target")
-    assert "pool_archetype_mismatch" in compute_methodology_flags(tc_nm, _signals(within_count=0), [])
+    assert "pool_archetype_mismatch" in compute_methodology_flags(tc_nm, _signals(within_count=0), [], n_contexts=3)
     # no_match suppresses the graded no_within flag (it's METHODOLOGY_GAP, not graded)
-    assert "no_within_target_evidence" not in compute_methodology_flags(tc_nm, _signals(within_count=0), [])
+    assert "no_within_target_evidence" not in compute_methodology_flags(tc_nm, _signals(within_count=0), [], n_contexts=3)
     tc_amb = _tc([("a", "ambiguous"), ("b", "ambiguous")], ambiguity_note="ad gives no target signal")
-    assert "target_unsignaled" in compute_methodology_flags(tc_amb, _signals(within_count=0), [])
+    assert "target_unsignaled" in compute_methodology_flags(tc_amb, _signals(within_count=0), [], n_contexts=3)
     print("  OK  no_match -> pool_archetype_mismatch; all-ambiguous -> target_unsignaled")
 
 
 def test_flags_provisional_and_single_context() -> None:
     tc = _tc([("a", "within"), ("b", "within")])
-    flags = compute_methodology_flags(tc, _signals(within_count=2, total_contexts=1), ["prov_disp"])
+    flags = compute_methodology_flags(tc, _signals(within_count=2), ["prov_disp"], n_contexts=1)
     assert "provisional_disposition_present" in flags
     assert "single_context_only" in flags
     print("  OK  provisional + single-context flags")
