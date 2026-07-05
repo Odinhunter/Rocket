@@ -189,9 +189,11 @@ def telemetry_summary(
     # (in_rate, out_rate, cache_read_rate, cache_write_5m_rate)
     rates = {
         "claude-sonnet-4-6": (3.0, 15.0, 0.3, 3.75),
-        "claude-opus-4-7": (15.0, 75.0, 1.5, 18.75),
-        # rocket-2.2.0: assess/prescribe run on opus-4-8 (standard Opus tier).
-        "claude-opus-4-8": (15.0, 75.0, 1.5, 18.75),
+        # Opus 4.7 / 4.8 are $5/$25 per MTok (cache read 0.1x input, write 1.25x
+        # @ 5-min TTL). The prior (15,75) on opus-4-7 was a stale Opus-3-era rate,
+        # 3x too high — it overcounted target_id (and any opus layer) in every run.
+        "claude-opus-4-7": (5.0, 25.0, 0.5, 6.25),
+        "claude-opus-4-8": (5.0, 25.0, 0.5, 6.25),
     }
 
     lines = ["=" * 78, "TELEMETRY SUMMARY", "=" * 78]
