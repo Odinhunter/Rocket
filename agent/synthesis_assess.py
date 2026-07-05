@@ -316,6 +316,24 @@ _STRUCTURAL_CAPS = {
 _METHODOLOGY_GAP_CAP = 20
 
 
+# Pool-quality flags describe the POOL, not the creative — when either fires the
+# reactions come from the wrong audience, so no creative-effectiveness verdict is
+# available. Force METHODOLOGY_GAP (framework rules 1/2) deterministically rather
+# than trusting the model, which will over-read the raw reactions and grade a
+# creative it should decline to grade (observed: plix_acv, male pool vs a
+# women's ad, read MIXED 42 despite a legit no_match_note).
+_GAP_FORCING_FLAGS = {"pool_archetype_mismatch", "target_unsignaled"}
+
+
+def resolve_verdict(model_verdict: str, flags: list[str]) -> str:
+    """Force METHODOLOGY_GAP when a pool-quality flag fires; otherwise keep the
+    model's verdict. Called before apply_confidence_caps so the <=20 cap kicks
+    in and (via the orchestrator) prescribe short-circuits to empty changes."""
+    if _GAP_FORCING_FLAGS & set(flags):
+        return "METHODOLOGY_GAP"
+    return model_verdict
+
+
 def apply_confidence_caps(verdict: str, confidence: int, flags: list[str]) -> int:
     """Clamp confidence to the structural ceiling implied by the verdict/flags.
     Clamp (not retry): the flags are deterministic, so the model cannot move
@@ -556,6 +574,7 @@ def assess_reactions(
                 len(fabricated), len(all_q),
             )
 
+        verdict = resolve_verdict(verdict, flags)
         confidence = apply_confidence_caps(verdict, confidence, flags)
         return AssessResult(
             verdict=verdict,

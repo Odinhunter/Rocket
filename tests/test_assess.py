@@ -32,6 +32,7 @@ from agent.synthesis_assess import (
     apply_confidence_caps,
     build_corpus,
     compute_methodology_flags,
+    resolve_verdict,
     _classification_map,
     _drop_unverifiable,
     _keep_grounded,
@@ -130,6 +131,19 @@ def test_flags_provisional_and_single_context() -> None:
     assert "provisional_disposition_present" in flags
     assert "single_context_only" in flags
     print("  OK  provisional + single-context flags")
+
+
+def test_resolve_verdict_forces_methodology_gap_on_pool_flags() -> None:
+    # Pool-quality flags force METHODOLOGY_GAP regardless of the model's verdict.
+    assert resolve_verdict("MIXED", ["pool_archetype_mismatch"]) == "METHODOLOGY_GAP"
+    assert resolve_verdict("FAILING", ["target_unsignaled"]) == "METHODOLOGY_GAP"
+    # Non-pool flags leave the model verdict intact.
+    assert resolve_verdict("MIXED", ["single_within_target"]) == "MIXED"
+    assert resolve_verdict("WORKING", []) == "WORKING"
+    # And the forced gap composes with the <=20 cap (plix_acv path: MIXED 42 -> 20).
+    v = resolve_verdict("MIXED", ["pool_archetype_mismatch"])
+    assert apply_confidence_caps(v, 42, ["pool_archetype_mismatch"]) == 20
+    print("  OK  resolve_verdict forces METHODOLOGY_GAP on pool flags (+ <=20 cap)")
 
 
 def test_confidence_caps() -> None:
@@ -242,6 +256,7 @@ def main() -> None:
     test_flags_zero_within_graded()
     test_flags_no_match_and_all_ambiguous()
     test_flags_provisional_and_single_context()
+    test_resolve_verdict_forces_methodology_gap_on_pool_flags()
     test_confidence_caps()
     test_validate_report_enforces_structural_caps()
     test_frozen_painmap_shape_has_no_raw_reactions()
