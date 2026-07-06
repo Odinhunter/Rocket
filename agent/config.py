@@ -221,9 +221,16 @@ class RunConfig:
     contexts_per_run: int = 3
     seeds_per_cell: int = 1
 
-    # Concurrency. At the 30K ITPM tier, each Encoding+Reflection pair costs
-    # ~6800 ITPM tokens spread across ~26s. 4 concurrent stays within budget.
-    # Bump only after measuring against your actual tier ceiling.
+    # Concurrency cap for BOTH the L1 agent wave and the L2 segment fan-out.
+    # The real ceiling is your account's rate-limit tier, not this number:
+    # each L1 encode+reflect pair is ~6800 input tokens over ~26s, so a full
+    # 200-agent wave is only a ~1.36M-token burst — trivial on a high tier, a
+    # 529 cascade on a low one. What actually makes high concurrency safe is the
+    # anthropic client's max_retries=5 backoff (absorbs 429/529 bursts), NOT
+    # token headroom. The default stays conservative (4) because this ships
+    # multi-tenant to customers on smaller tiers. A high-tier operator (e.g.
+    # 10M TPM) raises it per run via --max-concurrent up to the panel size
+    # (100 for validated runs, 200 ceiling); no gain beyond item count.
     max_concurrent_agents: int = 4
 
     # Mode is locked single-asset for Week 1; carrying the field so the
