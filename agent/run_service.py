@@ -89,6 +89,63 @@ _COST_TARGET_ID = 0.15
 _COST_PER_RENDER = 0.005
 
 
+# --- L1 panel resilience ---
+# A run must keep at least this fraction of its panel — and never lose a whole
+# segment — or the synthesized population is too gutted to score. At high
+# concurrency a correlated 529 burst can knock out a whole disposition/segment;
+# the semaphore no longer serialises those calls, so the L1 gather must survive
+# stray failures yet REFUSE to synthesize a verdict on a mangled panel. Below
+# the floor we abort loudly and leave the run at 'committed' — re-running the
+# same command resumes from the per-agent artifacts (only the missing agents
+# re-fire, no new debit).
+_MIN_PANEL_COMPLETION = 0.95
+
+
+class PanelDegradedError(RuntimeError):
+    """L1 lost too many agents — or a whole segment — for the synthesized
+    population to be trustworthy. Raised instead of scoring a gutted panel."""
+
+
+def reconcile_l1_results(
+    panel: list[PanelAgent],
+    results: list,
+    *,
+    min_completion: float = _MIN_PANEL_COMPLETION,
+) -> tuple[list[AgentTranscript], list[int]]:
+    """Split the L1 gather output (``asyncio.gather(..., return_exceptions=True)``)
+    into landed transcripts and dropped agent_ids, then enforce the survivor
+    floor and per-segment integrity. Pure + deterministic, so it is unit-tested
+    offline. Raises PanelDegradedError when the panel is too degraded to trust.
+    ``results`` is aligned to ``panel`` order (gather preserves order)."""
+    seg_of = {a.agent_id: a.segment_key for a in panel}
+    transcripts: list[AgentTranscript] = []
+    dropped: list[int] = []
+    for agent, res in zip(panel, results):
+        if isinstance(res, BaseException):
+            dropped.append(agent.agent_id)
+        else:
+            transcripts.append(res)
+    transcripts.sort(key=lambda t: t.agent_id)
+
+    expected = len(panel)
+    if expected == 0:
+        raise PanelDegradedError("empty panel — nothing to synthesize")
+    succeeded = len(transcripts)
+    completion = succeeded / expected
+    survived = {seg_of[t.agent_id] for t in transcripts}
+    lost_segments = sorted(set(seg_of.values()) - survived)
+    if completion < min_completion or lost_segments:
+        raise PanelDegradedError(
+            f"L1 panel too degraded to trust: {succeeded}/{expected} agents "
+            f"landed ({completion:.0%}; floor {min_completion:.0%})"
+            + (f"; segment(s) wiped out: {lost_segments}" if lost_segments else "")
+            + f". Aborting instead of scoring a gutted panel — re-run the same "
+            f"command to resume (re-fires only the {len(dropped)} missing "
+            f"agents, no new charge)."
+        )
+    return transcripts, dropped
+
+
 def _persist_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".json.tmp")
@@ -188,11 +245,14 @@ def _disposition_description(nd: NamedDisposition) -> str:
 
 
 def _run_json_payload(
-    config: RunConfig, run_id: str, *, status: str, report: Report | None = None
+    config: RunConfig, run_id: str, *, status: str,
+    report: Report | None = None, panel_health: dict | None = None,
 ) -> dict:
     """Assemble the run.json payload. rocket-2.2.0 stamps both prompt versions
     (assess + prescribe); l4_prompt_version is retained for back-compat with
-    pre-2.2 run records and readers."""
+    pre-2.2 run records and readers. panel_health (set at 'complete') records
+    how much of the panel actually landed, so a degraded run can't be mistaken
+    for a clean deterministic one."""
     return {
         "run_id": run_id,
         "status": status,
@@ -202,12 +262,14 @@ def _run_json_payload(
         "prescribe_prompt_version": PRESCRIBE_PROMPT_VERSION,
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "config": config.to_dict(),
+        "panel_health": panel_health,
         "report": report.to_dict() if report is not None else None,
     }
 
 
 def _write_run_json(
-    config: RunConfig, run_id: str, *, status: str, report: Report | None = None
+    config: RunConfig, run_id: str, *, status: str,
+    report: Report | None = None, panel_health: dict | None = None,
 ) -> None:
     rd = run_dir(
         run_id, account_id=config.account_id,
@@ -215,7 +277,10 @@ def _write_run_json(
     )
     _persist_json(
         rd / "run.json",
-        _run_json_payload(config, run_id, status=status, report=report),
+        _run_json_payload(
+            config, run_id, status=status, report=report,
+            panel_health=panel_health,
+        ),
     )
 
 
@@ -362,12 +427,15 @@ class RunService:
         )
         _write_run_json(config, run_id, status="committed")
 
-        report = asyncio.run(RunService._commit_async(prep, rd))
-        _write_run_json(config, run_id, status="complete", report=report)
+        report, panel_health = asyncio.run(RunService._commit_async(prep, rd))
+        _write_run_json(
+            config, run_id, status="complete", report=report,
+            panel_health=panel_health,
+        )
         return report
 
     @staticmethod
-    async def _commit_async(prep: RunPreparation, rd: Path) -> Report:
+    async def _commit_async(prep: RunPreparation, rd: Path) -> tuple[Report, dict]:
         config = prep.config
         pack = load_pack(config.category)
         cache_dir = _render_cache_dir(config)
@@ -383,11 +451,24 @@ class RunService:
                     render_cache_dir=cache_dir,
                 )
 
-        transcripts = await asyncio.gather(*[_bounded(a) for a in prep.panel])
-        transcripts = sorted(transcripts, key=lambda t: t.agent_id)
+        results = await asyncio.gather(
+            *[_bounded(a) for a in prep.panel], return_exceptions=True
+        )
+        # Survive stray failures, but abort loudly on a gutted panel (floor +
+        # per-segment integrity) rather than score an unrepresentative sample.
+        transcripts, dropped_agent_ids = reconcile_l1_results(prep.panel, results)
+        panel_health = {
+            "expected": len(prep.panel),
+            "succeeded": len(transcripts),
+            "dropped": len(dropped_agent_ids),
+            "dropped_agent_ids": dropped_agent_ids,
+            "completion": round(len(transcripts) / len(prep.panel), 4),
+            "degraded": bool(dropped_agent_ids),
+        }
         _log.info(
-            "L1 complete: %d transcripts in %.1fs",
-            len(transcripts), time.time() - l1_t0,
+            "L1 complete: %d/%d transcripts in %.1fs (%d dropped)",
+            len(transcripts), len(prep.panel),
+            time.time() - l1_t0, len(dropped_agent_ids),
         )
         _persist_json(
             rd / "transcripts.json", [t.to_dict() for t in transcripts]
@@ -451,7 +532,7 @@ class RunService:
             report.verdict, report.confidence, len(report.pain_map),
             len(report.bet_ranking),
         )
-        return report
+        return report, panel_health
 
     @staticmethod
     def run(config: RunConfig) -> Report:
