@@ -1,0 +1,242 @@
+{
+  "verdict": "MIXED",
+  "confidence": 82,
+  "pain_map": [
+    {
+      "id": "P1",
+      "pain": "The creative opens a price-per-gram evaluation loop it cannot close on-surface: every within-target lifter recognizes the ISO Zero as a legitimate isolate upgrade but the ad presents no per-serving cost, so every engaged buyer defers to an off-ad HealthKart calculation before acting — earned interest leaks between comprehension and consideration, and reorder-cycle inertia (a working concentrate already in the cupboard) frequently absorbs the deferred decision.",
+      "funnel_stage": "consideration",
+      "severity": "execution",
+      "within_target": true,
+      "prevalence": "near-universal among within-target enthusiast_macros_lifter across all four contexts",
+      "cited_by": [
+        "enthusiast_macros_lifter"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "I need to see the price per serving before anything else — if isolate pricing pushes it past ₹70-75 a scoop the math stops working and I stay on Performance Whey.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 6,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "I don't know what this costs per serving versus my current tub, and until that number exists the whole thing is just noise.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 6,
+          "context": "commute_scroll"
+        },
+        {
+          "quote": "Price per serving on a 2kg isolate tub is going to be noticeably higher than my current Performance Whey, and I'd need to run that math before I'm convinced the absorption claim justifies the jump.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "pain": "The ad fails to articulate a reason-to-switch for buyers already inside the brand's own concentrate line: the isolate's differentiators (2g more protein, lower carb) read as a marginal spec bump against a product that is 'already doing the job', so within-target loyalists who aren't cutting see no job for the upgrade to do — the creative cannibalizes attention without justifying the tier jump, and several resolve to scroll_past outright.",
+      "funnel_stage": "consideration",
+      "severity": "execution",
+      "within_target": true,
+      "prevalence": "recurring among within-target lifters, roughly half of whom scroll_past rather than seek info",
+      "cited_by": [
+        "enthusiast_macros_lifter"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "the isolate upgrade has no job to do",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 6,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "I'd have to justify paying more per serving for 2 extra grams of protein when my current tub is literally working fine.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 6,
+          "context": "commute_scroll"
+        },
+        {
+          "quote": "I'm not switching from the Performance Whey mid-cycle over an Instagram card.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 3,
+          "context": "late_night_wind_down"
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "pain": "The headline '50% better absorption' claim lands as unverified marketing rather than proof for the most literate buyers: within-target lifters flag it as something they'd need sourced before trusting, and some have already tuned it out from prior exposure — so the ad's central differentiation pitch generates skepticism-to-verify rather than conviction, pushing the decision off-surface instead of closing it.",
+      "funnel_stage": "consideration",
+      "severity": "execution",
+      "within_target": true,
+      "prevalence": "several within-target lifters; the absorption claim consistently flagged as unearned",
+      "cited_by": [
+        "enthusiast_macros_lifter"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "The \"50% better absorption\" claim is the kind of thing I'd want to verify before I trust it.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 4,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "the \"50% better absorption\" claim is exactly the kind of thing I'd want to see sourced before I take it seriously.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 3,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "The \"50% better absorption\" claim didn't stick because I've seen that line before and tuned it out.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 4,
+          "context": "commute_scroll"
+        }
+      ]
+    },
+    {
+      "id": "P4",
+      "pain": "The creative is spending heavily against out-of-target audiences it cannot convert: hair/skin switchers, snackers, and clean-label aspirants uniformly categorize the ad as 'not my world' at the gut beat and scroll past before comprehension — a media-buy targeting/placement inefficiency where the majority of impressions land on dispositions with no category entry point, diluting the within-target signal the brand actually needs.",
+      "funnel_stage": "attention",
+      "severity": "execution",
+      "within_target": false,
+      "prevalence": "overwhelming across all outside-target dispositions and all contexts",
+      "cited_by": [
+        "switcher_results_chaser",
+        "pragmatist_protein_snacker",
+        "aspirant_clean_label"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "Whey isolate for muscle protein has no overlap with what I'm actually researching right now — hair and skin supplements.",
+          "disposition": "switcher_results_chaser",
+          "round": 7,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "I'd have to become a completely different person who tracks protein intake before this tub makes any sense sitting on my desk.",
+          "disposition": "pragmatist_protein_snacker",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "The grey tub and MB branding read as gym-bro territory in under a second and nothing about my life lives there.",
+          "disposition": "aspirant_clean_label",
+          "round": 7,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    },
+    {
+      "id": "P5",
+      "pain": "Prior brand experience actively poisons re-engagement for a segment of lapsed users: the same MuscleBlaze identity that grants within-target trust simultaneously triggers 'the tub I binned' recall in lapsed buyers, and the ad offers nothing that addresses why this purchase would end differently — a recall-stage brand-baggage problem that no in-scope creative lever on this SKU resolves for that group (though it is outside-target context).",
+      "funnel_stage": "recall",
+      "severity": "structural",
+      "within_target": false,
+      "prevalence": "consistent across skeptic_lapsed_protein in all contexts",
+      "cited_by": [
+        "skeptic_lapsed_protein"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "It's the same brand I already wrote off, selling a more expensive version of something I proved to myself I won't use.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 7,
+          "context": "late_night_wind_down"
+        },
+        {
+          "quote": "nothing in this ad addresses why this time would be different.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 7,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "it's more like seeing the restaurant name that gave you food poisoning.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 3,
+          "context": "commute_scroll"
+        }
+      ]
+    },
+    {
+      "id": "P6",
+      "pain": "The Informed Protein certification badge — the single asset the brand most wants to leverage post-adulteration-news — is registering as a bare seal with no explanation, so even the skeptics primed to care by the adulteration story pause for a half-second and move on because the ad never says what the certification means; the trust proof point half-lands but fails to convert curiosity into weight.",
+      "funnel_stage": "comprehension",
+      "severity": "execution",
+      "within_target": false,
+      "prevalence": "recurring across skeptic_lapsed_protein and some outside dispositions who clock certifications",
+      "cited_by": [
+        "skeptic_lapsed_protein",
+        "switcher_results_chaser"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "the ad doesn't actually explain what it means so the moment passed.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 3,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "the ad never explained what it actually means, so there was nothing to grab onto.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 7,
+          "context": "pre_purchase_research"
+        }
+      ]
+    }
+  ],
+  "strengths_to_preserve": [
+    {
+      "strength": "Within-target lifters instantly recognize the SKU and grant the brand credibility off the MB logo and Informed Protein seal, clearing the trust bar before any copy is read.",
+      "evidence_quotes": [
+        {
+          "quote": "still MuscleBlaze, still Informed Protein certified, so the trust bar clears",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 2,
+          "context": "late_night_wind_down"
+        }
+      ]
+    },
+    {
+      "strength": "The 27g-per-scoop number lands as a concrete, calculable comparison point against the lifter's current 25g concentrate, giving the ad a real spec hook.",
+      "evidence_quotes": [
+        {
+          "quote": "The 27g per scoop number stuck because it's a direct, calculable upgrade over my current 25g.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 4,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "strength": "The isolate is read as a legitimate, credible upgrade path within an ecosystem lifters already inhabit, generating seek_info intent within the week.",
+      "evidence_quotes": [
+        {
+          "quote": "the isolate upgrade is a plausible next step",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 7,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    }
+  ],
+  "context_fit": {
+    "commute_scroll": {
+      "verdict": "mixed",
+      "friction_summary": "Within-target lifters clock the SKU but explicitly defer price math to a desk session, so the commute context converts interest to 'later' at best."
+    },
+    "weekend_afternoon_browse": {
+      "verdict": "mixed",
+      "friction_summary": "The highest-intent context for within-target lifters, several of whom seek_info, but all still leave to run cost-per-gram math the ad withholds."
+    },
+    "late_night_wind_down": {
+      "verdict": "mixed",
+      "friction_summary": "Within-target curiosity registers faintly but reorder inertia and low-energy scrolling push most to defer or scroll past."
+    },
+    "pre_purchase_research": {
+      "verdict": "mixed",
+      "friction_summary": "Best-fit intent moment for lifters who go straight to HealthKart, but the missing price and unsourced absorption claim mean the ad hands off the decision rather than closing it."
+    }
+  }
+}

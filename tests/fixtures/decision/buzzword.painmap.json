@@ -1,0 +1,276 @@
+{
+  "verdict": "MIXED",
+  "confidence": 76,
+  "pain_map": [
+    {
+      "id": "P1",
+      "pain": "The brand carries zero recognition and no credibility anchor (no creator/nutritionist face, no visible review trail), so even within-target buyers who like the product cannot cross from interest to trust. Against incumbents (OZiva, Plix) that already own review trails and known voices, unknown Herbyvore has no reason-to-switch, and interest converts only into a deferred 'look it up later' search that mostly never returns — earned consideration leaks entirely off-surface.",
+      "funnel_stage": "consideration",
+      "severity": "execution",
+      "within_target": true,
+      "prevalence": "widespread across nearly all within-target aspirant_clean_label agents, all contexts",
+      "cited_by": [
+        "aspirant_clean_label"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "I've never heard of Herbyvore, and with OZiva and Plix already having review trails I trust on Nykaa, a brand I can't look up properly is a real barrier before price even enters the picture.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "I've never heard a single creator I follow mention Herbyvore, and that's basically the whole problem — without that social proof anchoring it, it just sits in the \"interesting but unverified\" pile indefinitely.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "there's no person I trust attached to it — no Lovneet, no one — so it just sits in the \"maybe look up later\" pile that I never actually return to.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "late_night_wind_down"
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "pain": "The 'AI-designed' headline is a net trust-negative for the target: it reads as a hollow tech buzzword bolted onto a wellness product, actively cooling curiosity rather than differentiating. The creative spends its most prominent claim on something that makes clean-label buyers MORE suspicious, wasting the hero line at the moment attention is won.",
+      "funnel_stage": "comprehension",
+      "severity": "execution",
+      "within_target": true,
+      "prevalence": "near-universal among within-target agents and echoed by outside skeptics/lifters",
+      "cited_by": [
+        "aspirant_clean_label",
+        "skeptic_lapsed_protein",
+        "enthusiast_macros_lifter",
+        "switcher_results_chaser"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "The \"AI-designed\" thing honestly cooled me off a little, it sounds like a buzzword someone added in a marketing meeting.",
+          "disposition": "aspirant_clean_label",
+          "round": 3,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "\"AI-designed\" actually makes me trust it less, feels like a tech buzzword dropped onto a wellness product.",
+          "disposition": "aspirant_clean_label",
+          "round": 3,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "\"AI-designed\" with no explanation of what that actually means kills the trust before price even enters the picture — it feels like a claim that's compensating for something.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "pain": "The consideration loop cannot close on-surface: engaged within-target buyers reach the 'what does it cost / what's actually in it' question and find no price chip and no ingredient panel, so every warm reaction defers to an off-ad Nykaa search. Price/ingredient gating is a hard filter (maltodextrin, sub-₹1,500), so the ad hands its warmest buyers straight to a search it doesn't control.",
+      "funnel_stage": "conversion",
+      "severity": "execution",
+      "within_target": true,
+      "prevalence": "common among the warm/seek_info within-target subset",
+      "cited_by": [
+        "aspirant_clean_label",
+        "switcher_results_chaser"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "I have no idea what it costs or where to buy it — if it's not on Nykaa I'm probably not going to go find it, that's just the truth.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "I don't know the price and I can't see the ingredient panel, and for me that's the whole thing — if it has maltodextrin or the price is over ₹1,500 I'm out immediately.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "late_night_wind_down"
+        },
+        {
+          "quote": "I have no idea what it costs and I've never heard anyone I follow talk about it, so it just doesn't feel real enough to act on yet.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    },
+    {
+      "id": "P4",
+      "pain": "The 'Agrocorp' / 'Part of Agrocorp' parent footer breaks the indie clean-label permission the pretty packaging is selling — it reads as a B2B/agricultural conglomerate rather than a trustworthy DTC wellness brand. Because the resolving move (hiding or reframing the parent) is a positioning/permission gap the target reads as a corporate reveal, it corrodes trust precisely in the buyers most drawn in by the aesthetic.",
+      "funnel_stage": "consideration",
+      "severity": "structural",
+      "within_target": true,
+      "prevalence": "recurs among the most engaged within-target agents across contexts",
+      "cited_by": [
+        "aspirant_clean_label"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "\"Agrocorp\" at the bottom made it feel more like a B2B agricultural company than something I'd trust on my shelf.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "late_night_wind_down"
+        },
+        {
+          "quote": "The Agrocorp parent branding undercuts it — I want this to feel like a indie clean brand and that corporate footer makes me wonder who's actually behind the formulation.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "\"Part of Agrocorp\" at the bottom is doing nothing for my trust, it just makes it feel like a B2B company decided to launch a consumer product.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "commute_scroll"
+        }
+      ]
+    },
+    {
+      "id": "P5",
+      "pain": "In low-attention feed contexts (commute, late-night) the creative fails the first-frame job entirely: it registers only as a generic 'pink pastel protein thing,' blurs into the OZiva/Plix aesthetic, and the brand name never lands — so even within-target relevance evaporates before comprehension, killing recall and any chance of a later search.",
+      "funnel_stage": "attention",
+      "severity": "execution",
+      "within_target": true,
+      "prevalence": "consistent in commute_scroll and late_night_wind_down across dispositions",
+      "cited_by": [
+        "aspirant_clean_label",
+        "switcher_results_chaser"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "I don't even remember the brand name right now, which tells you everything about whether I'm going to go look it up.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "commute_scroll"
+        },
+        {
+          "quote": "it's already blurring into the OZiva aesthetic in my head.",
+          "disposition": "aspirant_clean_label",
+          "round": 4,
+          "context": "commute_scroll"
+        },
+        {
+          "quote": "the commute ate it before it had a chance.",
+          "disposition": "aspirant_clean_label",
+          "round": 3,
+          "context": "commute_scroll"
+        }
+      ]
+    },
+    {
+      "id": "P6",
+      "pain": "The 'longevity' framing is tonally mismatched to the target: for aspirant clean-label women it reads clinical/cold and 'giving 60-year-old man at a health expo,' fighting against the pretty, skincare-adjacent aesthetic that is actually doing the persuasion. The strongest emotional pull ('Protein + Glow' as a collagen-alternative frame) is diluted by a longevity/AI vocabulary aimed at a different buyer.",
+      "funnel_stage": "comprehension",
+      "severity": "execution",
+      "within_target": true,
+      "prevalence": "recurring among within-target aspirant agents in browse/research contexts",
+      "cited_by": [
+        "aspirant_clean_label"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "But \"longevity\" is a weird word choice, that's giving 60-year-old man at a health expo.",
+          "disposition": "aspirant_clean_label",
+          "round": 2,
+          "context": "late_night_wind_down"
+        },
+        {
+          "quote": "The \"longevity\" word feels slightly too clinical for how pretty the jars look, it's a small mismatch.",
+          "disposition": "aspirant_clean_label",
+          "round": 3,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "\"longevity\" feels a bit clinical and cold for something I'd want to mix into my morning oat milk.",
+          "disposition": "aspirant_clean_label",
+          "round": 3,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "id": "P7",
+      "pain": "For the ambiguous switcher_results_chaser segment, the creative is category-adjacent but never bridges to their active problem (hair-shedding/collagen), and the 'Protein + Glow' name snags interest for a half-second without any ingredient specifics to convert it — so the one line that could recruit an outside-intent buyer half-fires and then dies for lack of substance. This is context, not verdict-load-bearing, but shows the Glow frame has reach the copy fails to cash.",
+      "funnel_stage": "consideration",
+      "severity": "execution",
+      "within_target": false,
+      "prevalence": "widespread across ambiguous switcher agents, all contexts",
+      "cited_by": [
+        "switcher_results_chaser"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "the \"Protein + Glow\" variant almost snagged my attention for half a second but there's nothing here telling me what's actually in it or why it would do anything, so I'd scroll past.",
+          "disposition": "switcher_results_chaser",
+          "round": 3,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "Protein + Glow sounds vaguely relevant but there's no ingredient information visible and it's not addressing hair shedding, which is the only thing I'm actually researching.",
+          "disposition": "switcher_results_chaser",
+          "round": 7,
+          "context": "pre_purchase_research"
+        }
+      ]
+    }
+  ],
+  "strengths_to_preserve": [
+    {
+      "strength": "The functional-variant framing, especially 'Protein + Glow,' consistently lands with the target as a smarter, collagen-adjacent alternative to plain protein — it is the single most durable hook in the creative.",
+      "evidence_quotes": [
+        {
+          "quote": "The \"Protein + Glow\" one stayed with me honestly — it's a smarter frame than just \"plant protein\" and I've been thinking about collagen alternatives anyway.",
+          "disposition": "aspirant_clean_label",
+          "round": 4,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "The \"Protein + Glow\" one genuinely caught my attention because that framing maps directly to what I'd actually want from a protein.",
+          "disposition": "aspirant_clean_label",
+          "round": 3,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "strength": "The clean, muted, skincare-adjacent packaging earns a genuine pause from the target and reads as shelf-worthy rather than gym-coded.",
+      "evidence_quotes": [
+        {
+          "quote": "Oh this is actually pretty — the tins are soft and the pink feels intentional, not clinical. Stops me for a second.",
+          "disposition": "aspirant_clean_label",
+          "round": 1,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "those muted tones don't scream gym at all",
+          "disposition": "aspirant_clean_label",
+          "round": 1,
+          "context": "pre_purchase_research"
+        }
+      ]
+    }
+  ],
+  "context_fit": {
+    "late_night_wind_down": {
+      "verdict": "mixed",
+      "friction_summary": "Target notices the Glow frame but is too tired to act and the brand name/price never lands, producing deferred seek_info at best."
+    },
+    "commute_scroll": {
+      "verdict": "failing",
+      "friction_summary": "Low-attention scroll erases the brand entirely — it blurs into the OZiva aesthetic and no recall survives to fuel a later search."
+    },
+    "weekend_afternoon_browse": {
+      "verdict": "mixed",
+      "friction_summary": "Highest engagement context: packaging and Glow variant pull genuine pauses and saves, but unknown brand plus missing price/proof stall conversion."
+    },
+    "pre_purchase_research": {
+      "verdict": "mixed",
+      "friction_summary": "Target is warmest and actively seeks info, but AI-buzzword distrust, the Agrocorp footer, and no visible reviews/ingredients gate the purchase."
+    }
+  }
+}

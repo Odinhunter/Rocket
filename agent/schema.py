@@ -26,6 +26,14 @@ VERDICT = Literal["WORKING", "MIXED", "FAILING", "METHODOLOGY_GAP"]
 CLASSIFICATION = Literal["within", "outside", "ambiguous"]
 CONTEXT_VERDICT = Literal["working", "mixed", "failing"]
 
+# rocket-2.3.0 (the decision layer): the brand-facing call. The categorical
+# VERDICT above is demoted to an internal engine read; DECISION is what a brand
+# manager reads. SCALE is gated (0/42 upper anchors) and not emitted yet — see
+# agent/decision.py + docs/v2_3_decision_layer.md.
+DECISION = Literal["SCALE", "ITERATE", "RETARGET", "REBUILD", "INCONCLUSIVE"]
+_VALID_DECISIONS = {"SCALE", "ITERATE", "RETARGET", "REBUILD", "INCONCLUSIVE"}
+TRUST = Literal["HIGH", "DIRECTIONAL"]
+
 # Data-quality caveats reported alongside the verdict. METHODOLOGY_GAP used
 # to overload the verdict enum to express both "creative is broken" and "we
 # can't trust the data" — these are different axes. In 1.2.0 the verdict
@@ -423,6 +431,69 @@ class FunnelProjection:
 
 
 @dataclass
+class Decision:
+    """rocket-2.3.0 (the decision layer): the brand-facing call, computed
+    deterministically in Python from signals the assess pass already produced
+    (agent/decision.py). Replaces the categorical verdict as the headline; the
+    verdict survives as an internal engine read.
+
+    target_action_rate is the within-target would-act fraction (0-1), or None
+    when no within-target agent had a parsed signal. champion_* name the
+    disposition a RETARGET creative actually resonates with (the "right ad,
+    wrong person" story). load_bearing_pain_id points at the pain that drove the
+    call. SCALE is gated and never emitted yet (validate_report enforces this).
+    """
+    decision: DECISION
+    target_action_rate: float | None
+    trust: TRUST
+    # num/denom behind the rate, for an honest headline ("13 of 19 would act").
+    target_action_num: int = 0
+    target_action_denom: int = 0
+    within_dispositions: list[str] = field(default_factory=list)
+    champion_disposition: str = ""
+    champion_action_rate: float | None = None
+    load_bearing_pain_id: str = ""
+    rationale: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "decision": self.decision,
+            "target_action_rate": self.target_action_rate,
+            "target_action_num": self.target_action_num,
+            "target_action_denom": self.target_action_denom,
+            "trust": self.trust,
+            "within_dispositions": list(self.within_dispositions),
+            "champion_disposition": self.champion_disposition,
+            "champion_action_rate": self.champion_action_rate,
+            "load_bearing_pain_id": self.load_bearing_pain_id,
+            "rationale": self.rationale,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Decision":
+        return cls(
+            decision=data["decision"],
+            target_action_rate=(
+                float(data["target_action_rate"])
+                if data.get("target_action_rate") is not None
+                else None
+            ),
+            target_action_num=int(data.get("target_action_num", 0)),
+            target_action_denom=int(data.get("target_action_denom", 0)),
+            trust=data.get("trust", "DIRECTIONAL"),
+            within_dispositions=list(data.get("within_dispositions", [])),
+            champion_disposition=data.get("champion_disposition", ""),
+            champion_action_rate=(
+                float(data["champion_action_rate"])
+                if data.get("champion_action_rate") is not None
+                else None
+            ),
+            load_bearing_pain_id=data.get("load_bearing_pain_id", ""),
+            rationale=data.get("rationale", ""),
+        )
+
+
+@dataclass
 class Report:
     """The locked consumer-facing schema. All four synthesis layers serialize
     to this; brand managers read this; PDF/HTML renderers in Week 2 produce
@@ -451,6 +522,10 @@ class Report:
     # same raw-corpus reading; top_3_changes / bet_ranking are derived from
     # these pains by a separate prescribe pass. Empty on legacy reports.
     pain_map: list[Pain] = field(default_factory=list)
+    # rocket-2.3.0 (the decision layer): the brand-facing SCALE/ITERATE/RETARGET/
+    # REBUILD/INCONCLUSIVE call + the within-target action rate + trust, attached
+    # deterministically in synthesize_report. None on legacy reports.
+    decision: "Decision | None" = None
 
     def to_dict(self) -> dict:
         return {
@@ -497,6 +572,9 @@ class Report:
                 else None
             ),
             "pain_map": [p.to_dict() for p in self.pain_map],
+            "decision": (
+                self.decision.to_dict() if self.decision is not None else None
+            ),
         }
 
     def to_json(self, indent: int | None = 2) -> str:
@@ -551,6 +629,11 @@ class Report:
                 else None
             ),
             pain_map=[Pain.from_dict(p) for p in data.get("pain_map", [])],
+            decision=(
+                Decision.from_dict(data["decision"])
+                if data.get("decision") is not None
+                else None
+            ),
         )
 
     @classmethod
@@ -651,6 +734,28 @@ def validate_report(report: Report) -> None:
                     f"TopChange derives_from_pains references unknown pain id "
                     f"{pid!r}; known ids: {sorted(pain_ids)}"
                 )
+    # rocket-2.3.0: decision-layer invariants, when present. SCALE is gated
+    # behind the anchor run (v2.3 P4) — resolve_decision must not emit it until
+    # the threshold is set, so its presence is a hard schema error, not a warning.
+    if report.decision is not None:
+        d = report.decision
+        if d.decision not in _VALID_DECISIONS:
+            raise SchemaError(
+                f"decision must be one of {sorted(_VALID_DECISIONS)}, got {d.decision!r}"
+            )
+        if d.decision == "SCALE":
+            raise SchemaError(
+                "SCALE is gated until the anchor run (v2.3 P4); resolve_decision "
+                "must fail safe to ITERATE and never emit SCALE yet"
+            )
+        if d.trust not in ("HIGH", "DIRECTIONAL"):
+            raise SchemaError(
+                f"decision.trust must be HIGH/DIRECTIONAL, got {d.trust!r}"
+            )
+        if d.target_action_rate is not None and not (0.0 <= d.target_action_rate <= 1.0):
+            raise SchemaError(
+                f"decision.target_action_rate must be 0-1 or None, got {d.target_action_rate}"
+            )
     # rocket-2.0.0: funnel projection internal consistency, when present.
     if report.funnel_projection is not None:
         _validate_funnel_projection(report.funnel_projection)

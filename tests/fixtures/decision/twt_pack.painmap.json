@@ -1,0 +1,323 @@
+{
+  "verdict": "MIXED",
+  "confidence": 74,
+  "pain_map": [
+    {
+      "id": "P1",
+      "pain": "The within-target skeptic is a LAPSED buyer whose real blocker is behavioral, not product: the ad wins credibility on purity but has no answer for 'I'm not training,' so every unit of earned trust dies at consideration because the buyer projects a repeat of the stale-tub regret. The creative persuades the head of a person whose hand won't move.",
+      "funnel_stage": "consideration",
+      "severity": "structural",
+      "within_target": true,
+      "prevalence": "near-universal among within-target skeptic_lapsed_protein across all contexts",
+      "cited_by": [
+        "skeptic_lapsed_protein"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "I still don't actually have a workout routine, so spending money on protein powder again feels like setting up the exact same situation where a bag just sits on my shelf going stale.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 6,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "spending ₹3,500 or whatever this costs on something that requires the thing I'm not doing is just the same mistake at a higher price point.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "buying this is just spending ₹2,500-odd on powder that sits on my shelf doing nothing — same movie, different packaging.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "pain": "The QR-to-lab-reports mechanic is the single strongest trust asset the ad owns, but it terminates as an off-ad deferral rather than an on-surface payoff: within-target and ambiguous buyers reach 'I'd scan/check' and defer to a search that mostly never converts, so the ad's best proof point leaks interest between comprehension and consideration instead of closing it.",
+      "funnel_stage": "consideration",
+      "severity": "execution",
+      "within_target": true,
+      "prevalence": "widespread across skeptic (within) and enthusiast (ambiguous), all research/browse contexts",
+      "cited_by": [
+        "skeptic_lapsed_protein",
+        "enthusiast_macros_lifter"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "The test reports claim is the first specific, verifiable thing I've seen in this category, so I'd scan that QR code before anything else — not to buy, just to check if the number actually holds up.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 7,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "I'd scan that QR code to check the actual lab reports before anything else, because that's the one claim here I can actually verify.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 7,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "The QR code linking to actual lab reports stuck — that's the one thing that separates \"we test our stuff\" copy from a brand that's actually showing receipts.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 4,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "pain": "For the informed enthusiast (ambiguous but on-spec), self-published FSSAI-lab QR reports fail to clear the trust bar because the reference standard in their head is an INDEPENDENT seal (Informed-Choice / Labdoor); the ad's own-lab proof reads as brand-marking-its-own-homework, so the paranoid buyer the copy targets is exactly the one it can't convert on-surface.",
+      "funnel_stage": "consideration",
+      "severity": "execution",
+      "within_target": false,
+      "prevalence": "recurring across enthusiast_macros_lifter in research/browse contexts",
+      "cited_by": [
+        "enthusiast_macros_lifter"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "No Informed-Choice or Labdoor certification visible anywhere on the pack, just their own QR to their own reports — that's the whole problem with the Indian market and this doesn't clear it.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "no third-party seal I recognise anywhere on the front, just \"FSSAI approved labs\" which is not the same thing.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 2,
+          "context": "commute_scroll"
+        },
+        {
+          "quote": "Their own QR to their own test reports is not Informed-Choice, and until I see an independent seal I'm not moving off what I already trust.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    },
+    {
+      "id": "P4",
+      "pain": "The ad opens a price/value loop it never closes on-surface: on-spec enthusiasts uniformly halt at unknown price-per-serving vs an already-benchmarked incumbent (Biozyme), converting interest into a comparison-shop that defaults back to the incumbent — the switching case is never made where the buyer is standing.",
+      "funnel_stage": "conversion",
+      "severity": "execution",
+      "within_target": false,
+      "prevalence": "consistent across enthusiast_macros_lifter, research/late-night contexts",
+      "cited_by": [
+        "enthusiast_macros_lifter"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "I don't know the price per serving and I'm not switching off Biozyme until I run that number against my current ₹108 benchmark — that's the only gate that matters.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 6,
+          "context": "late_night_wind_down"
+        },
+        {
+          "quote": "I don't know the price per serving versus Biozyme, and until I run that number there's nothing to decide.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 6,
+          "context": "late_night_wind_down"
+        },
+        {
+          "quote": "this is probably more expensive per kg and unflavoured means I'm doing extra work every shake, so the switching cost isn't zero.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 6,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "id": "P5",
+      "pain": "The 'unflavoured' spec, meant as a purity signal, functions as a usage-friction wall for the aspirant clean-label crowd: they read it as homework/commitment they can't picture executing, so even buyers whose values the copy nails stall on 'what would I actually do with this' — a comprehension-to-consideration leak among the very audience the aesthetic attracts.",
+      "funnel_stage": "consideration",
+      "severity": "execution",
+      "within_target": false,
+      "prevalence": "widespread among aspirant_clean_label and some enthusiasts, browse/research contexts",
+      "cited_by": [
+        "aspirant_clean_label",
+        "enthusiast_macros_lifter"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "Unflavoured means I have to figure out what to mix it with and whether it tastes like nothing or tastes like bad nothing, and that feels like homework I haven't signed up for yet.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "I'm not sure I need 1kg of something unflavoured sitting in my kitchen feeling like homework.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    },
+    {
+      "id": "P6",
+      "pain": "The product is whey, and the aspirant clean-label buyer has already made plant-based an IDENTITY filter, not a preference — so the clean-label copy that most attracts them collides with a self-image wall no in-scope lever moves; the creative's best-fit aesthetic audience is disqualified at the category level before price or proof matter.",
+      "funnel_stage": "comprehension",
+      "severity": "structural",
+      "within_target": false,
+      "prevalence": "dominant and consistent across aspirant_clean_label, all contexts",
+      "cited_by": [
+        "aspirant_clean_label"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "It's whey, not plant-based — that's the wall, full stop, and no amount of clean labelling gets me over it.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "It's whey, and I've been telling myself I'm plant-based for long enough that buying this would feel like a small betrayal of something.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "\"plant-based\" isn't just a preference for me at this point, it's kind of the whole filter.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "id": "P7",
+      "pain": "In low-attention feeds the minimal 'D2C-snack-pouch' aesthetic backfires: it fails to trip the 'this is a protein I care about' filter fast enough, so on-spec enthusiasts scroll past before the 30g/QR signals load — the design that earns trust in research contexts costs attention at the top of the funnel in commute/late-night.",
+      "funnel_stage": "attention",
+      "severity": "execution",
+      "within_target": false,
+      "prevalence": "recurring among enthusiast_macros_lifter and some clean-label in commute_scroll / late_night",
+      "cited_by": [
+        "enthusiast_macros_lifter",
+        "aspirant_clean_label"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "the packaging looks like a D2C snack brand not a protein, so my brain didn't file it as relevant fast enough.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 2,
+          "context": "commute_scroll"
+        },
+        {
+          "quote": "Packaging read as a food brand not a protein supplement so it didn't trip my mental filter fast enough to stop the thumb.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 7,
+          "context": "commute_scroll"
+        },
+        {
+          "quote": "Scrolled past it before the brand name fully loaded.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 1,
+          "context": "commute_scroll"
+        }
+      ]
+    },
+    {
+      "id": "P8",
+      "pain": "For the outside-target hair/collagen switcher and the bar-eating snacker the ad is category-irrelevant, and the transparency angle they DO admire only reinforces envy for their own category — a media-buy targeting leak, not a creative failure, but it confirms the ad has no cross-category pull to widen the funnel.",
+      "funnel_stage": "attention",
+      "severity": "structural",
+      "within_target": false,
+      "prevalence": "universal across switcher_results_chaser and pragmatist_protein_snacker",
+      "cited_by": [
+        "switcher_results_chaser",
+        "pragmatist_protein_snacker"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "Whey protein for gym goals doesn't connect to anything I'm currently buying for",
+          "disposition": "switcher_results_chaser",
+          "round": 7,
+          "context": "commute_scroll"
+        },
+        {
+          "quote": "I don't own a shaker bottle and I'm not about to start, so the whole format is a non-starter before price or quality even enters into it.",
+          "disposition": "pragmatist_protein_snacker",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "I keep thinking I wish the Plix collagen label was that upfront about what's not in it.",
+          "disposition": "switcher_results_chaser",
+          "round": 4,
+          "context": "pre_purchase_research"
+        }
+      ]
+    }
+  ],
+  "strengths_to_preserve": [
+    {
+      "strength": "The 'made without' list and direct naming of amino-spiking/adulteration is the ad's sharpest hook — it lands as a real mechanism, not a claim, precisely with the purity-anxious skeptic it targets.",
+      "evidence_quotes": [
+        {
+          "quote": "the \"made without\" list is longer than the \"made with\" list, which feels like it's directly talking to someone who's been burned by sketchy supplements before, which is basically me.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 2,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "they named amino-spiking directly, which is the kind of thing only someone who knows the scam would write.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 4,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "strength": "The 'we don't want you to take our word for it' + QR-to-reports line is the one move that stops the reflexive scroll and earns cautious credibility from a category-jaded skeptic.",
+      "evidence_quotes": [
+        {
+          "quote": "The third-party testing callout and the QR code to actual lab reports genuinely caught me — that's the one thing that would make me pause instead of scroll, because \"we don't want you to take our word for it\" is exactly what every other brand *doesn't* say.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 3,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "The QR code to lab reports stuck — not the product itself, but the fact that they acknowledged the adulteration thing directly instead of pretending it doesn't exist.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 4,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "strength": "The non-gym, cafe/grocery aesthetic successfully removes the bro-brand barrier and gives clean-label buyers a product they wouldn't be embarrassed to shelve — genuine differentiation from MuscleBlaze/OZiva.",
+      "evidence_quotes": [
+        {
+          "quote": "the packaging actually looks like something I'd see at a cafe rather than a gym counter, which is... different.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 1,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "it didn't look like a protein powder I'd be embarrassed to have on my shelf.",
+          "disposition": "aspirant_clean_label",
+          "round": 4,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    }
+  ],
+  "context_fit": {
+    "pre_purchase_research": {
+      "verdict": "mixed",
+      "friction_summary": "Highest engagement and trust land here, but every engaged buyer defers to an off-ad QR scan or price check, and the within-target skeptic still stalls on the no-gym-habit blocker."
+    },
+    "weekend_afternoon_browse": {
+      "verdict": "mixed",
+      "friction_summary": "Clean-label copy and packaging pull saves/seek-info among aspirants, but whey/plant identity and unflavoured friction cap conversion; skeptics admire but don't act."
+    },
+    "late_night_wind_down": {
+      "verdict": "mixed",
+      "friction_summary": "Signals register faintly but tired, low-intent scrolling flattens most reactions to 'clock it and forget'; a few enthusiasts park it for later."
+    },
+    "commute_scroll": {
+      "verdict": "failing",
+      "friction_summary": "The minimal snack-pouch aesthetic fails to trip the protein filter fast enough, so even on-spec buyers scroll past before the 30g/QR proof loads."
+    }
+  }
+}

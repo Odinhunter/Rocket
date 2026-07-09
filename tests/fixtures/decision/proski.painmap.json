@@ -1,0 +1,309 @@
+{
+  "verdict": "FAILING",
+  "confidence": 82,
+  "pain_map": [
+    {
+      "id": "P1",
+      "pain": "The illustrated 'gym-bro / kids' cereal' visual register reads as belonging to someone else's identity (young college male tracking macros), so within-target clean-label buyers self-reject at the aesthetic layer BEFORE any comprehension of protein content or ingredients. The creative's own art direction disqualifies it for the exact audience that most values clean wellness — this is a positioning gap the packaging aesthetic actively signals, and it kills consideration at first glance.",
+      "funnel_stage": "attention",
+      "severity": "structural",
+      "within_target": true,
+      "prevalence": "near-universal among aspirant_clean_label (within), echoed by several pragmatist_protein_snacker and ambiguous switchers; all contexts",
+      "cited_by": [
+        "aspirant_clean_label",
+        "pragmatist_protein_snacker",
+        "switcher_results_chaser"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "The packaging looks like it belongs in a teenage boy's pantry, not on my shelf next to the OZiva jar, and that's honestly enough to stop me before I even get to ingredients.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "late_night_wind_down"
+        },
+        {
+          "quote": "The whole aesthetic signals it's not made for me, so I'd never even get to the ingredient-check stage.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "late_night_wind_down"
+        },
+        {
+          "quote": "The packaging and tone read gym-bro protein, not clean-living breakfast, so it doesn't pass my aesthetic filter even though protein cereal is conceptually interesting.",
+          "disposition": "aspirant_clean_label",
+          "round": 7,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "The gym-bro aesthetic and cartoon packaging signal this isn't made for someone like me, so there's nothing here pulling me to stop.",
+          "disposition": "aspirant_clean_label",
+          "round": 7,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "pain": "The 'one bowl a day / weekday flavour rotation' framing positions the product as a whole-meal breakfast-routine overhaul, but within-target pragmatists want a low-commitment grab-and-go snack (a bar they already have solved). The creative asks buyers to restructure a meal they've either already sorted or don't do at all — so it lands as MORE effort than the incumbent, and the relevance gap closes the loop before interest forms.",
+      "funnel_stage": "consideration",
+      "severity": "structural",
+      "within_target": true,
+      "prevalence": "dominant across pragmatist_protein_snacker (within), all contexts",
+      "cited_by": [
+        "pragmatist_protein_snacker"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "Cereal requires buying into a whole breakfast routine I haven't thought about changing, unlike a bar I can just throw in my bag.",
+          "disposition": "pragmatist_protein_snacker",
+          "round": 7,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "I already have a thing that works and it doesn't require me to keep milk in the house.",
+          "disposition": "pragmatist_protein_snacker",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "The five-flavour weekly rotation framing assumes someone building a protein routine, which isn't what I'm doing — I just want something for 4pm.",
+          "disposition": "pragmatist_protein_snacker",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "I don't really do breakfast as a sit-down bowl situation, so the whole format doesn't fit how I eat.",
+          "disposition": "pragmatist_protein_snacker",
+          "round": 6,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "pain": "The 25g headline is the ONLY thing that survives the scroll, but it lands as a suspicious claim rather than a proof point: no protein source, no ingredient hint, no third-party mark. Every buyer who does engage defers to an off-ad search ('I'd google it') that mostly never converts — the creative opens a verification loop it cannot close on-surface, so earned curiosity leaks between comprehension and consideration.",
+      "funnel_stage": "comprehension",
+      "severity": "execution",
+      "within_target": true,
+      "prevalence": "widespread — the sole sticky element across within and outside dispositions, all contexts",
+      "cited_by": [
+        "aspirant_clean_label",
+        "pragmatist_protein_snacker",
+        "switcher_results_chaser",
+        "enthusiast_macros_lifter",
+        "skeptic_lapsed_protein"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "I genuinely don't know what the protein comes from — whey, pea, soy — and that's the only thing I'd need to decide if this even belongs on my shelf.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "The protein number is interesting enough that I'd search the ingredients before dismissing it, but I'm not tapping this ad directly.",
+          "disposition": "aspirant_clean_label",
+          "round": 7,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "The protein claim is interesting enough that I'd Google the ingredients before deciding anything, but I'm not tapping their CTA directly.",
+          "disposition": "aspirant_clean_label",
+          "round": 7,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "25g protein in cereal almost certainly means something I'm going to flag as not clean enough.",
+          "disposition": "aspirant_clean_label",
+          "round": 6,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "id": "P4",
+      "pain": "The creative assumes the viewer already identifies as protein-tracking, but within-target pragmatists explicitly do NOT think about breakfast as a meal worth optimising — so the 'Protein First / plan-your-week' framing describes a mindset they don't hold. The ad talks past its casual, convenience-led target and speaks to a serious-planner persona that isn't the buyer, hollowing out relevance.",
+      "funnel_stage": "consideration",
+      "severity": "structural",
+      "within_target": true,
+      "prevalence": "broad across pragmatist_protein_snacker (within), all contexts",
+      "cited_by": [
+        "pragmatist_protein_snacker"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "Protein cereal requires me to care about breakfast as a meal worth optimising, and I just don't.",
+          "disposition": "pragmatist_protein_snacker",
+          "round": 7,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "the whole \"plan your protein for each day of the week\" frame just doesn't describe my mornings at all.",
+          "disposition": "pragmatist_protein_snacker",
+          "round": 6,
+          "context": "late_night_wind_down"
+        },
+        {
+          "quote": "Protein cereal with a weekly flavour rotation is too much planning energy for how I actually eat breakfast",
+          "disposition": "pragmatist_protein_snacker",
+          "round": 7,
+          "context": "late_night_wind_down"
+        }
+      ]
+    },
+    {
+      "id": "P5",
+      "pain": "The ad generates zero share/social energy and near-total brand-name amnesia: even engaged viewers cannot recall the brand an hour later, and nobody frames it as a find worth passing on. With no differentiated hook beyond a contested number and no identity-signal buyers want to be associated with, the creative builds no recall equity — so even the rare deferred searcher has nothing to search for.",
+      "funnel_stage": "recall",
+      "severity": "execution",
+      "within_target": true,
+      "prevalence": "near-universal across all dispositions and contexts",
+      "cited_by": [
+        "aspirant_clean_label",
+        "pragmatist_protein_snacker",
+        "switcher_results_chaser",
+        "enthusiast_macros_lifter"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "The brand name Proskii is already gone from my head honestly.",
+          "disposition": "switcher_results_chaser",
+          "round": 4,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "it doesn't have that \"oh you need to see this\" quality.",
+          "disposition": "aspirant_clean_label",
+          "round": 5,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "id": "P6",
+      "pain": "For the outside-target skeptic/lifter cohorts the unverified 25g claim triggers active distrust rooted in the Indian protein-mislabeling scandal — the number reads as marketing math needing certification the ad never provides. This is context, not verdict-load-bearing, but it confirms the trust deficit around the sole hook is category-wide, not audience-specific.",
+      "funnel_stage": "conversion",
+      "severity": "structural",
+      "within_target": false,
+      "prevalence": "consistent across skeptic_lapsed_protein and enthusiast_macros_lifter (both outside), all contexts",
+      "cited_by": [
+        "skeptic_lapsed_protein",
+        "enthusiast_macros_lifter"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "The 25g number is doing all the work and I have zero reason to trust it after what happened with the whey tub.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 6,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "No third-party certification visible anywhere in the creative, which for an Indian food brand claiming high protein is the exact reason I'd close the tab without scrolling to the product page.",
+          "disposition": "enthusiast_macros_lifter",
+          "round": 6,
+          "context": "pre_purchase_research"
+        },
+        {
+          "quote": "a protein number on a cereal box with no verification behind it is exactly the kind of claim I've already stopped believing once.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 7,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    },
+    {
+      "id": "P7",
+      "pain": "Ambiguous switchers are being served an off-problem ad entirely — they arrive in hair/skin supplement mode and the cereal has no bridge to that concern, so it registers as a mistargeted feed intrusion. This is a media-buy relevance signal (wrong intent moment) rather than a creative failure, but it inflates the scroll-past rate that surrounds the within-target read.",
+      "funnel_stage": "attention",
+      "severity": "execution",
+      "within_target": false,
+      "prevalence": "consistent across switcher_results_chaser (ambiguous), all contexts",
+      "cited_by": [
+        "switcher_results_chaser"
+      ],
+      "evidence_quotes": [
+        {
+          "quote": "I'm losing hair, not looking for a protein breakfast, so there's no bridge between what this is selling and what I'm actually thinking about.",
+          "disposition": "switcher_results_chaser",
+          "round": 6,
+          "context": "late_night_wind_down"
+        },
+        {
+          "quote": "Protein cereal has nothing to do with why I'm spending ₹1,500 a month on supplements, so there's no reason to stop.",
+          "disposition": "switcher_results_chaser",
+          "round": 7,
+          "context": "weekend_afternoon_browse"
+        },
+        {
+          "quote": "why is this in my feed, I don't even eat cereal.",
+          "disposition": "switcher_results_chaser",
+          "round": 1,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    }
+  ],
+  "strengths_to_preserve": [
+    {
+      "strength": "The 25g protein figure is the one element that consistently punches through the scroll and lodges in memory, even when contested — it is the ad's only reliable attention hook.",
+      "evidence_quotes": [
+        {
+          "quote": "The \"25g protein\" number is vaguely still there, and the idea of a different flavour each day of the week — that structure stuck slightly",
+          "disposition": "aspirant_clean_label",
+          "round": 4,
+          "context": "late_night_wind_down"
+        }
+      ]
+    },
+    {
+      "strength": "The cereal-not-powder format reads as genuinely differentiated and lower-commitment, occasionally softening even skeptics who had written off the category.",
+      "evidence_quotes": [
+        {
+          "quote": "The \"cereal not powder\" angle stuck a little — it's the one thing that felt different from the usual protein ad.",
+          "disposition": "skeptic_lapsed_protein",
+          "round": 4,
+          "context": "pre_purchase_research"
+        }
+      ]
+    },
+    {
+      "strength": "When the food itself is shown, the chocolate cereal-in-bowl visual reads as tasty and non-diet, briefly overriding the packaging objection.",
+      "evidence_quotes": [
+        {
+          "quote": "The chocolate rings in the bowl looked genuinely decent, that's about it.",
+          "disposition": "pragmatist_protein_snacker",
+          "round": 4,
+          "context": "weekend_afternoon_browse"
+        }
+      ]
+    },
+    {
+      "strength": "A minority of within-target pragmatists find the low-effort breakfast angle relevant enough to seek info, showing the concept can land when framed as making an existing lazy meal less bad.",
+      "evidence_quotes": [
+        {
+          "quote": "breakfast is the meal I'm most lazy about.",
+          "disposition": "pragmatist_protein_snacker",
+          "round": 1,
+          "context": "pre_purchase_research"
+        }
+      ]
+    }
+  ],
+  "context_fit": {
+    "late_night_wind_down": {
+      "verdict": "failing",
+      "friction_summary": "Low-energy scroll amplifies the aesthetic rejection and 'too much routine' friction; the 25g number flickers but nobody has the will to chase it."
+    },
+    "commute_scroll": {
+      "verdict": "failing",
+      "friction_summary": "Fast thumb + colourful kids/gym-bro packaging produces near-instant scroll-past with almost zero brand recall."
+    },
+    "weekend_afternoon_browse": {
+      "verdict": "mixed",
+      "friction_summary": "Higher attention surfaces genuine curiosity about the number and flavours, but it stalls at the clean-label and routine-commitment objections."
+    },
+    "pre_purchase_research": {
+      "verdict": "mixed",
+      "friction_summary": "Deliberate mode drives the most seek_info intent, but every path ends in an off-ad ingredient/verification search rather than a tap, and ambiguous switchers reject it as off-problem."
+    }
+  }
+}
