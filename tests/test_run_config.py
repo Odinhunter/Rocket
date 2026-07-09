@@ -192,8 +192,8 @@ def test_marketer_led_fields() -> None:
     assert d["marketer_led"] is False and d["tail_fraction"] == 0.0, d
     d2 = RunConfig(**base, marketer_led=True, tail_fraction=0.15).to_dict()
     assert d2["marketer_led"] is True and d2["tail_fraction"] == 0.15, d2
-    assert PROTOCOL_VERSION == "rocket-2.2.0", PROTOCOL_VERSION
-    print("  OK  marketer_led / tail_fraction serialize (protocol rocket-2.2.0)")
+    assert PROTOCOL_VERSION == "rocket-2.3.0", PROTOCOL_VERSION
+    print("  OK  marketer_led / tail_fraction serialize (protocol rocket-2.3.0)")
 
 
 def test_model_versions_backfills_missing_keys() -> None:

@@ -65,7 +65,13 @@ def _base64_encoded_size(raw_bytes: int) -> int:
 #        TopChange.derives_from_pains/lever_class. Bumping resets the
 #        calibration_log regime — intended, since v2.2 re-anchors the
 #        confidence scale for raw-corpus reading.
-PROTOCOL_VERSION = "rocket-2.2.0"
+# 2.3.0 (decision layer): splits diagnosis from decision. The categorical
+#        verdict is demoted to an internal engine read; the brand manager reads
+#        a deterministic DECISION (SCALE/ITERATE/RETARGET/REBUILD/INCONCLUSIVE)
+#        + the within-target action rate + a trust line. Adds Report.decision.
+#        No new model call — pure Python over existing signals. SCALE is gated
+#        behind an anchor run (P4) and not emitted yet.
+PROTOCOL_VERSION = "rocket-2.3.0"
 
 
 # Default model assignments per layer. Locked after 2026-05-12 telemetry +

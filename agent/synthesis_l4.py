@@ -27,6 +27,7 @@ from typing import Any
 import anthropic
 
 from agent.config import RunConfig
+from agent.decision import build_decision
 from agent.schema import (
     AgentTranscript,
     DispositionRef,
@@ -444,10 +445,20 @@ def synthesize_report(
         assess, prescription, target_classification, funnel_projection,
         audience_match, provisional,
     )
+    # rocket-2.3.0: the brand-facing decision, resolved deterministically from
+    # signals already in hand (raw R7 behavior + target classification + the
+    # frozen PainMap + the audience axis). No model call.
+    report.decision = build_decision(
+        transcripts, target_classification, audience_match,
+        assess.verdict, report.methodology_flags, assess.pain_map,
+    )
     validate_report(report)
     _validate_bet_ranking(report)
     _log.info(
-        "synthesize_report: verdict=%s confidence=%d pains=%d bets=%d",
+        "synthesize_report: decision=%s A_within=%s verdict=%s confidence=%d pains=%d bets=%d",
+        report.decision.decision,
+        ("%.0f%%" % (report.decision.target_action_rate * 100))
+        if report.decision.target_action_rate is not None else "n/a",
         report.verdict, report.confidence, len(report.pain_map),
         len(report.bet_ranking),
     )
