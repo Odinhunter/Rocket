@@ -84,15 +84,122 @@ def _print_target_and_changes(report: Report) -> None:
         print(f"    — {q.disposition}, R{q.round}, {q.context}\n")
 
 
-def _print_report(report: Report) -> None:
-    """Lead with the bet ranking — the brand-manager headline. Verdict,
-    confidence and the funnel projection are supporting metadata."""
+# rocket-2.3.0: the decision layer. Every line the brand manager reads is a
+# decision or an action; the categorical verdict is demoted to an engine read.
+_DECISION_TAGLINE = {
+    "SCALE": "Put spend behind it — no in-scope lever would materially lift it.",
+    "ITERATE": "Target responds; a specific in-scope fix is leaking conversion. "
+               "Fix it, re-run, then scale.",
+    "RETARGET": "The creative works — for a different audience than it's aimed at. "
+                "Fix the buy, not the ad.",
+    "REBUILD": "The target rejects it on grounds no in-scope tweak fixes. "
+               "Don't run as-is.",
+    "INCONCLUSIVE": "The read isn't trustworthy yet — see why below.",
+}
+_LEVER_HEADING = {
+    "ITERATE": "THE FIX(ES)  (highest-leverage first):",
+    "RETARGET": "RE-AIM + FIX  (highest-leverage first):",
+    "REBUILD": "IF YOU REBUILD, what has to change:",
+    "INCONCLUSIVE": "TO GET A TRUSTWORTHY READ:",
+    "SCALE": "PROTECT ON SCALE-UP:",
+}
+
+
+def _humanize(label: str) -> str:
+    return label.replace("_", " ")
+
+
+def _inconclusive_lines(report: Report) -> list[str]:
+    """Plain-language why + what-to-change for an INCONCLUSIVE read (spec §4).
+    An untrustworthy read must NEVER show a confident action-rate headline — the
+    number rests on the wrong people or an unreadable target."""
+    flags = set(report.methodology_flags)
+    if "pool_archetype_mismatch" in flags:
+        why = ("the audience this ad targets isn't represented in your "
+               "disposition library, so the read rests on the wrong people")
+        fix = ("add a disposition profile that matches this ad's audience, "
+               "then re-run")
+    elif "target_unsignaled" in flags:
+        why = ("the ad doesn't clearly signal who it's for — every audience "
+               "read as a maybe")
+        fix = ("clarify the creative's target, or declare the audience you're "
+               "buying against, then re-run")
+    else:
+        why = (report.decision.rationale if report.decision else
+               "the read isn't trustworthy on this pool")
+        fix = "check that the audience you declared matches who the ad is for"
+    return [
+        "  We can't give you a trustworthy read on this creative yet.",
+        f"  Why: {why}.",
+        f"  To get a real read: {fix}.",
+    ]
+
+
+def _trust_line(d) -> str:
+    if d.trust == "HIGH":
+        line = "Trust: HIGH"
+        if len(d.within_dispositions) >= 2:
+            line += f" — {len(d.within_dispositions)} within-target dispositions agree"
+        if d.target_action_denom:
+            line += f" ({d.target_action_denom} in the target sample)"
+        return line + "."
+    return ("Trust: DIRECTIONAL — thin evidence (one narrow audience engaged); "
+            "treat as a lead, not a verdict.")
+
+
+def _print_decision_headline(report: Report) -> None:
+    d = report.decision
+    if d is None:  # legacy report (no decision) — fall back to the bet ranking
+        print()
+        print("=" * 78)
+        print("STRATEGIC BET RANKING  (highest expected marketing-ROI payoff first)")
+        print("=" * 78)
+        for i, bet in enumerate(report.bet_ranking, 1):
+            print(f"\n  {i}. {bet}")
+        return
+
     print()
     print("=" * 78)
-    print("STRATEGIC BET RANKING  (highest expected marketing-ROI payoff first)")
+    print(f"DECISION:  {d.decision}")
     print("=" * 78)
-    for i, bet in enumerate(report.bet_ranking, 1):
-        print(f"\n  {i}. {bet}")
+    print(f"\n  {_DECISION_TAGLINE.get(d.decision, '')}")
+
+    print()
+    if d.decision == "INCONCLUSIVE":
+        # Never show an action rate here — the read is untrustworthy by
+        # definition, even when a_within happens to be non-None (pool mismatch).
+        for line in _inconclusive_lines(report):
+            print(line)
+    elif d.target_action_rate is not None:
+        who = _humanize(", ".join(d.within_dispositions)) if d.within_dispositions else "your target"
+        line = f"  {d.target_action_rate:.0%} of your target ({who}) would act"
+        if d.target_action_denom:
+            line += f"  —  {d.target_action_num} of {d.target_action_denom}"
+        print(line + ".")
+        if d.decision == "RETARGET" and d.champion_disposition:
+            print(f"  But the {_humanize(d.champion_disposition)} — whom you are NOT "
+                  f"targeting — acts at {d.champion_action_rate:.0%}. Right ad, wrong person.")
+        elif d.decision in ("ITERATE", "REBUILD"):
+            print("  It reaches no one else (everyone else scrolls — expected; "
+                  "tighten targeting).")
+    else:
+        print(f"  No trustworthy within-target read — {d.rationale}.")
+
+    if report.bet_ranking:
+        print()
+        print(f"  {_LEVER_HEADING.get(d.decision, 'ACTIONS:')}")
+        for i, bet in enumerate(report.bet_ranking, 1):
+            print(f"    {i}. {bet}")
+
+    print()
+    print(f"  {_trust_line(d)}")
+
+
+def _print_report(report: Report) -> None:
+    """Lead with the DECISION (rocket-2.3.0) — the call a brand manager acts on.
+    The categorical verdict/confidence are demoted to an internal engine read;
+    the funnel projection and pain detail sit below for those who want depth."""
+    _print_decision_headline(report)
 
     fp = report.funnel_projection
     if fp is not None:
@@ -152,8 +259,8 @@ def _print_report(report: Report) -> None:
                       "the segment's N.")
 
     print("\n" + "-" * 78)
-    print(f"METHODOLOGY  —  verdict: {report.verdict}   "
-          f"confidence: {report.confidence}/100")
+    print("ENGINE READ  (internal — the clinical verdict, not the headline)")
+    print(f"  verdict: {report.verdict}   confidence: {report.confidence}/100")
     if report.methodology_flags:
         print(f"  flags: {', '.join(report.methodology_flags)}")
     if report.provisional_dispositions:
