@@ -61,10 +61,12 @@ from agent.synthesis_prescribe import PRESCRIBE_PROMPT_VERSION
 from agent.synthesis_types import (
     CoverageWarning,
     DemographicMismatch,
+    PurposeMismatch,
     TargetClassification,
 )
 from agent.target_id import (
     detect_gross_demographic_mismatch,
+    detect_purpose_mismatch,
     detect_thin_coverage,
     identify_target,
 )
@@ -182,6 +184,9 @@ class RunPreparation:
     # rocket-2.1.0: declared audience intersects too few personas for a diverse
     # marketer-led panel (advisory; also the white-glove authoring signal).
     coverage_warning: CoverageWarning | None = None
+    # v2.4: the ad's apparent job differs from the declared one (advisory,
+    # warn-not-block). The load-bearing guardrail for the default-purpose user.
+    purpose_mismatch: PurposeMismatch | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -201,6 +206,10 @@ class RunPreparation:
             "coverage_warning": (
                 self.coverage_warning.to_dict()
                 if self.coverage_warning is not None else None
+            ),
+            "purpose_mismatch": (
+                self.purpose_mismatch.to_dict()
+                if self.purpose_mismatch is not None else None
             ),
         }
 
@@ -358,6 +367,18 @@ class RunService:
         if demographic_mismatch is not None:
             _log.warning("gross demographic mismatch: %s", demographic_mismatch.message)
 
+        # v2.4 declared-vs-apparent purpose check (advisory, warn-not-block).
+        # The load-bearing guardrail for the common case: a default-purpose
+        # (direct-sell) run of an awareness/brand ad would otherwise be scored
+        # on the wrong ruler. Fires even when purpose is left default.
+        purpose_mismatch = detect_purpose_mismatch(
+            config.creative_inputs.purpose,
+            target_cls.inferred_purpose,
+            target_cls.purpose_reasoning,
+        )
+        if purpose_mismatch is not None:
+            _log.warning("purpose mismatch: %s", purpose_mismatch.message)
+
         # Warm the render cache: render each unique persona core once.
         cache_dir = _render_cache_dir(config)
         seen: set[str] = set()
@@ -404,6 +425,7 @@ class RunService:
             persona_cores_rendered=rendered, panel_version=panel_version,
             demographic_mismatch=demographic_mismatch,
             coverage_warning=coverage_warning,
+            purpose_mismatch=purpose_mismatch,
         )
         _persist_json(rd / "preparation.json", prep.to_dict())
         _persist_json(rd / "panel.json", [a.to_dict() for a in panel])

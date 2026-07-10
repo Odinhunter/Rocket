@@ -251,6 +251,48 @@ class DemographicMismatch:
 
 
 @dataclass
+class PurposeMismatch:
+    """v2.4: the ad's APPARENT job (read from the creative) differs from the
+    job the marketer DECLARED (CreativeInputs.purpose). Deterministic, computed
+    in RunService.prepare from the target classifier's inferred_purpose.
+
+    UNLIKE DemographicMismatch this is warn-not-block (no --acknowledge gate):
+    purpose is fuzzier — an ad can legitimately serve two jobs. But it is the
+    LOAD-BEARING guardrail for the common case: a non-technical marketer leaves
+    purpose on the default (direct-sell), runs an awareness/brand ad, and the
+    engine would silently score it on within-target action rate → the exact
+    category error v2.4 exists to prevent. So it surfaces the apparent-purpose
+    read + how to re-grade, loudly, rather than just warning."""
+    declared_purpose: str           # the declared job id (CreativeInputs.purpose)
+    apparent_purpose: str           # the job the creative reads as
+    declared_label: str             # human labels for the render
+    apparent_label: str
+    suggested_flag: str             # e.g. "--purpose awareness_informer"
+    message: str
+
+    def to_dict(self) -> dict:
+        return {
+            "declared_purpose": self.declared_purpose,
+            "apparent_purpose": self.apparent_purpose,
+            "declared_label": self.declared_label,
+            "apparent_label": self.apparent_label,
+            "suggested_flag": self.suggested_flag,
+            "message": self.message,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "PurposeMismatch":
+        return cls(
+            declared_purpose=data["declared_purpose"],
+            apparent_purpose=data["apparent_purpose"],
+            declared_label=data.get("declared_label", data["declared_purpose"]),
+            apparent_label=data.get("apparent_label", data["apparent_purpose"]),
+            suggested_flag=data.get("suggested_flag", ""),
+            message=data["message"],
+        )
+
+
+@dataclass
 class CoverageWarning:
     """A deterministic pre-run advisory that the DECLARED audience intersects
     too few library personas to compose a diverse marketer-led panel — a
@@ -293,6 +335,11 @@ class TargetClassification:
     ambiguity_note: str | None = None
     no_match_note: str | None = None
     inferred_audience: InferredAudience = field(default_factory=InferredAudience)
+    # v2.4: the ad's APPARENT job, read from the creative (one of the five
+    # purpose ids, or "unclear"). Feeds the declared-vs-apparent purpose
+    # mismatch guard. Null-safe default so pre-v2.4 artifacts load unchanged.
+    inferred_purpose: str = "unclear"
+    purpose_reasoning: str = ""
 
     def within_target_labels(self) -> list[str]:
         return [d.disposition_label for d in self.disposition_classifications if d.classification == "within"]
@@ -311,6 +358,8 @@ class TargetClassification:
             "ambiguity_note": self.ambiguity_note,
             "no_match_note": self.no_match_note,
             "inferred_audience": self.inferred_audience.to_dict(),
+            "inferred_purpose": self.inferred_purpose,
+            "purpose_reasoning": self.purpose_reasoning,
         }
 
     @classmethod
@@ -324,4 +373,6 @@ class TargetClassification:
             ambiguity_note=data.get("ambiguity_note"),
             no_match_note=data.get("no_match_note"),
             inferred_audience=InferredAudience.from_dict(data.get("inferred_audience")),
+            inferred_purpose=data.get("inferred_purpose") or "unclear",
+            purpose_reasoning=data.get("purpose_reasoning", ""),
         )

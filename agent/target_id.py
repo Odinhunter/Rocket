@@ -26,11 +26,13 @@ import anthropic
 
 from agent.config import RunConfig
 from agent.entities import AudienceSpec
+from agent.purpose import DIRECT_SELL, PURPOSE_ORDER, resolve_purpose
 from agent.synthesis_types import (
     CoverageWarning,
     DemographicMismatch,
     DispositionTarget,
     InferredAudience,
+    PurposeMismatch,
     TargetClassification,
 )
 from agent.telemetry import call_with_telemetry
@@ -125,6 +127,34 @@ _TOOL = {
                     "required": ["disposition_label", "classification", "reasoning"],
                 },
             },
+            "inferred_purpose": {
+                "type": "string",
+                "enum": list(PURPOSE_ORDER) + ["unclear"],
+                "description": (
+                    "The ad's APPARENT job, read from the creative alone: "
+                    "direct_sell (make a prospect buy one product now — price/"
+                    "offer/CTA-led, single product, urgency); cold_hook (stop a "
+                    "cold scroller, earn a click/curiosity, NOT a purchase — a "
+                    "hooky top-of-funnel teaser); awareness_informer (make people "
+                    "NOTICE + UNDERSTAND the brand/range — 'did you know we make "
+                    "X', portfolio/educational, no single CTA); brand_building "
+                    "(make people FEEL + REMEMBER the brand — emotional/story-led, "
+                    "little product detail); retain_winback (re-engage EXISTING "
+                    "customers — reorder/renew/'we miss you'/loyalty). Be "
+                    "CONSERVATIVE: use 'unclear' when the ad does not clearly "
+                    "signal one job. This feeds an advisory mismatch check, so "
+                    "over-committing causes false alarms."
+                ),
+            },
+            "purpose_reasoning": {
+                "type": "string",
+                "description": (
+                    "One or two sentences tracing the inferred_purpose to "
+                    "specific creative evidence (CTA presence/absence, price "
+                    "disclosure, product-detail density, emotional vs "
+                    "informational register, single-product vs range)."
+                ),
+            },
             "ambiguity_note": {
                 "type": ["string", "null"],
                 "description": (
@@ -147,6 +177,7 @@ _TOOL = {
             "inferred_target_description",
             "target_reasoning",
             "inferred_audience",
+            "inferred_purpose",
             "disposition_classifications",
         ],
     },
@@ -165,6 +196,12 @@ against the ad's inferred target.
 `inferred_audience` — CONSERVATIVELY. Use 'mixed'/'unclear' unless the \
 creative signals the axis strongly; this field feeds a gross-mismatch \
 sanity check, so over-committing causes false alarms.
+4. Record the ad's apparent JOB in `inferred_purpose` — what is this ad \
+trying to DO (sell now / hook a cold scroller / inform + build awareness / \
+build brand feeling + memory / re-engage existing customers). Read it from \
+the creative alone (CTA, price disclosure, product-detail density, emotional \
+vs informational register, single-product vs range). Use 'unclear' unless the \
+ad clearly signals one job — this too feeds an advisory check.
 
 # How to read the ad
 
@@ -339,6 +376,8 @@ def _build_target_classification(
         ambiguity_note=tool_input.get("ambiguity_note"),
         no_match_note=tool_input.get("no_match_note"),
         inferred_audience=InferredAudience.from_dict(tool_input.get("inferred_audience")),
+        inferred_purpose=tool_input.get("inferred_purpose") or "unclear",
+        purpose_reasoning=tool_input.get("purpose_reasoning", ""),
     )
 
 
@@ -470,6 +509,66 @@ def _summarize_inferred(inferred: InferredAudience) -> str:
     if a:
         return f"people aged {a}"
     return "an unclear demographic"
+
+
+# ---- Deterministic declared-vs-apparent PURPOSE check (v2.4) ----
+#
+# Compares the marketer's DECLARED job (CreativeInputs.purpose) against the job
+# the ad APPEARS to do (TargetClassification.inferred_purpose). Pure Python.
+# Warn-not-block (softer than the demographic guard — purpose is fuzzier; an ad
+# can serve two jobs) but LOUD: it is the load-bearing guardrail for the common
+# case where a non-technical marketer leaves purpose on the default (direct-sell)
+# and runs an awareness/brand ad the engine would otherwise score on the wrong
+# ruler. 'unclear' never fires (conservative, like a 'mixed' demographic).
+
+def detect_purpose_mismatch(
+    declared_purpose: str,
+    apparent_purpose: str,
+    apparent_reasoning: str = "",
+) -> PurposeMismatch | None:
+    """Return a PurposeMismatch iff the ad's apparent job differs from the
+    declared job (and the apparent job is confidently read); else None."""
+    apparent = (apparent_purpose or "unclear").strip()
+    if apparent in ("unclear", ""):
+        return None
+    declared = resolve_purpose(declared_purpose)  # validates; default-safe
+    if apparent == declared.name:
+        return None
+
+    apparent_preset = resolve_purpose(apparent)
+    suggested_flag = f"--purpose {apparent}"
+
+    # direct-sell is the strictest ruler ("would they buy this week"), so
+    # grading a softer/broader job by it UNDERSTATES the ad — call that out
+    # explicitly since direct-sell is the default the common user leaves on.
+    if declared.name == DIRECT_SELL:
+        directional = (
+            f"A direct-sell grade asks 'would the target buy this week' — the "
+            f"wrong question for a {apparent_preset.label.lower()} ad, so the "
+            f"result will likely UNDERSTATE it."
+        )
+    else:
+        directional = (
+            f"{apparent_preset.label} and {declared.label} ads are measured by "
+            f"different rulers, so the grade may misjudge this ad."
+        )
+
+    message = (
+        f"This ad reads as a {apparent_preset.label.upper()} ad, but you're "
+        f"grading it as {declared.label.upper()}. {directional} "
+        f"To grade it against its apparent job, re-run with {suggested_flag}."
+    )
+    if apparent_reasoning.strip():
+        message += f"  (Why it reads that way: {apparent_reasoning.strip()})"
+
+    return PurposeMismatch(
+        declared_purpose=declared.name,
+        apparent_purpose=apparent,
+        declared_label=declared.label,
+        apparent_label=apparent_preset.label,
+        suggested_flag=suggested_flag,
+        message=message,
+    )
 
 
 # ---- Coverage guard (rocket-2.1.0) — sibling of the mismatch guard ----

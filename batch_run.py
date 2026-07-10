@@ -30,7 +30,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 from agent.config import AssetSpec, CreativeInputs, RunConfig
 from agent.entities import AudienceSpec
-from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER
+from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER, resolve_purpose
 from agent.run_service import RunPreparation, RunService
 from agent.schema import Report
 from agent.telemetry import run_dir, telemetry_summary
@@ -294,6 +294,9 @@ def _print_preparation(prep: RunPreparation) -> None:
     print("RUN PREPARATION  —  review before committing a credit")
     print("=" * 78)
     tc = prep.target_classification
+    declared_preset = resolve_purpose(prep.config.creative_inputs.purpose)
+    print(f"\nGrading against the job: {declared_preset.label} "
+          f"({declared_preset.metric_label})")
     print(f"\nInferred target of the creative:\n  {tc.inferred_target_description}")
     print(f"\n  reasoning: {tc.target_reasoning}")
     print("\nHow your selected dispositions map to that target:")
@@ -329,6 +332,15 @@ def _print_preparation(prep: RunPreparation) -> None:
         print(f"⚠  THIN AUDIENCE COVERAGE  —  {c.eligible_count}/{c.total_count} personas in the declared slice")
         print(f"   {c.message}")
         print("~" * 78)
+    if prep.purpose_mismatch is not None:
+        pm = prep.purpose_mismatch
+        print("\n" + "!" * 78)
+        print(f"⚠  PURPOSE MISMATCH  —  reads as {pm.apparent_label.upper()}, "
+              f"grading as {pm.declared_label.upper()}")
+        print(f"   {pm.message}")
+        print("   Advisory, not a block — the run proceeds. Re-run with "
+              f"{pm.suggested_flag} to grade against the apparent job.")
+        print("!" * 78)
     print(f"\nEstimated cost: ~${prep.estimated_cost_usd:.2f}   "
           f"(persona cores rendered: {prep.persona_cores_rendered})")
     print("=" * 78)
