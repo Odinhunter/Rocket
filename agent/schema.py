@@ -491,6 +491,10 @@ class Decision:
     champion_action_rate: float | None = None
     load_bearing_pain_id: str = ""
     rationale: str = ""
+    # v2.4: the ad's declared job (agent/purpose.py). Selects how target_action_rate
+    # is phrased in the render; direct_sell is the v2.3 default. Legacy Decisions
+    # without this key load as direct_sell.
+    purpose: str = "direct_sell"
 
     def to_dict(self) -> dict:
         return {
@@ -504,6 +508,7 @@ class Decision:
             "champion_action_rate": self.champion_action_rate,
             "load_bearing_pain_id": self.load_bearing_pain_id,
             "rationale": self.rationale,
+            "purpose": self.purpose,
         }
 
     @classmethod
@@ -527,6 +532,7 @@ class Decision:
             ),
             load_bearing_pain_id=data.get("load_bearing_pain_id", ""),
             rationale=data.get("rationale", ""),
+            purpose=data.get("purpose") or "direct_sell",
         )
 
 

@@ -22,6 +22,7 @@ stamping a mediocre ad SCALE (the costly error). See docs/v2_3_decision_layer.md
 
 from __future__ import annotations
 
+from agent.purpose import DIRECT_SELL, PurposePreset, resolve_purpose
 from agent.schema import (
     AgentTranscript,
     AudienceMatch,
@@ -59,7 +60,11 @@ DECISION_VERSION = "decision-2"
 # (ITERATE instead of SCALE — mild); too-low stamps a mediocre ad SCALE (costly).
 # KNOWN RISK, accepted by the user for now; recalibrate against the deliberately-
 # strong anchor run once v2.4 is locked. See docs/v2_3_decision_layer.md §7a.
-_SCALE_FLOOR = 0.75
+#
+# v2.4: the per-purpose floors live in the purpose registry (single source of
+# truth). This module constant is the DIRECT-SELL floor, read from there so the
+# two never drift; resolve_decision takes the applicable floor per purpose.
+_SCALE_FLOOR = resolve_purpose(DIRECT_SELL).provisional_scale_floor
 
 # Funnel-stage precedence for the load-bearing within-target pain. The earliest
 # stage a within-target pain bites gates everything downstream, so it — not the
@@ -131,6 +136,88 @@ def action_by_disposition(
     return out
 
 
+# ---- v2.4: per-purpose primary metric (the seam) ----
+#
+# The decision STRUCTURE (resolve_decision's branches) is metric-agnostic — only
+# three points touch the number: the headline, the RETARGET base, and the SCALE
+# floor. So a purpose swaps in (a) a per-agent "win" predicate and (b) the frame
+# it counts over; the branch logic transfers unchanged. Every metric stays a
+# Python count over parsed signals (the "distributions are Python" invariant).
+
+
+def _agent_win(t: AgentTranscript, preset: PurposePreset) -> bool | None:
+    """Did this agent's terminal signal count as a WIN for this purpose? None
+    when the agent has no usable signal (excluded from the denominator, exactly
+    like a missing R7 in within_target_action_rate)."""
+    bs = t.behavioral_signal
+    if bs is None:
+        return None
+    metric = preset.headline_metric
+    if metric == "cold_stop_lean_in":
+        # Stop-and-lean-in: anything other than a scroll-past (linger / seek_info
+        # / save / tap / share). The cold-hook job is the stop, not the sale.
+        return bs.action != "scroll_past"
+    # direct_sell + retain (reorder/return framing) both key off would-act.
+    # brand_building / informer are breadth reads handled on their own path
+    # (P5/P6); this predicate is not their headline.
+    return bs.would_act_within_week
+
+
+def _frame_subset(
+    transcripts: list[AgentTranscript],
+    target_classification: TargetClassification,
+    preset: PurposePreset,
+) -> list[AgentTranscript]:
+    """The transcripts the headline metric is computed over. narrow / existing
+    -> the within-target dispositions; broad / broad_cold -> the whole panel
+    (a cold-hook run is meant to be run against a cold-context envelope, so the
+    panel already IS the cold audience)."""
+    if preset.audience_frame in ("narrow", "existing"):
+        within = set(target_classification.within_target_labels())
+        return [t for t in transcripts if t.disposition_label in within]
+    return list(transcripts)
+
+
+def _rate_of(transcripts: list[AgentTranscript], preset: PurposePreset,
+             *, none_on_empty: bool) -> tuple[float | None, int, int]:
+    wins = denom = 0
+    for t in transcripts:
+        w = _agent_win(t, preset)
+        if w is None:
+            continue
+        denom += 1
+        if w:
+            wins += 1
+    if denom == 0:
+        return (None if none_on_empty else 0.0), 0, 0
+    return wins / denom, wins, denom
+
+
+def purpose_primary_metric(
+    transcripts: list[AgentTranscript],
+    target_classification: TargetClassification,
+    preset: PurposePreset,
+) -> tuple[tuple[float | None, int, int], dict[str, tuple[float, int, int]]]:
+    """(headline (rate,num,denom) over the purpose frame, per-disposition dict).
+    Deterministic. Delegates direct-sell to the v2.3 functions byte-for-byte so
+    the four anchors cannot move; other purposes use the generic predicate."""
+    if preset.name == DIRECT_SELL:
+        return (
+            within_target_action_rate(transcripts, target_classification),
+            action_by_disposition(transcripts),
+        )
+    headline = _rate_of(
+        _frame_subset(transcripts, target_classification, preset),
+        preset, none_on_empty=True,
+    )
+    by_label: dict[str, tuple[float, int, int]] = {}
+    labels = {t.disposition_label for t in transcripts}
+    for label in labels:
+        ts = [t for t in transcripts if t.disposition_label == label]
+        by_label[label] = _rate_of(ts, preset, none_on_empty=False)
+    return headline, by_label
+
+
 def load_bearing_within_pain(pain_map: list[Pain]) -> Pain | None:
     """The within-target pain that carries the decision: the one at the earliest
     funnel stage (it gates everything after it), tie-broken by citation breadth,
@@ -188,6 +275,8 @@ def resolve_decision(
     audience_match_verdict: str | None,
     verdict: str,
     methodology_flags: list[str],
+    scale_floor: float = _SCALE_FLOOR,
+    within_rate: float | None = None,
 ) -> Decision:
     """Map already-computed signals to a brand-facing DECISION. Deterministic,
     first-match, severity + disposition-gap driven — A_within is the headline
@@ -209,6 +298,12 @@ def resolve_decision(
     trust = _trust(within_labels, methodology_flags)
     champion = _best_champion(action_by_disp, classification_map)
     lb_id = load_bearing_pain.id if load_bearing_pain is not None else ""
+    # a_within is the HEADLINE metric (broad for a broad-frame job); within_rate
+    # is the WITHIN-target performance that drives the "wrong crowd" and
+    # "no within evidence" branches. They are the same for direct-sell (narrow
+    # frame), so within_rate defaults to a_within.
+    if within_rate is None:
+        within_rate = a_within
 
     def make(decision: str, rationale: str, *, use_champion: bool = False) -> Decision:
         return Decision(
@@ -232,7 +327,7 @@ def resolve_decision(
 
     # 2. Disposition-level mis-aim: someone the ad ISN'T aimed at acts materially
     #    more than the target (the TWT case — right ad, wrong person).
-    base = a_within if a_within is not None else 0.0
+    base = within_rate if within_rate is not None else 0.0
     if (
         champion is not None
         and champion[1] >= base + _RETARGET_GAP
@@ -245,7 +340,7 @@ def resolve_decision(
         )
 
     # 3. No within-target evidence at all — the verdict rests on outside reactions.
-    if not within_labels or a_within is None:
+    if not within_labels or within_rate is None:
         return make("INCONCLUSIVE", "no within-target evidence to decide on")
 
     # 4. The load-bearing within-target block is structural — no in-scope lever
@@ -271,13 +366,13 @@ def resolve_decision(
     #    RISK, recalibrate post-v2.4. Fails toward ITERATE (step 6).
     if (
         a_within is not None
-        and a_within >= _SCALE_FLOOR
+        and a_within >= scale_floor
         and load_bearing_pain is None
         and trust == "HIGH"
     ):
         return make(
             "SCALE",
-            f"within acts at {a_within:.0%} >= provisional bar {_SCALE_FLOOR:.0%}, "
+            f"metric at {a_within:.0%} >= provisional bar {scale_floor:.0%}, "
             f"no in-target lever left, HIGH trust",
         )
 
@@ -292,17 +387,34 @@ def build_decision(
     verdict: str,
     methodology_flags: list[str],
     pain_map: list[Pain],
+    purpose: str = DIRECT_SELL,
 ) -> Decision:
     """Extract the signals from the raw run artifacts and resolve the decision.
     The single orchestrator called from synthesize_report; keeps
-    resolve_decision a pure function of scalars for cheap fixture testing."""
+    resolve_decision a pure function of scalars for cheap fixture testing.
+
+    v2.4: `purpose` selects the headline metric + the SCALE floor (the seam).
+    direct-sell is byte-for-byte v2.3; other jobs swap the metric, the frame,
+    and the floor while the branch structure transfers."""
+    preset = resolve_purpose(purpose)
     classification_map = {
         d.disposition_label: d.classification
         for d in target_classification.disposition_classifications
     }
     within_labels = target_classification.within_target_labels()
-    a_within, num, denom = within_target_action_rate(transcripts, target_classification)
-    action_by_disp = action_by_disposition(transcripts)
+    (a_within, num, denom), action_by_disp = purpose_primary_metric(
+        transcripts, target_classification, preset
+    )
+    # The within-target performance (for the "wrong crowd" / "no within evidence"
+    # branches). Equals the headline for direct-sell (narrow frame); for a
+    # broad-frame job it is the same win predicate restricted to within-target.
+    if preset.name == DIRECT_SELL:
+        within_rate = a_within
+    else:
+        within_subset = [
+            t for t in transcripts if t.disposition_label in set(within_labels)
+        ]
+        within_rate = _rate_of(within_subset, preset, none_on_empty=True)[0]
     load_bearing = load_bearing_within_pain(pain_map)
     am_verdict = audience_match.verdict if audience_match is not None else None
     decision = resolve_decision(
@@ -314,9 +426,13 @@ def build_decision(
         am_verdict,
         verdict,
         methodology_flags,
+        scale_floor=preset.provisional_scale_floor,
+        within_rate=within_rate,
     )
-    # Enrich with the raw counts behind A_within (for an honest render); the
-    # decision itself never depends on them.
+    # Enrich with the raw counts behind the metric (for an honest render) + the
+    # purpose (so the render/artifact phrases the headline correctly); the
+    # decision itself never depends on these.
     decision.target_action_num = num
     decision.target_action_denom = denom
+    decision.purpose = preset.name
     return decision

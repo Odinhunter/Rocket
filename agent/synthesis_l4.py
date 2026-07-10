@@ -451,6 +451,7 @@ def synthesize_report(
     report.decision = build_decision(
         transcripts, target_classification, audience_match,
         assess.verdict, report.methodology_flags, assess.pain_map,
+        purpose=config.creative_inputs.purpose,
     )
     validate_report(report)
     _validate_bet_ranking(report)

@@ -136,6 +136,23 @@ def _inconclusive_lines(report: Report) -> list[str]:
     ]
 
 
+def _headline_metric_line(d) -> str:
+    """The one number the brand manager reads, phrased for the ad's JOB. Direct-
+    sell is byte-for-byte the v2.3 line; other jobs swap the metric + frame."""
+    preset = resolve_purpose(getattr(d, "purpose", "direct_sell") or "direct_sell")
+    rate = f"{d.target_action_rate:.0%}"
+    tail = (f"  —  {d.target_action_num} of {d.target_action_denom}"
+            if d.target_action_denom else "")
+    if preset.name == "direct_sell":
+        who = _humanize(", ".join(d.within_dispositions)) if d.within_dispositions else "your target"
+        return f"  {rate} of your target ({who}) would act{tail}."
+    if preset.name == "cold_hook":
+        return (f"  {rate} of a cold audience stopped and leaned in{tail}  "
+                f"(vs scrolling past — the hook, not the sale).")
+    # retain / others: a generic metric-labelled line.
+    return f"  {rate} — {preset.metric_label}{tail}."
+
+
 def _trust_line(d) -> str:
     if d.trust == "HIGH":
         line = "Trust: HIGH"
@@ -172,15 +189,14 @@ def _print_decision_headline(report: Report) -> None:
         for line in _inconclusive_lines(report):
             print(line)
     elif d.target_action_rate is not None:
-        who = _humanize(", ".join(d.within_dispositions)) if d.within_dispositions else "your target"
-        line = f"  {d.target_action_rate:.0%} of your target ({who}) would act"
-        if d.target_action_denom:
-            line += f"  —  {d.target_action_num} of {d.target_action_denom}"
-        print(line + ".")
+        print(_headline_metric_line(d))
+        preset = resolve_purpose(getattr(d, "purpose", "direct_sell") or "direct_sell")
         if d.decision == "RETARGET" and d.champion_disposition:
             print(f"  But the {_humanize(d.champion_disposition)} — whom you are NOT "
                   f"targeting — acts at {d.champion_action_rate:.0%}. Right ad, wrong person.")
-        elif d.decision in ("ITERATE", "REBUILD"):
+        elif d.decision in ("ITERATE", "REBUILD") and preset.audience_frame == "narrow":
+            # "everyone else scrolls, tighten targeting" only fits a narrow-frame
+            # job — a cold-hook/awareness ad WANTS broad reach.
             print("  It reaches no one else (everyone else scrolls — expected; "
                   "tighten targeting).")
     else:
