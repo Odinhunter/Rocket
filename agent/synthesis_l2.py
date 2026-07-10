@@ -159,11 +159,14 @@ Each transcript comes from ONE agent and contains two text blocks:
   - `R1 GUT:` 1-2 sentences, the agent's first-glance reaction
   - `R2 COMPREHENSION:` 3 sentences on what message landed
   - `R3 EMOTION:` 4-5 sentences on emotional texture
-- **reflection_text** has four labelled sections:
+- **reflection_text** has these labelled sections:
   - `R4 STICKINESS:` what stuck 48 hours later
   - `R5 SOCIAL:` would they share / mention / post
   - `R6 FRICTION:` the single biggest friction on purchase
-  - `R7 ACTION:` a one-line JSON behavioral signal (an action + reasoning)
+  - `R8 NEW-TO-YOU:` whether the ad taught them something new about the brand
+  - `R9 BRAND CHECK:` how confidently they can name the brand
+  - `R7 ACTION:` a one-line JSON behavioral signal (an action + reasoning +
+    the R8/R9 answers as structured fields)
 
 All agents in this batch are the SAME segment. Variance across them comes \
 from the attention context. Your aggregation answers: what is this \
@@ -177,11 +180,12 @@ within_cell_variance, outlier_note, representative_quotes (one per round \
 R1-R6), emotional_read, friction_summary — exactly as the tool schema \
 describes.
 
-You do NOT summarize or count R7. The R7 behavioral-signal distribution is \
-computed deterministically in Python from the transcripts — it is not \
-your job and you must not emit it. Read R7 only as context for your \
-narrative (it tells you what the agent would actually DO), but the counts \
-are handled elsewhere.
+You do NOT summarize or count R7, R8, or R9. The R7 behavioral-signal \
+distribution and the R8/R9 probe signals are computed deterministically in \
+Python from the transcripts — not your job, and you must not emit them. Read \
+R7/R8/R9 only as context for your narrative (what the agent would DO, whether \
+the ad taught them anything, whether the brand stuck); the counts are handled \
+elsewhere.
 
 # Discipline
 

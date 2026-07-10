@@ -239,6 +239,39 @@ class BehavioralSignal:
         )
 
 
+_VALID_BRAND_RECALL = ("confident", "unsure", "none")
+
+
+@dataclass
+class ProbeSignal:
+    """v2.4 — R8 + R9, two always-on self-report probes emitted alongside R7 in
+    the terminal reflection JSON. Asked on EVERY run regardless of the declared
+    purpose, so the panel stays purpose-BLIND; the purpose layer decides which
+    to score. Like BehavioralSignal these are captured, never rated — scoring
+    counts them in Python.
+
+      - novelty (R8): did the ad update a belief ('I didn't know they made X')?
+        The informer's core signal — R2 captures comprehension, not news.
+      - brand_recall (R9): how confidently could they name the brand
+        (confident / unsure / none)? Catches 'loved the ad, forgot the brand',
+        the brand-building failure mode.
+
+    Defaults are the safe 'nothing registered' reading. Pre-v2.4 transcripts
+    carry no probe line → parse to None (handled like a missing R7)."""
+    novelty: bool = False
+    brand_recall: str = "none"      # confident | unsure | none
+
+    def to_dict(self) -> dict:
+        return {"novelty": self.novelty, "brand_recall": self.brand_recall}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ProbeSignal":
+        recall = data.get("brand_recall", "none")
+        if recall not in _VALID_BRAND_RECALL:
+            recall = "none"
+        return cls(novelty=bool(data.get("novelty", False)), brand_recall=recall)
+
+
 @dataclass
 class BehavioralSignalDistribution:
     """Aggregate of BehavioralSignal.action over a segment or the whole
@@ -858,6 +891,10 @@ class AgentTranscript:
     encoding_text: str
     reflection_text: str
     behavioral_signal: "BehavioralSignal | None" = None
+    # v2.4: R8 novelty + R9 brand-attribution, parsed from the same terminal
+    # JSON as R7. None for pre-v2.4 transcripts (no probe line) — scoring treats
+    # a missing probe as no-signal, like a missing behavioral_signal.
+    probe_signal: "ProbeSignal | None" = None
 
     def to_dict(self) -> dict:
         return {
@@ -872,11 +909,17 @@ class AgentTranscript:
                 if self.behavioral_signal is not None
                 else None
             ),
+            "probe_signal": (
+                self.probe_signal.to_dict()
+                if self.probe_signal is not None
+                else None
+            ),
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "AgentTranscript":
         bs = data.get("behavioral_signal")
+        ps = data.get("probe_signal")
         return cls(
             agent_id=int(data["agent_id"]),
             disposition_label=data["disposition_label"],
@@ -886,5 +929,8 @@ class AgentTranscript:
             reflection_text=data["reflection_text"],
             behavioral_signal=(
                 BehavioralSignal.from_dict(bs) if bs is not None else None
+            ),
+            probe_signal=(
+                ProbeSignal.from_dict(ps) if ps is not None else None
             ),
         )

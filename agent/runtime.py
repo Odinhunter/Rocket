@@ -30,7 +30,12 @@ from agent.artifact_pack import CategoryArtifactPack
 from agent.config import CreativeInputs, RunConfig
 from agent.panel import PanelAgent
 from agent.render import render_context, render_persona_core
-from agent.schema import AgentTranscript, BehavioralSignal, _VALID_BEHAVIORAL_ACTIONS
+from agent.schema import (
+    AgentTranscript,
+    BehavioralSignal,
+    ProbeSignal,
+    _VALID_BEHAVIORAL_ACTIONS,
+)
 from agent.telemetry import call_with_telemetry, run_dir
 
 
@@ -115,8 +120,10 @@ _ENCODING_USER = (
     "cold. Plain words."
 )
 
-# R7 is a single JSON line so it parses deterministically out of
-# otherwise free-form reflection prose.
+# R7 is a single terminal JSON line so it parses deterministically out of
+# otherwise free-form reflection prose. v2.4 folds two always-on self-report
+# probes (novelty, brand_recall) into that same JSON — asked on every run so the
+# panel stays purpose-blind; the purpose layer decides which to score.
 _REFLECTION_USER = (
     "REFLECTION PHASE — a day or two later, still a real person, still "
     "plain and short. Keep every section to 1-2 sentences. If an ad left "
@@ -127,11 +134,22 @@ _REFLECTION_USER = (
     "R6 FRICTION: 1-2 sentences. If you'd consider buying, the one thing "
     "that stops you. If the ad isn't aimed at someone like you, that's a "
     "fine reason — one factor, not a lecture.\n\n"
+    "R8 NEW-TO-YOU: 1-2 sentences. Did the ad tell you something about the "
+    "brand you didn't already know — 'huh, I didn't know they made this', a "
+    "claim or fact that changed your picture of them? Or was it all stuff "
+    "you'd already expect? Be honest — most ads teach you nothing.\n\n"
+    "R9 BRAND CHECK: 1-2 sentences. Without scrolling back, which brand was "
+    "this ad for, and how sure are you? Totally fine to say you don't "
+    "remember or you're guessing.\n\n"
     "R7 ACTION: emit exactly ONE line of JSON and nothing after it:\n"
     '{"action": "<scroll_past|linger|tap_cta|save|share|seek_info>", '
     '"reasoning": "<one short in-character sentence, anchored to the '
-    'creative>", "would_act_within_week": <true|false>}\n'
-    "What you would actually DO. Never a funnel rate or percentage."
+    'creative>", "would_act_within_week": <true|false>, '
+    '"novelty": <true|false>, "brand_recall": "<confident|unsure|none>"}\n'
+    "novelty = did R8 genuinely teach you something new about the brand. "
+    "brand_recall = how sure you are which brand it was (confident if you can "
+    "name it, unsure if you're hazy, none if you couldn't say). The action is "
+    "what you would actually DO. Never a funnel rate or percentage."
 )
 
 
@@ -161,38 +179,59 @@ def _creative_copy_block(ci: CreativeInputs) -> str:
 _JSON_OBJ_RE = re.compile(r"\{[^{}]*\}")
 
 
-def parse_r7_signal(reflection_text: str) -> BehavioralSignal | None:
-    """Extract the R7 behavioral signal from a reflection transcript.
-
-    Returns None — never raises — if R7 is missing or malformed. L2 handles
-    the gap. We scan for the LAST balanced {...} block so stray braces in R6
-    prose don't capture; the action must be in the valid enum."""
-    candidates = _JSON_OBJ_RE.findall(reflection_text)
-    for raw in reversed(candidates):
+def _terminal_signal_obj(reflection_text: str) -> dict | None:
+    """The last balanced {...} block carrying a valid R7 action, parsed to a
+    dict. Shared by R7 + probe parsing so both read the SAME terminal JSON. We
+    scan from the end so stray braces in R6 prose don't capture; the action
+    must be in the valid enum. None if no such block exists."""
+    for raw in reversed(_JSON_OBJ_RE.findall(reflection_text)):
         try:
             obj = json.loads(raw)
         except json.JSONDecodeError:
             continue
-        action = obj.get("action")
-        if action not in _VALID_BEHAVIORAL_ACTIONS:
-            continue
-        reasoning = obj.get("reasoning", "")
-        would_act = obj.get("would_act_within_week")
-        if not isinstance(would_act, bool):
-            # Tolerate "true"/"false"/1/0; reject anything genuinely unparseable.
-            if isinstance(would_act, str) and would_act.lower() in ("true", "false"):
-                would_act = would_act.lower() == "true"
-            elif would_act in (0, 1):
-                would_act = bool(would_act)
-            else:
-                continue
-        return BehavioralSignal(
-            action=action,
-            reasoning=str(reasoning),
-            would_act_within_week=would_act,
-        )
-    _log.warning("parse_r7_signal: no valid R7 JSON line found in reflection text")
+        if obj.get("action") in _VALID_BEHAVIORAL_ACTIONS:
+            return obj
     return None
+
+
+def parse_r7_signal(reflection_text: str) -> BehavioralSignal | None:
+    """Extract the R7 behavioral signal from a reflection transcript.
+
+    Returns None — never raises — if R7 is missing or malformed. L2 handles
+    the gap. Extra keys (the v2.4 probe fields) are ignored here."""
+    obj = _terminal_signal_obj(reflection_text)
+    if obj is None:
+        _log.warning("parse_r7_signal: no valid R7 JSON line found in reflection text")
+        return None
+    would_act = obj.get("would_act_within_week")
+    if not isinstance(would_act, bool):
+        # Tolerate "true"/"false"/1/0; reject anything genuinely unparseable.
+        if isinstance(would_act, str) and would_act.lower() in ("true", "false"):
+            would_act = would_act.lower() == "true"
+        elif would_act in (0, 1):
+            would_act = bool(would_act)
+        else:
+            _log.warning("parse_r7_signal: R7 JSON has unparseable would_act_within_week")
+            return None
+    return BehavioralSignal(
+        action=obj["action"],
+        reasoning=str(obj.get("reasoning", "")),
+        would_act_within_week=would_act,
+    )
+
+
+def parse_probe_signal(reflection_text: str) -> ProbeSignal | None:
+    """Extract the v2.4 R8/R9 probes from the same terminal JSON as R7.
+
+    Returns None — never raises — when there is no terminal signal at all, OR
+    when the terminal block predates the probes (neither probe key present) so a
+    pre-v2.4 transcript reads as no-probe-signal rather than a false default."""
+    obj = _terminal_signal_obj(reflection_text)
+    if obj is None:
+        return None
+    if "novelty" not in obj and "brand_recall" not in obj:
+        return None
+    return ProbeSignal.from_dict(obj)
 
 
 # ---- Public API ----
@@ -324,6 +363,7 @@ def run_agent(
         encoding_text=encoding_text,
         reflection_text=reflection_text,
         behavioral_signal=parse_r7_signal(reflection_text),
+        probe_signal=parse_probe_signal(reflection_text),
     )
 
 
