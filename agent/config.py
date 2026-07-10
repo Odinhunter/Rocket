@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Literal
 
 from agent.entities import AudienceSpec
+from agent.purpose import DEFAULT_PURPOSE, resolve_purpose
 
 
 # Anthropic API enforces 5 MB *after* base64 encoding. Base64 inflates by
@@ -180,6 +181,11 @@ class CreativeInputs:
     primary_text: str = ""   # the ad's body / primary caption
     headline: str = ""       # the ad's headline
     offer: str = ""          # price + promo, e.g. "₹2,699, 20% off first order"
+    # purpose (v2.4): the ad's declared JOB — the ruler the report grades
+    # against. Defaults to direct-sell (the D2C ICP's common case, = v2.3).
+    # See agent/purpose.py for the five jobs. The reaction layer stays blind to
+    # this; it only selects which captured signals get scored.
+    purpose: str = DEFAULT_PURPOSE
 
     def has_ad_copy(self) -> bool:
         return bool(self.primary_text.strip() or self.headline.strip())
@@ -192,16 +198,25 @@ class CreativeInputs:
             "primary_text": self.primary_text,
             "headline": self.headline,
             "offer": self.offer,
+            "purpose": self.purpose,
         }
 
     @classmethod
     def from_dict(cls, data: dict | None) -> "CreativeInputs":
         data = data or {}
+        # Legacy artifacts (pre-v2.4) carry no "purpose" → resolve to the
+        # direct-sell default, so old runs round-trip unchanged.
         return cls(
             primary_text=data.get("primary_text", ""),
             headline=data.get("headline", ""),
             offer=data.get("offer", ""),
+            purpose=data.get("purpose") or DEFAULT_PURPOSE,
         )
+
+    def __post_init__(self) -> None:
+        # Fail loud on a typo'd purpose rather than silently scoring on the
+        # wrong ruler. resolve_purpose raises ValueError on an unknown name.
+        resolve_purpose(self.purpose)
 
 
 @dataclass

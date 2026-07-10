@@ -60,11 +60,31 @@ def test_empty_copy_block_is_blank() -> None:
     print("  OK  empty CreativeInputs → empty block (image-only runs unchanged)")
 
 
+def test_purpose_field_roundtrip_and_default() -> None:
+    # v2.4: default is direct-sell (= v2.3 behaviour, D2C ICP common case).
+    assert CreativeInputs().purpose == "direct_sell"
+    # explicit purpose survives to_dict/from_dict.
+    ci = CreativeInputs(purpose="cold_hook")
+    assert CreativeInputs.from_dict(ci.to_dict()).purpose == "cold_hook"
+    # legacy artifacts (no "purpose" key) resolve to the default → old runs
+    # round-trip unchanged.
+    assert CreativeInputs.from_dict({"primary_text": "x"}).purpose == "direct_sell"
+    assert CreativeInputs.from_dict({"purpose": None}).purpose == "direct_sell"
+    # a typo'd purpose fails loud rather than silently scoring on a wrong ruler.
+    try:
+        CreativeInputs(purpose="conversion")  # not a valid job name
+        raise AssertionError("bogus purpose should raise")
+    except ValueError:
+        pass
+    print("  OK  purpose field: default direct_sell, roundtrip, legacy-safe, typo-guarded")
+
+
 def main() -> None:
     print("=== creative inputs + agent copy feed ===")
     test_provided_inputs_mapping()
     test_copy_block_contains_provided_text()
     test_empty_copy_block_is_blank()
+    test_purpose_field_roundtrip_and_default()
     print("PASS — creative copy/offer reach the agent payload.")
 
 

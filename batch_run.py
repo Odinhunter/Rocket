@@ -30,6 +30,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 from agent.config import AssetSpec, CreativeInputs, RunConfig
 from agent.entities import AudienceSpec
+from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER
 from agent.run_service import RunPreparation, RunService
 from agent.schema import Report
 from agent.telemetry import run_dir, telemetry_summary
@@ -373,6 +374,13 @@ def main() -> None:
     parser.add_argument("--creative-json", default=None,
                         help="Path to a JSON file with primary_text / headline / "
                              "offer (alternative to the individual flags).")
+    parser.add_argument("--purpose", default=DEFAULT_PURPOSE,
+                        choices=list(PURPOSE_ORDER),
+                        help="v2.4: the ad's JOB — the ruler the report grades "
+                             "against. direct_sell (default) = would-buy-this-week; "
+                             "cold_hook = stop-the-scroll; awareness_informer = "
+                             "notice+understand; brand_building = feel+remember; "
+                             "retain_winback = re-engage existing customers.")
     parser.add_argument("--declared-targeting", default="",
                         help="The customer's stated Meta audience (free text). A "
                              "hint to the target classifier; does not override the "
@@ -417,6 +425,11 @@ def main() -> None:
         primary_text=args.primary_text or creative_data.get("primary_text", ""),
         headline=args.headline or creative_data.get("headline", ""),
         offer=args.offer or creative_data.get("offer", ""),
+        # A --purpose flag wins; else the creative-json's purpose; else default.
+        # (argparse default is DEFAULT_PURPOSE, so an unset flag falls through
+        # to the json only when json sets a non-default purpose.)
+        purpose=(args.purpose if args.purpose != DEFAULT_PURPOSE
+                 else creative_data.get("purpose") or DEFAULT_PURPOSE),
     )
 
     config = RunConfig(
