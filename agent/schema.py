@@ -28,8 +28,9 @@ CONTEXT_VERDICT = Literal["working", "mixed", "failing"]
 
 # rocket-2.3.0 (the decision layer): the brand-facing call. The categorical
 # VERDICT above is demoted to an internal engine read; DECISION is what a brand
-# manager reads. SCALE is gated (0/42 upper anchors) and not emitted yet — see
-# agent/decision.py + docs/v2_3_decision_layer.md.
+# manager reads. SCALE is un-gated behind a PROVISIONAL desk-research bar
+# (decision-2, KNOWN RISK — recalibrate post-v2.4) — see agent/decision.py
+# _SCALE_FLOOR + docs/v2_3_decision_layer.md §7a.
 DECISION = Literal["SCALE", "ITERATE", "RETARGET", "REBUILD", "INCONCLUSIVE"]
 _VALID_DECISIONS = {"SCALE", "ITERATE", "RETARGET", "REBUILD", "INCONCLUSIVE"}
 TRUST = Literal["HIGH", "DIRECTIONAL"]
@@ -441,7 +442,10 @@ class Decision:
     when no within-target agent had a parsed signal. champion_* name the
     disposition a RETARGET creative actually resonates with (the "right ad,
     wrong person" story). load_bearing_pain_id points at the pain that drove the
-    call. SCALE is gated and never emitted yet (validate_report enforces this).
+    call. SCALE is un-gated behind a PROVISIONAL bar (decision-2); validate_report
+    enforces its structural invariant (a SCALE carries a within-target rate and
+    no load-bearing pain). See _SCALE_FLOOR in agent/decision.py — KNOWN RISK,
+    recalibrate post-v2.4.
     """
     decision: DECISION
     target_action_rate: float | None
@@ -734,9 +738,12 @@ def validate_report(report: Report) -> None:
                     f"TopChange derives_from_pains references unknown pain id "
                     f"{pid!r}; known ids: {sorted(pain_ids)}"
                 )
-    # rocket-2.3.0: decision-layer invariants, when present. SCALE is gated
-    # behind the anchor run (v2.3 P4) — resolve_decision must not emit it until
-    # the threshold is set, so its presence is a hard schema error, not a warning.
+    # rocket-2.3.0: decision-layer invariants, when present. SCALE is un-gated
+    # behind a PROVISIONAL bar (decision-2, v2.3 P4) — the numeric floor lives in
+    # agent/decision.py (single source of truth). Here we enforce the STRUCTURAL
+    # invariant that makes a SCALE self-consistent: it is a "no in-target lever
+    # left" call, so it must carry a within-target action rate and NO load-bearing
+    # within-target pain. A SCALE with a load-bearing pain is a logic bug.
     if report.decision is not None:
         d = report.decision
         if d.decision not in _VALID_DECISIONS:
@@ -744,10 +751,16 @@ def validate_report(report: Report) -> None:
                 f"decision must be one of {sorted(_VALID_DECISIONS)}, got {d.decision!r}"
             )
         if d.decision == "SCALE":
-            raise SchemaError(
-                "SCALE is gated until the anchor run (v2.3 P4); resolve_decision "
-                "must fail safe to ITERATE and never emit SCALE yet"
-            )
+            if d.target_action_rate is None:
+                raise SchemaError(
+                    "SCALE requires a within-target action rate (it is a "
+                    "strong-target call); got target_action_rate=None"
+                )
+            if d.load_bearing_pain_id:
+                raise SchemaError(
+                    "SCALE must leave no in-target lever, so load_bearing_pain_id "
+                    f"must be empty; got {d.load_bearing_pain_id!r}"
+                )
         if d.trust not in ("HIGH", "DIRECTIONAL"):
             raise SchemaError(
                 f"decision.trust must be HIGH/DIRECTIONAL, got {d.trust!r}"

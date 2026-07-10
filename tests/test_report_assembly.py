@@ -156,7 +156,7 @@ def test_run_json_stamps_both_prompt_versions() -> None:
     payload = _run_json_payload(cfg, "rid123", status="complete", report=None)
     assert payload["assess_prompt_version"] == "assess-2"
     assert payload["prescribe_prompt_version"] == "prescribe-1"
-    assert payload["decision_version"] == "decision-1"  # rocket-2.3.0
+    assert payload["decision_version"] == "decision-2"  # rocket-2.3.0 (provisional SCALE)
     assert "l4_prompt_version" in payload  # retained for back-compat
     assert payload["protocol_version"] == "rocket-2.3.0"
     print("  OK  run.json stamps assess + prescribe + decision versions (+ legacy l4)")

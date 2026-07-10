@@ -56,6 +56,15 @@ def _pains(name: str) -> list[Pain]:
     return [Pain.from_dict(p) for p in data["pain_map"]]
 
 
+def _pain(pid: str, severity: str, *, stage: str = "consideration", within: bool = True) -> Pain:
+    """A minimal synthetic Pain for the SCALE-branch composite tests."""
+    return Pain.from_dict({
+        "id": pid, "pain": f"{pid} pain", "funnel_stage": stage,
+        "severity": severity, "within_target": within,
+        "prevalence": "some", "cited_by": ["d1"], "evidence_quotes": [],
+    })
+
+
 # The four anchors as scalar bundles (A_within + per-disposition rates recomputed
 # live from the 2026-07-07 transcripts; classification from target_classification).
 ANCHORS = {
@@ -173,7 +182,9 @@ def test_anchors() -> None:
             f"{name}: expected {a['expect_decision']}, got {d.decision} ({d.rationale})"
         )
         assert d.trust == a["expect_trust"], f"{name}: trust {d.trust}"
-        assert d.decision != "SCALE", f"{name}: SCALE is gated"
+        # None of the four flawed anchors clears the composite SCALE bar (each
+        # keeps a within-target lever and/or falls short of _SCALE_FLOOR).
+        assert d.decision != "SCALE", f"{name}: should not reach the SCALE bar"
         if a["expect_champion"] is None:
             assert d.champion_disposition == "", f"{name}: unexpected champion {d.champion_disposition}"
         else:
@@ -214,6 +225,59 @@ def test_edge_branches() -> None:
     print("  edge branches: GAP/mismatch/empty-within(±champion) ✓")
 
 
+def test_scale_branch() -> None:
+    """The provisional SCALE branch (decision-2): a strong + clean read scales;
+    the floor, the residual-lever composite, and the upstream guards all hold."""
+    from agent.decision import _SCALE_FLOOR
+    within = ["enthusiast_macros_lifter", "aspirant_clean_label"]  # 2 -> HIGH trust
+    cmap = {"enthusiast_macros_lifter": "within", "aspirant_clean_label": "within"}
+    action = {
+        "enthusiast_macros_lifter": (0.82, 14, 17),
+        "aspirant_clean_label": (0.82, 14, 17),
+    }
+
+    # strong + clean (no within-target lever left) + HIGH trust -> SCALE.
+    d = resolve_decision(0.82, action, cmap, within, None, "aligned", "MIXED", [])
+    assert d.decision == "SCALE", d.rationale
+    assert d.trust == "HIGH" and d.load_bearing_pain_id == ""
+
+    # THE TRUST GUARD: same strong+clean read but on a single within persona
+    # (DIRECTIONAL) must NOT scale — that thin-evidence path is exactly where a
+    # too-easy composite would false-fire, so it falls through to ITERATE.
+    solo = ["enthusiast_macros_lifter"]
+    solo_cmap = {"enthusiast_macros_lifter": "within"}
+    solo_action = {"enthusiast_macros_lifter": (0.83, 15, 18)}
+    d = resolve_decision(0.83, solo_action, solo_cmap, solo, None, "aligned", "MIXED",
+                         ["single_within_target"])
+    assert d.decision == "ITERATE" and d.trust == "DIRECTIONAL", d.rationale
+    # even with 2 within dispositions, a thin-evidence flag drops trust -> no SCALE.
+    d = resolve_decision(0.82, action, cmap, within, None, "aligned", "MIXED",
+                         ["no_within_target_evidence"])
+    assert d.decision != "SCALE" and d.trust == "DIRECTIONAL", d.rationale
+
+    # exactly at the floor, clean -> SCALE (>=, not >).
+    d = resolve_decision(_SCALE_FLOOR, action, cmap, within, None, "aligned", "MIXED", [])
+    assert d.decision == "SCALE", d.rationale
+
+    # a hair below the floor, clean -> ITERATE (fails toward ITERATE, never SCALE).
+    d = resolve_decision(_SCALE_FLOOR - 0.01, action, cmap, within, None, "aligned", "MIXED", [])
+    assert d.decision == "ITERATE", d.rationale
+
+    # above the floor BUT a within-target execution lever remains -> ITERATE.
+    #   (the composite: strong is not enough — a fixable lever means iterate.)
+    d = resolve_decision(0.9, action, cmap, within, _pain("P9", "execution"), "aligned", "MIXED", [])
+    assert d.decision == "ITERATE", d.rationale
+
+    # above the floor BUT a structural within-target pain -> REBUILD (step 4 first).
+    d = resolve_decision(0.9, action, cmap, within, _pain("P9", "structural", stage="attention"), "aligned", "MIXED", [])
+    assert d.decision == "REBUILD", d.rationale
+
+    # SCALE never overrides an audience mismatch (step 1 wins even when strong+clean).
+    d = resolve_decision(0.9, action, cmap, within, None, "mismatched", "MIXED", [])
+    assert d.decision == "RETARGET", d.rationale
+    print("  SCALE branch: strong+clean -> SCALE; floor/lever/structural/mismatch guards ✓")
+
+
 def test_schema_roundtrip() -> None:
     # A Report carrying a Decision validates and round-trips through JSON.
     dec = Decision(
@@ -235,14 +299,26 @@ def test_schema_roundtrip() -> None:
     assert back.decision is not None
     assert back.decision.decision == "ITERATE"
     assert abs(back.decision.target_action_rate - 0.68) < 1e-9
-    # SCALE is a hard schema error until the anchor run.
+    # SCALE with a load-bearing pain is a logic bug — validate_report rejects it
+    # (a SCALE must leave no in-target lever). dec still has load_bearing_pain_id="P1".
     dec.decision = "SCALE"
     try:
         validate_report(rep)
-        raise AssertionError("SCALE should be rejected by validate_report")
+        raise AssertionError("SCALE with a load-bearing pain should be rejected")
     except Exception as e:
-        assert "SCALE is gated" in str(e), e
-    print("  schema round-trip + SCALE-gated invariant ✓")
+        assert "no in-target lever" in str(e), e
+    # SCALE with no load-bearing pain AND a within-target rate is self-consistent.
+    dec.load_bearing_pain_id = ""
+    dec.target_action_rate = 0.82
+    validate_report(rep)
+    # SCALE without a within-target rate is rejected (it is a strong-target call).
+    dec.target_action_rate = None
+    try:
+        validate_report(rep)
+        raise AssertionError("SCALE without a within-target rate should be rejected")
+    except Exception as e:
+        assert "requires a within-target action rate" in str(e), e
+    print("  schema round-trip + provisional-SCALE invariants ✓")
 
 
 def test_integration_from_real_runs() -> None:
@@ -377,6 +453,7 @@ def test_inconclusive_render_no_action_rate() -> None:
 def main() -> None:
     test_anchors()
     test_edge_branches()
+    test_scale_branch()
     test_schema_roundtrip()
     test_synthesize_report_seam()
     test_inconclusive_render_no_action_rate()

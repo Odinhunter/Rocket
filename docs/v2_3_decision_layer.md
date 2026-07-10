@@ -2,8 +2,10 @@
 
 *Replacing "MIXED @ 72" with a call a brand manager can act on.*
 
-Status: **DESIGN / proposed** (2026-07-07). Not built. Advisor-reviewed. One part
-(the SCALE threshold) is deliberately gated behind an empirical run — see §7.
+Status: **BUILT + merged** (P1–P3, 2026-07-10; `rocket-2.3.0`). Advisor-reviewed.
+SCALE was gated (§7) and is now un-gated behind a **provisional** desk-research bar
+(§7a, `decision-2`) — a documented, user-accepted **known risk**, to be recalibrated
+against the deliberately-strong anchor run after v2.4 locks.
 
 ---
 
@@ -218,8 +220,86 @@ Buildable **now** (no new data needed — all signals exist):
   - Comes back genuinely strong → we learn the bar is fine; our four ads had real
     flaws. Either way we **learn**, not guess.
 
-Until that run exists, SCALE is specified but its numeric gate is left `TODO`, and
-the decision function simply cannot emit SCALE (fails safe to ITERATE).
+**UPDATE (2026-07-10):** §7 is now superseded by §7a — SCALE is un-gated behind a
+**provisional** bar (an accepted, documented risk) rather than waiting on the run.
+
+---
+
+## 7a. The provisional SCALE bar (un-gated — KNOWN RISK, decision-2)
+
+**Status:** LIVE but PROVISIONAL. `decision-2` un-gates SCALE behind a documented
+best-guess bar. The empirical anchor run of §7 is **deferred to after v2.4 locks**;
+until then this is a **known, user-accepted risk**, not a calibrated threshold.
+Recalibrate against the deliberately-strong anchor run once v2.4 is done.
+
+**The rule (composite — the magnitude is a backstop, not the driver):**
+
+```
+SCALE  iff  A_within >= _SCALE_FLOOR   (provisional 0.75, agent/decision.py)
+       AND  no in-target lever is left  (no within-target pain survives to the
+            SCALE branch: step 4 already excluded a structural within pain, so a
+            None load-bearing pain here means zero within-target pains)
+       AND  trust == HIGH               (>=2 within dispositions, no thin-evidence
+            flag) — the anti-thin-evidence guard, see below
+```
+
+The "no lever left" clause does the real discrimination (it is why none of the four
+flawed anchors can reach SCALE regardless of the number); the floor only stops a
+*clean-but-weak* read from slipping through. Ordering is unchanged — SCALE sits
+between REBUILD (step 4) and the ITERATE catch-all (step 6), so a mismatch, a
+champion re-aim, an untrustworthy read, or a structural block all still win first.
+
+**The HIGH-trust guard is load-bearing, not decoration.** Without it, the composite
+fires *most easily* on the thinnest evidence: `A_within >= 0.75` is cheap on a small
+within denominator (4/5 = 80%), and "no within pain survived" is *easier* when few
+transcripts surface few pains — so a single-persona, DIRECTIONAL read would be the
+path of least resistance into SCALE, inverting the very "fails toward ITERATE, never
+false-SCALE" posture this provisional bar is sold on. Requiring HIGH trust (≥2 within
+dispositions, no thin-evidence flag) closes that. **Consequence:** on today's
+predominantly single-within-persona panels (e.g. MB whey's lone `enthusiast_macros_lifter`),
+provisional SCALE will **rarely fire** — which is the intended *mild* failure
+(understatement), not the costly one. Real SCALE coverage arrives with the post-v2.4
+calibration (multi-persona targets + the measured floor).
+
+**Why `_SCALE_FLOOR = 0.75` (the best guess, not a measured ceiling):**
+- **Our own distribution.** The best *flawed* anchor (MB whey) tops out at **68%**
+  within-target action *with three fixable execution pains*. A clean SCALE ad must
+  clear our best flawed ad with margin → the floor sits above 68%.
+- **Copy-testing norms, scaled up.** Industry "strong consideration" is a top-2-box
+  purchase-intent **>40%** on a *general* sample. Our metric is (a) filtered to the
+  *target persona* (not a general sample) and (b) a *simulated top-box*, which
+  overstates real behaviour (only ~63% of "definitely would buy" actually convert;
+  the Juster-scale literature documents the same inflation). Both effects push the
+  equivalent bar well above 40% — 0.75 is a conservative landing between "clearly
+  beats our best flawed ad" and "not so high it can never fire."
+- **"Strong" is industry-defined as a *relative index to a norm*** (Kantar STSL 133
+  vs 100 average; System1 above-average Star = 6× action-intent lift), not an
+  absolute — which is exactly why the bar is anchored to *our* distribution, with
+  the research only sizing the margin.
+
+**Direction of error is deliberate.** Too-high only *understates* a great ad
+(ITERATE instead of SCALE — a mild miss). Too-low stamps a mediocre ad SCALE and
+tells a brand manager to put budget behind it — the costly error, and the whole
+reason §7 gated it. So the bar fails toward ITERATE.
+
+**What un-gating changed (code):** `_SCALE_FLOOR` + the SCALE branch in
+`resolve_decision` (single source of truth for the number); `DECISION_VERSION →
+decision-2`; `validate_report` now enforces SCALE's *structural* invariant (carries
+a within-target rate, no load-bearing pain) instead of hard-rejecting it. Render was
+already SCALE-ready (P3). Tests: `test_scale_branch` + updated schema invariants.
+
+**Known seam (untested, don't chase now):** `validate_report` requires exactly 3
+`top_3_changes` for a non-GAP report, but a true SCALE has nothing *in-target* to
+fix. It will *probably* still carry 3 changes drawn from outside-target pains (as MB
+whey does — P4/P5/P6), so it should validate — but the first real SCALE run is the
+first live exercise of that path. Watch it there; do not special-case it pre-emptively.
+
+**Calibration plan (unchanged intent, deferred timing):** after v2.4 locks, run the
+deliberately-strong creative (a controlled edit of MB whey — show ₹/serving, give a
+real reason-to-switch, substantiate the absorption claim, one clean target, no
+positioning break) across a few seeds, read where A_within lands, and replace this
+provisional floor (and possibly relax "no within pain at all" to "no *execution*
+within pain") with a measured value. Bump to `decision-3` then.
 
 ---
 

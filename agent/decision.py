@@ -11,10 +11,13 @@ produced. The model emits no decision; `resolve_decision` is a pure function
 of extracted scalars/enums, mirroring `resolve_verdict`. See
 docs/v2_3_decision_layer.md.
 
-The SCALE branch is deliberately GATED (§7 of the spec): we have zero
-upper-anchor observations (0/42 runs read WORKING), so `resolve_decision`
-cannot emit SCALE — it fails safe to ITERATE — until a deliberately-strong
-anchor run sets the threshold (P4). validate_report enforces the invariant.
+The SCALE branch is un-gated with a PROVISIONAL bar (decision-2): we still
+have zero empirical upper-anchor runs, so `_SCALE_FLOOR` is a documented
+best-guess set from desk research + our own anchor distribution — NOT an
+anchor run. It is a KNOWN, ACCEPTED RISK, to be recalibrated after v2.4 locks
+(the deliberately-strong anchor run, spec §7 / §7a). The bar is deliberately
+conservative: SCALE fails toward ITERATE (a mild understatement) rather than
+stamping a mediocre ad SCALE (the costly error). See docs/v2_3_decision_layer.md §7a.
 """
 
 from __future__ import annotations
@@ -31,7 +34,32 @@ from agent.synthesis_types import TargetClassification
 # Bump on any change to the decision logic so the calibration log can separate
 # pre/post regimes (stamped into run.json).
 #   decision-1 — the original locked decision function (P1-P3; SCALE gated).
-DECISION_VERSION = "decision-1"
+#   decision-2 — SCALE un-gated behind a PROVISIONAL desk-research bar
+#                (_SCALE_FLOOR); a documented best-guess, not an anchor run.
+#                KNOWN RISK — recalibrate after v2.4 locks (spec §7a).
+DECISION_VERSION = "decision-2"
+
+# ---- The provisional SCALE bar (KNOWN RISK — recalibrate post-v2.4) ----
+#
+# SCALE is a COMPOSITE call: the within target must act at/above this floor AND
+# the assess pass must leave no in-target lever (no within-target pain survives
+# to the SCALE branch). The composite does the real discrimination — the floor
+# is only a magnitude backstop against a clean-but-weak read slipping through.
+#
+# The floor is a DOCUMENTED BEST-GUESS, not an empirical anchor run — we still
+# have 0/42 upper-anchor observations. It is set from:
+#   - our own distribution: the best *flawed* anchor (MB whey) tops out at 68%
+#     within-target action WITH three fixable execution pains, so a clean SCALE
+#     ad must clear it with margin;
+#   - copy-testing norms (top-2-box >40% = "strong consideration"), scaled UP
+#     because our metric is (a) filtered to the target persona, not a general
+#     sample, and (b) a simulated top-box, which overstates real behaviour
+#     (~63% of "definitely would buy" actually convert). Both push the bar high.
+# Direction is deliberately conservative: too-high only *understates* a great ad
+# (ITERATE instead of SCALE — mild); too-low stamps a mediocre ad SCALE (costly).
+# KNOWN RISK, accepted by the user for now; recalibrate against the deliberately-
+# strong anchor run once v2.4 is locked. See docs/v2_3_decision_layer.md §7a.
+_SCALE_FLOOR = 0.75
 
 # Funnel-stage precedence for the load-bearing within-target pain. The earliest
 # stage a within-target pain bites gates everything downstream, so it — not the
@@ -163,9 +191,10 @@ def resolve_decision(
 ) -> Decision:
     """Map already-computed signals to a brand-facing DECISION. Deterministic,
     first-match, severity + disposition-gap driven — A_within is the headline
-    number, NOT a magnitude gate (that is what keeps this from overfitting the
-    four calibration anchors). SCALE is unreachable here (gated, v2.3 P4): the
-    logic falls through to ITERATE rather than ever emitting it.
+    number and (only at the SCALE branch) a magnitude backstop, never the sole
+    driver, which is what keeps this from overfitting the four calibration
+    anchors. SCALE is un-gated behind a PROVISIONAL floor (see _SCALE_FLOOR):
+    it fires only for a clean, strong read and fails toward ITERATE otherwise.
 
         0. METHODOLOGY_GAP                               -> INCONCLUSIVE
         1. audience_match == mismatched                  -> RETARGET
@@ -173,7 +202,9 @@ def resolve_decision(
            and clears the absolute floor F
         3. no within-target evidence at all              -> INCONCLUSIVE
         4. load-bearing within pain is STRUCTURAL        -> REBUILD
-        5. else (execution / fixable)                    -> ITERATE
+        5. A_within >= _SCALE_FLOOR AND no in-target      -> SCALE  [provisional]
+           lever left AND trust == HIGH
+        6. else (execution / fixable)                    -> ITERATE
     """
     trust = _trust(within_labels, methodology_flags)
     champion = _best_champion(action_by_disp, classification_map)
@@ -222,7 +253,35 @@ def resolve_decision(
     if load_bearing_pain is not None and load_bearing_pain.severity == "structural":
         return make("REBUILD", f"load-bearing within pain {lb_id} is structural")
 
-    # 5. The block is execution-level — a specific in-scope lever is leaking.
+    # 5. Strong, clean, WELL-EVIDENCED read -> SCALE (PROVISIONAL bar, decision-2).
+    #    Three conditions, ALL required:
+    #      (a) the within target acts at/above the provisional floor;
+    #      (b) no in-target lever is left — step 4 already excluded a structural
+    #          within pain, so a None load-bearing pain here means zero within
+    #          pains survive;
+    #      (c) trust is HIGH (>=2 within dispositions, no thin-evidence flag).
+    #    (c) is load-bearing, not decoration: WITHOUT it the branch fires most
+    #    easily on THIN, single-persona reads (a_within is cheap on a small
+    #    denominator — 4/5 = 80% — and "no within pain" is easier when few
+    #    transcripts surface few pains), which would invert the "fails toward
+    #    ITERATE, never false-SCALE" posture the provisional bar is sold on. With
+    #    today's single-within-persona panels this means provisional SCALE rarely
+    #    fires — by design, that is the mild (understatement) failure. The floor
+    #    is a documented best-guess (see _SCALE_FLOOR), NOT an anchor run — KNOWN
+    #    RISK, recalibrate post-v2.4. Fails toward ITERATE (step 6).
+    if (
+        a_within is not None
+        and a_within >= _SCALE_FLOOR
+        and load_bearing_pain is None
+        and trust == "HIGH"
+    ):
+        return make(
+            "SCALE",
+            f"within acts at {a_within:.0%} >= provisional bar {_SCALE_FLOOR:.0%}, "
+            f"no in-target lever left, HIGH trust",
+        )
+
+    # 6. The block is execution-level — a specific in-scope lever is leaking.
     return make("ITERATE", f"load-bearing within pain {lb_id or '(none)'} is fixable")
 
 
