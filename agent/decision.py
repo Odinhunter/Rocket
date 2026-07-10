@@ -22,7 +22,12 @@ stamping a mediocre ad SCALE (the costly error). See docs/v2_3_decision_layer.md
 
 from __future__ import annotations
 
-from agent.purpose import DIRECT_SELL, PurposePreset, resolve_purpose
+from agent.purpose import (
+    DIRECT_SELL,
+    RETAIN_WINBACK,
+    PurposePreset,
+    resolve_purpose,
+)
 from agent.schema import (
     AgentTranscript,
     AudienceMatch,
@@ -145,6 +150,26 @@ def action_by_disposition(
 # Python count over parsed signals (the "distributions are Python" invariant).
 
 
+# Disposition stance prefixes that denote an EXISTING/LAPSED customer of the
+# brand — the audience a retain/win-back ad targets. Extends the acquisition
+# stance vocab (loyalist is the one already in it); a brand library must author
+# such personas before retain can be scored (see docs/v2_4 §4.5). Until then a
+# retain run finds none and is honestly dormant (INCONCLUSIVE), never scoring
+# cold prospects as if they were existing customers.
+_EXISTING_CUSTOMER_STANCES = frozenset({"loyalist", "lapsed", "subscriber", "winback"})
+
+
+def _is_existing_customer(disposition_label: str) -> bool:
+    return disposition_label.split("_", 1)[0] in _EXISTING_CUSTOMER_STANCES
+
+
+def _existing_customer_labels(transcripts: list[AgentTranscript]) -> list[str]:
+    return sorted({
+        t.disposition_label for t in transcripts
+        if _is_existing_customer(t.disposition_label)
+    })
+
+
 def _agent_win(t: AgentTranscript, preset: PurposePreset) -> bool | None:
     """Did this agent's terminal signal count as a WIN for this purpose? None
     when the agent has no usable signal (excluded from the denominator, exactly
@@ -172,7 +197,11 @@ def _frame_subset(
     -> the within-target dispositions; broad / broad_cold -> the whole panel
     (a cold-hook run is meant to be run against a cold-context envelope, so the
     panel already IS the cold audience)."""
-    if preset.audience_frame in ("narrow", "existing"):
+    if preset.audience_frame == "existing":
+        # retain: the frame is existing/lapsed-customer dispositions, NOT the
+        # demographic within-target (which cuts a different way).
+        return [t for t in transcripts if _is_existing_customer(t.disposition_label)]
+    if preset.audience_frame == "narrow":
         within = set(target_classification.within_target_labels())
         return [t for t in transcripts if t.disposition_label in within]
     return list(transcripts)
@@ -397,11 +426,40 @@ def build_decision(
     direct-sell is byte-for-byte v2.3; other jobs swap the metric, the frame,
     and the floor while the branch structure transfers."""
     preset = resolve_purpose(purpose)
-    classification_map = {
-        d.disposition_label: d.classification
-        for d in target_classification.disposition_classifications
-    }
-    within_labels = target_classification.within_target_labels()
+
+    if preset.name == RETAIN_WINBACK:
+        # retain's relevant audience is existing/lapsed customers, cutting across
+        # the demographic within/outside axis. With no such personas in the panel
+        # the ad cannot be judged -> honestly dormant, NOT a faked reorder rate.
+        existing = _existing_customer_labels(transcripts)
+        if not existing:
+            dormant = Decision(
+                decision="INCONCLUSIVE",
+                target_action_rate=None,
+                trust="DIRECTIONAL",
+                rationale=(
+                    "retain/win-back needs existing-customer personas "
+                    "(loyalist/lapsed/subscriber) in the panel; none were present"
+                ),
+            )
+            dormant.purpose = preset.name
+            return dormant
+        # existing customers ARE the "within" for a retain decision; recast the
+        # classification map so champion detection means "lands better on
+        # non-existing prospects" (the retain 'wrong audience' story).
+        within_labels = existing
+        existing_set = set(existing)
+        classification_map = {
+            t.disposition_label: ("within" if t.disposition_label in existing_set else "outside")
+            for t in transcripts
+        }
+    else:
+        classification_map = {
+            d.disposition_label: d.classification
+            for d in target_classification.disposition_classifications
+        }
+        within_labels = target_classification.within_target_labels()
+
     (a_within, num, denom), action_by_disp = purpose_primary_metric(
         transcripts, target_classification, preset
     )
