@@ -175,16 +175,25 @@ def _agent_win(t: AgentTranscript, preset: PurposePreset) -> bool | None:
     when the agent has no usable signal (excluded from the denominator, exactly
     like a missing R7 in within_target_action_rate)."""
     bs = t.behavioral_signal
+    metric = preset.headline_metric
+    if metric == "resonance_brand_memory":
+        # brand-building: resonance (a lean-in, not a scroll) AND the brand stuck
+        # (confident R9 attribution). This is what catches "loved the ad, forgot
+        # the brand" — engaged but mis-attributed does NOT count. Needs the probe;
+        # without it (pre-v2.4 transcript) there is no signal -> exclude.
+        if bs is None or t.probe_signal is None:
+            return None
+        engaged = bs.action != "scroll_past"
+        recalled = t.probe_signal.brand_recall == "confident"
+        return engaged and recalled
     if bs is None:
         return None
-    metric = preset.headline_metric
     if metric == "cold_stop_lean_in":
         # Stop-and-lean-in: anything other than a scroll-past (linger / seek_info
         # / save / tap / share). The cold-hook job is the stop, not the sale.
         return bs.action != "scroll_past"
     # direct_sell + retain (reorder/return framing) both key off would-act.
-    # brand_building / informer are breadth reads handled on their own path
-    # (P5/P6); this predicate is not their headline.
+    # awareness/informer is a breadth read handled on its own path (P6).
     return bs.would_act_within_week
 
 
@@ -276,6 +285,23 @@ def _trust(within_labels: list[str], flags: list[str]) -> str:
     return "DIRECTIONAL"
 
 
+# A broad-reach job (brand-building, informer) earns HIGH trust by BREADTH — this
+# many distinct dispositions actually registering the signal — not by one narrow
+# group registering strongly. This is the v2.3 SCALE trust guard ported to a
+# broad frame (skip it and the provisional bar fires easiest on the thinnest,
+# single-group evidence — the exact hole caught in v2.3).
+_BROAD_MIN_DISPOSITIONS = 3
+
+
+def _broad_trust(
+    by_disposition: dict[str, tuple[float, int, int]], flags: list[str]
+) -> str:
+    registered = sum(1 for (_r, num, _d) in by_disposition.values() if num > 0)
+    if registered >= _BROAD_MIN_DISPOSITIONS and not (_THIN_EVIDENCE_FLAGS & set(flags)):
+        return "HIGH"
+    return "DIRECTIONAL"
+
+
 def _best_champion(
     action_by_disp: dict[str, tuple[float, int, int]],
     classification_map: dict[str, str],
@@ -306,6 +332,7 @@ def resolve_decision(
     methodology_flags: list[str],
     scale_floor: float = _SCALE_FLOOR,
     within_rate: float | None = None,
+    trust_override: str | None = None,
 ) -> Decision:
     """Map already-computed signals to a brand-facing DECISION. Deterministic,
     first-match, severity + disposition-gap driven — A_within is the headline
@@ -324,7 +351,7 @@ def resolve_decision(
            lever left AND trust == HIGH
         6. else (execution / fixable)                    -> ITERATE
     """
-    trust = _trust(within_labels, methodology_flags)
+    trust = trust_override if trust_override is not None else _trust(within_labels, methodology_flags)
     champion = _best_champion(action_by_disp, classification_map)
     lb_id = load_bearing_pain.id if load_bearing_pain is not None else ""
     # a_within is the HEADLINE metric (broad for a broad-frame job); within_rate
@@ -475,6 +502,11 @@ def build_decision(
         within_rate = _rate_of(within_subset, preset, none_on_empty=True)[0]
     load_bearing = load_bearing_within_pain(pain_map)
     am_verdict = audience_match.verdict if audience_match is not None else None
+    # Broad-reach jobs earn trust by breadth of registration, not within-count.
+    trust_override = (
+        _broad_trust(action_by_disp, methodology_flags)
+        if preset.multi_target else None
+    )
     decision = resolve_decision(
         a_within,
         action_by_disp,
@@ -486,6 +518,7 @@ def build_decision(
         methodology_flags,
         scale_floor=preset.provisional_scale_floor,
         within_rate=within_rate,
+        trust_override=trust_override,
     )
     # Enrich with the raw counts behind the metric (for an honest render) + the
     # purpose (so the render/artifact phrases the headline correctly); the

@@ -149,6 +149,9 @@ def _headline_metric_line(d) -> str:
     if preset.name == "cold_hook":
         return (f"  {rate} of a cold audience stopped and leaned in{tail}  "
                 f"(vs scrolling past — the hook, not the sale).")
+    if preset.name == "brand_building":
+        return (f"  {rate} both felt it AND remembered the brand{tail}  "
+                f"(engaged but mis-attributed doesn't count).")
     # retain / others: a generic metric-labelled line.
     return f"  {rate} — {preset.metric_label}{tail}."
 
