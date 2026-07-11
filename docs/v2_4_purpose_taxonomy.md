@@ -34,18 +34,40 @@ Built as ONE build (the user's call), commit-per-phase P0–P7, offline suite 31
 - Broad-frame **evidence guard** (trust earned by breadth, not one group) carries
   v2.3's SCALE safety onto brand-building/informer.
 
-**Known limits (do NOT overstate):**
-- brand-building + informer are **logic-complete but PROBE-REALISM UNVALIDATED** —
-  every P5/P6 test is synthetic. The real gate is inspecting live R8/R9
-  distributions (do they vary sensibly, or come back degenerate?) — do this on the
-  first paid run before trusting these two.
+**Known limits (do NOT overstate — the offline 31/31 CANNOT see any of these):**
+- Every offline test validates **logic given a signal**, never that the models
+  **emit** meaningful signals on real ads. Two of the five jobs (brand-building,
+  informer) and the load-bearing mismatch guard have **never touched a real
+  creative**.
+
+**THE PAID VALIDATION GATE — FOUR checks, one greenlight covers all** (blocks the
+claim "v2.4 works / is shippable"; does NOT block this code-complete checkpoint):
+  - **(a) R7 JSON integrity** — the terminal JSON grew two fields; if the model
+    malforms the longer line even a few % more, `parse_r7_signal` returns None
+    more often and denominators silently shrink on EVERY run (direct-sell too).
+    Offline fixtures have clean JSON, so this is invisible today.
+  - **(b) direct-sell anchor rates held** — perturbation from the probed prompt;
+    check the *rates* (~68% etc.), not just labels. Fixtures are frozen pre-probe
+    and structurally cannot detect this.
+  - **(c) R8/R9 distributions non-degenerate** — do novelty/brand_recall vary
+    sensibly across ads + dispositions, or come back constant? Gates
+    brand-building + informer.
+  - **(d) `inferred_purpose` takes confident, correct values on a known off-job
+    ad** — the field is `required` but `_SYSTEM` tells the model to be
+    conservative and default to `unclear`; if it plays safe, the mismatch guard
+    silently NEVER fires and the default-user category error still happens
+    invisibly. Gates the mismatch guard (the headline guardrail).
+  - Cheapest first dollar: a **single ~$4 live run** exercises the real wiring
+    (target_id's new tool schema, `prepare()`'s mismatch path, the longer
+    reflection prompt) AND yields the (a)–(d) reads on one ad — highest
+    information before any multi-anchor recalibration.
+
 - Every non-direct-sell `provisional_scale_floor` (and the informer register
   threshold 0.5) is a **reference-free best-guess** — §7 gate satisfied only
   PROVISIONALLY (like v2.3's SCALE floor); recalibrate per per-purpose anchor run.
 - **Informer measures noticing/news, not R2 comprehension** (relabelled honestly;
   true-comprehension breadth deferred to the anchor run).
-- The paid direct-sell anchor re-validation (do the 4 anchors still resolve on the
-  probed prompt) is **PENDING a user greenlight**.
+- retain needs a loyalist+lapsed persona pair authored before it is demonstrable.
 
 **Locked taxonomy — five jobs:** direct-sell · cold-hook · awareness/informer ·
 brand-building · retain/win-back. Direct-sell is the default.
