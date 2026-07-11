@@ -109,6 +109,30 @@ PACK = CategoryArtifactPack(
             name="Levista", tier="mass",
             note="instant-coffee capsule/subscription brand",
         ),
+        BrandLandscapeEntry(
+            name="Starbucks", tier="premium-cafe",
+            note="Tata Starbucks; the aspirational urban-elite chain, ~500 stores; "
+                 "'taught India to pay premium'; latte ~₹270-350; status-coded, the "
+                 "café-as-third-place default",
+        ),
+        BrandLandscapeEntry(
+            name="Cafe Coffee Day", tier="mid-cafe",
+            note="CCD; the original mass bean-to-cup chain (1996), 'a lot can happen "
+                 "over coffee'; ubiquitous, mid-range, in comeback",
+        ),
+        BrandLandscapeEntry(
+            name="Costa Coffee", tier="premium-cafe",
+            note="Coca-Cola-owned premium chain; the other urban-elite option beside "
+                 "Starbucks",
+        ),
+        BrandLandscapeEntry(
+            name="Barista", tier="mid-cafe",
+            note="legacy pre-Starbucks mid-range café chain",
+        ),
+        BrandLandscapeEntry(
+            name="AbCoffee", tier="d2c-disruptor",
+            note="QSR-format affordable specialty coffee; grab-and-go third-wave",
+        ),
     ],
     price_points=[
         PricePoint(item="Blue Tokai cold brew", price_inr="₹280", channel="Indiranagar cafe"),
@@ -118,6 +142,11 @@ PACK = CategoryArtifactPack(
         PricePoint(item="office-pantry instant cup", price_inr="effectively free / <₹15", channel="office pantry"),
         PricePoint(item="specialty single-origin beans 200g", price_inr="₹500-700", channel="Subko / Blue Tokai online"),
         PricePoint(item="cafe latte", price_inr="₹380", channel="metro chain cafe"),
+        PricePoint(item="Starbucks Caffè Latte (Tall)", price_inr="₹270", channel="Starbucks; Grande +₹40-70"),
+        PricePoint(item="Starbucks Cappuccino", price_inr="₹260", channel="Starbucks"),
+        PricePoint(item="Starbucks Frappuccino", price_inr="₹300-320", channel="Starbucks"),
+        PricePoint(item="CCD cappuccino", price_inr="~₹150-180", channel="Cafe Coffee Day"),
+        PricePoint(item="Blue Tokai single-origin beans 250g", price_inr="₹450-650", channel="Blue Tokai online / cafe"),
     ],
     retail_channels=[
         "kirana", "Flipkart Grocery", "BigBasket", "Reliance Smart", "More",
@@ -156,6 +185,10 @@ PACK = CategoryArtifactPack(
         "Bru se thoda strong taste hai, but family ko pasand aaya. 200g jar ₹245 ka mila on offer, normal time pe ₹310 hota hai.",
         "Yeh sab Tata Gold, Nescafe Gold types ka coffee mehnga hai 600 rupaye 100g ka — taste mein utna farak nahi padta honestly.",
         "MRP ₹500 dikha rahe hain aur same product ₹220 mein milta hai. 60% off ka chakkar hai.",
+        "starbucks is a status symbol for people who can't afford a bmw. 292 rupees to look cool, that's the whole thing",
+        "honestly i get more work done at starbucks than at home. wifi, ac, my corner seat, my usual grande — it's my third place",
+        "degree kaapi at home every morning, steel filter, decoction set overnight. why would i pay 300 for a cappuccino with a bloated price tag",
+        "blue tokai and third wave actually care about the bean. starbucks is over-roasted corporate syrup, you're paying for the logo",
     ],
     behavioral_priors=(
         "Coffee is bought on two very different loops. The instant-coffee loop is "
