@@ -23,6 +23,7 @@ stamping a mediocre ad SCALE (the costly error). See docs/v2_3_decision_layer.md
 from __future__ import annotations
 
 from agent.purpose import (
+    AWARENESS_INFORMER,
     DIRECT_SELL,
     RETAIN_WINBACK,
     PurposePreset,
@@ -174,8 +175,14 @@ def _agent_win(t: AgentTranscript, preset: PurposePreset) -> bool | None:
     """Did this agent's terminal signal count as a WIN for this purpose? None
     when the agent has no usable signal (excluded from the denominator, exactly
     like a missing R7 in within_target_action_rate)."""
-    bs = t.behavioral_signal
     metric = preset.headline_metric
+    if metric == "breadth_registration":
+        # informer: did this agent learn something new about the brand (R8
+        # novelty)? The cognitive ruler — deliberately DISJOINT from
+        # brand-building's affective (engagement + attribution) ruler, so the two
+        # purposes stay distinct. Needs the probe; no probe -> exclude.
+        return None if t.probe_signal is None else t.probe_signal.novelty
+    bs = t.behavioral_signal
     if metric == "resonance_brand_memory":
         # brand-building: resonance (a lean-in, not a scroll) AND the brand stuck
         # (confident R9 attribution). This is what catches "loved the ad, forgot
@@ -300,6 +307,62 @@ def _broad_trust(
     if registered >= _BROAD_MIN_DISPOSITIONS and not (_THIN_EVIDENCE_FLAGS & set(flags)):
         return "HIGH"
     return "DIRECTIONAL"
+
+
+# Awareness/informer is a BREADTH read: how many distinct audience TYPES
+# registered the ad as news (R8 novelty), not an agent-level rate. A disposition
+# "registers" when at least this fraction of its agents reported novelty. A
+# PROVISIONAL threshold (like the SCALE floors) — recalibrate against an informer
+# anchor run.
+_INFORMER_REGISTER_THRESHOLD = 0.5
+
+
+def _resolve_informer(
+    by_disposition: dict[str, tuple[float, int, int]],
+    load_bearing_pain: Pain | None,
+    verdict: str,
+    methodology_flags: list[str],
+    scale_floor: float,
+) -> Decision:
+    """The informer decision, on a DISPOSITION-COUNT breadth (not an agent rate).
+    breadth = (dispositions that registered the news) / (dispositions with a
+    novelty signal). SCALE = broad registration + memorable; ITERATE = noticed
+    but narrow/unclear; REBUILD = a structural attention block; INCONCLUSIVE =
+    no signal. There is no RETARGET — a broad-reach informer has no 'wrong
+    person' story."""
+    total = [lab for lab, (_r, _n, denom) in by_disposition.items() if denom > 0]
+    registered = [
+        lab for lab, (rate, _n, denom) in by_disposition.items()
+        if denom > 0 and rate >= _INFORMER_REGISTER_THRESHOLD
+    ]
+    trust = _broad_trust(by_disposition, methodology_flags)
+    n_reg, n_total = len(registered), len(total)
+    breadth = (n_reg / n_total) if n_total else None
+
+    def make(decision: str, rationale: str) -> Decision:
+        d = Decision(
+            decision=decision, target_action_rate=breadth, trust=trust,
+            target_action_num=n_reg, target_action_denom=n_total,
+            within_dispositions=sorted(registered),
+            load_bearing_pain_id=(load_bearing_pain.id if load_bearing_pain else ""),
+            rationale=rationale,
+        )
+        d.purpose = AWARENESS_INFORMER
+        return d
+
+    if verdict == "METHODOLOGY_GAP":
+        return make("INCONCLUSIVE", "verdict is METHODOLOGY_GAP (data quality)")
+    if n_total == 0 or breadth is None:
+        return make("INCONCLUSIVE", "no novelty signal to read breadth from")
+    if load_bearing_pain is not None and load_bearing_pain.severity == "structural":
+        return make("REBUILD", f"structural attention block {load_bearing_pain.id} — few notice it")
+    if breadth >= scale_floor and trust == "HIGH" and load_bearing_pain is None:
+        return make(
+            "SCALE",
+            f"{n_reg} of {n_total} audience types registered it as news "
+            f">= provisional breadth bar {scale_floor:.0%}, HIGH trust",
+        )
+    return make("ITERATE", f"only {n_reg} of {n_total} audience types registered the news")
 
 
 def _best_champion(
@@ -453,6 +516,18 @@ def build_decision(
     direct-sell is byte-for-byte v2.3; other jobs swap the metric, the frame,
     and the floor while the branch structure transfers."""
     preset = resolve_purpose(purpose)
+
+    if preset.name == AWARENESS_INFORMER:
+        # A disposition-count breadth read, not an agent rate — resolved on its
+        # own path (no RETARGET; SCALE/ITERATE/REBUILD/INCONCLUSIVE only).
+        _headline, by_disp = purpose_primary_metric(
+            transcripts, target_classification, preset
+        )
+        load_bearing = load_bearing_within_pain(pain_map)
+        return _resolve_informer(
+            by_disp, load_bearing, verdict, methodology_flags,
+            preset.provisional_scale_floor,
+        )
 
     if preset.name == RETAIN_WINBACK:
         # retain's relevant audience is existing/lapsed customers, cutting across

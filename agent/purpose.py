@@ -145,15 +145,19 @@ PURPOSE_REGISTRY: dict[str, PurposePreset] = {
         name=AWARENESS_INFORMER,
         label="Awareness / informer",
         headline_metric="breadth_registration",
-        metric_label="breadth of comprehension",
+        # Honesty: this measures breadth of NOTICING / NEWS (R8 novelty across
+        # distinct dispositions), NOT R2 comprehension — comprehension is prose
+        # we do not structurally read; true-comprehension breadth is deferred to
+        # the informer anchor run.
+        metric_label="breadth of noticing / news",
         audience_frame="broad",
         scored_probes=("novelty",),
-        # A breadth COUNT, not a rate — the provisional bar is a coverage
-        # fraction (how many distinct dispositions registered). Placeholder;
-        # metric + breadth read land in P6.
+        # A breadth COUNT over distinct dispositions, not an agent rate — the
+        # provisional bar is a coverage fraction (how many audience types
+        # registered the news). See decision._resolve_informer.
         provisional_scale_floor=0.60,
         win_direction="n/a",
-        decision_basis="how many distinct dispositions comprehended + remember + learned",
+        decision_basis="how many distinct audience types registered the ad as news (novelty)",
         multi_target=True,
     ),
 }

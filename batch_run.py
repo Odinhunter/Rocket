@@ -152,6 +152,10 @@ def _headline_metric_line(d) -> str:
     if preset.name == "brand_building":
         return (f"  {rate} both felt it AND remembered the brand{tail}  "
                 f"(engaged but mis-attributed doesn't count).")
+    if preset.name == "awareness_informer":
+        # breadth is a disposition COUNT: num of denom audience TYPES registered.
+        return (f"  {d.target_action_num} of {d.target_action_denom} audience types "
+                f"registered it as news ({rate})  (breadth of noticing, not sales).")
     # retain / others: a generic metric-labelled line.
     return f"  {rate} — {preset.metric_label}{tail}."
 
