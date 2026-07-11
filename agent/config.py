@@ -72,7 +72,13 @@ def _base64_encoded_size(raw_bytes: int) -> int:
 #        + the within-target action rate + a trust line. Adds Report.decision.
 #        No new model call — pure Python over existing signals. SCALE is gated
 #        behind an anchor run (P4) and not emitted yet.
-PROTOCOL_VERSION = "rocket-2.3.0"
+# 2.4.0 (purpose layer): the ad's JOB becomes the scoring ruler. Adds
+#        CreativeInputs.purpose (5 jobs) + Decision.purpose; two always-on blind
+#        reflection probes (R8 novelty, R9 brand-attribution) fold into the R7
+#        terminal JSON — a REACTION-PROMPT change, hence a protocol bump; a
+#        declared-vs-apparent-purpose mismatch guard; per-purpose metric/decision
+#        (agent/purpose.py, PURPOSE_VERSION). Reactions stay purpose-blind.
+PROTOCOL_VERSION = "rocket-2.4.0"
 
 
 # Default model assignments per layer. Locked after 2026-05-12 telemetry +

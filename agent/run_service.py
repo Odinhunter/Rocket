@@ -56,6 +56,7 @@ from agent.synthesis_assess import ASSESS_PROMPT_VERSION, frozen_painmap_from_re
 from agent.synthesis_l2 import synthesize_segment_async
 from agent.synthesis_l3 import synthesize_population
 from agent.decision import DECISION_VERSION
+from agent.purpose import PURPOSE_VERSION
 from agent.synthesis_l4 import L4_PROMPT_VERSION, synthesize_report
 from agent.synthesis_prescribe import PRESCRIBE_PROMPT_VERSION
 from agent.synthesis_types import (
@@ -271,6 +272,7 @@ def _run_json_payload(
         "assess_prompt_version": ASSESS_PROMPT_VERSION,
         "prescribe_prompt_version": PRESCRIBE_PROMPT_VERSION,
         "decision_version": DECISION_VERSION,
+        "purpose_version": PURPOSE_VERSION,
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "config": config.to_dict(),
         "panel_health": panel_health,

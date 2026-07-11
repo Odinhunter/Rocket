@@ -4,10 +4,48 @@
 criteria for **that** job — instead of judging every ad by "would the target buy
 this week."*
 
-Status: **DESIGN / proposed** (2026-07-08, research-updated + 5th purpose locked
-2026-07-09). Extends `docs/v2_3_decision_layer.md`. Grounded in **two** web-research
-sweeps + a manual browse (see §8 for sources + an honesty note on what was and wasn't
-machine-verified). Builds *after* v2.3 ships.
+Status: **BUILT (2026-07-11) — logic-complete, all five jobs; offline 31/31.**
+Was DESIGN / proposed (2026-07-08, research-updated + 5th purpose locked 2026-07-09).
+Extends `docs/v2_3_decision_layer.md`. Grounded in **two** web-research sweeps + a
+manual browse (see §8 for sources + an honesty note on what was and wasn't
+machine-verified).
+
+---
+
+## BUILD STATUS (2026-07-11) — read before §7
+
+Built as ONE build (the user's call), commit-per-phase P0–P7, offline suite 31/31.
+
+**Shipped (all five jobs scored):**
+- **Purpose field** (`CreativeInputs.purpose`, default `direct_sell`) + `--purpose`
+  flag + a five-preset registry (`agent/purpose.py`, `PURPOSE_VERSION=purpose-1`).
+- **Declared-vs-apparent-purpose mismatch guard** — the load-bearing guardrail for
+  the default-purpose user; warn-not-block, surfaces the apparent job + how to
+  re-grade (`detect_purpose_mismatch`).
+- **Two always-on blind probes** folded into the R7 terminal JSON: **R8 novelty**,
+  **R9 brand_recall** (`ProbeSignal`). Asked every run → panel stays purpose-blind;
+  the reaction-prompt change is why `PROTOCOL_VERSION → rocket-2.4.0`.
+- **Per-purpose metric seam** (`agent/decision.py`): direct-sell byte-for-byte v2.3;
+  **cold-hook** = broad stop-and-lean-in rate; **retain** = re-engagement over
+  existing-customer dispositions (INERT until the library carries loyalist/lapsed —
+  honestly dormant, never a faked rate); **brand-building** = resonance × brand
+  attribution (catches "loved the ad, forgot the brand"); **informer** = a
+  disposition-count **breadth of noticing/news** (R8), replay-stable by construction.
+- Broad-frame **evidence guard** (trust earned by breadth, not one group) carries
+  v2.3's SCALE safety onto brand-building/informer.
+
+**Known limits (do NOT overstate):**
+- brand-building + informer are **logic-complete but PROBE-REALISM UNVALIDATED** —
+  every P5/P6 test is synthetic. The real gate is inspecting live R8/R9
+  distributions (do they vary sensibly, or come back degenerate?) — do this on the
+  first paid run before trusting these two.
+- Every non-direct-sell `provisional_scale_floor` (and the informer register
+  threshold 0.5) is a **reference-free best-guess** — §7 gate satisfied only
+  PROVISIONALLY (like v2.3's SCALE floor); recalibrate per per-purpose anchor run.
+- **Informer measures noticing/news, not R2 comprehension** (relabelled honestly;
+  true-comprehension breadth deferred to the anchor run).
+- The paid direct-sell anchor re-validation (do the 4 anchors still resolve on the
+  probed prompt) is **PENDING a user greenlight**.
 
 **Locked taxonomy — five jobs:** direct-sell · cold-hook · awareness/informer ·
 brand-building · retain/win-back. Direct-sell is the default.
