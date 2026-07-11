@@ -134,8 +134,16 @@ PURPOSE_REGISTRY: dict[str, PurposePreset] = {
         metric_label="resonance × brand-memorability",
         audience_frame="broad",
         scored_probes=("brand_attribution",),
+        # ⚠ KNOWN LIMITATION (2026-07-12 Starbucks anchor run, docs/v2_4 §brand_recall):
+        # the ATTRIBUTION half (brand_recall) is UNVALIDATED and near-degenerate on any
+        # logo-in-frame creative. R2 comprehension makes the blind reaction NAME the
+        # brand (100% did on the anchor), and that text is replayed into the reflection
+        # turn, so brand_recall reads the persona's own prior words, not memory. On such
+        # creatives the metric effectively COLLAPSES to its resonance half. A genuine
+        # attribution read needs a probe REDESIGN (attribution off R1/R2) + a mark-absent
+        # / logo-late creative — parked. Ship brand-building on its resonance half; treat
+        # the attribution gate as provisional.
         # NO reference point + a broad frame → deliberately conservative.
-        # Placeholder; metric + guard land in P5.
         provisional_scale_floor=0.60,
         win_direction="n/a",
         decision_basis="broad positive-emotion breadth + correct brand attribution",

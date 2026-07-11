@@ -185,9 +185,15 @@ def _agent_win(t: AgentTranscript, preset: PurposePreset) -> bool | None:
     bs = t.behavioral_signal
     if metric == "resonance_brand_memory":
         # brand-building: resonance (a lean-in, not a scroll) AND the brand stuck
-        # (confident R9 attribution). This is what catches "loved the ad, forgot
-        # the brand" — engaged but mis-attributed does NOT count. Needs the probe;
-        # without it (pre-v2.4 transcript) there is no signal -> exclude.
+        # (confident R9 attribution). This is meant to catch "loved the ad, forgot
+        # the brand" — engaged but mis-attributed does NOT count.
+        # ⚠ KNOWN LIMITATION (2026-07-12, docs/v2_4 §brand_recall): the recall gate is
+        # UNVALIDATED and near-degenerate on logo-in-frame creatives — R2 makes the blind
+        # reaction name the brand and it is replayed into reflection, so `brand_recall`
+        # reads prior words, not memory (99/99 "confident" on the Starbucks anchor). The
+        # metric then collapses to its resonance (engaged) half. Genuine attribution needs
+        # a probe redesign + a mark-absent creative (parked). Needs the probe; without it
+        # (pre-v2.4 transcript) there is no signal -> exclude.
         if bs is None or t.probe_signal is None:
             return None
         engaged = bs.action != "scroll_past"

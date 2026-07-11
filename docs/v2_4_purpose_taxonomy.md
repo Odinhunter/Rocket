@@ -86,6 +86,74 @@ brand-building · retain/win-back. Direct-sell is the default.
 
 ---
 
+## brand_recall probe — the Starbucks anchor finding (2026-07-12)
+
+First brand-building anchor run: Starbucks "The world has a pause button" (a
+brand-subtle emotional still — scene is the hero, small corner logo) with
+`--purpose brand_building` against a purpose-built `starbucks_coffee` panel (6
+cohort-spanning café-coffee dispositions, all `provisional`; new `packs/coffee.py`
+café brands + `data/voice_samples/coffee.md`). ~$4.00, 99 agents, seed 71. Evidence:
+`runs/demo/starbucks_coffee/20260711_205653_seed71_starbucks_the_world_has_a_paus`.
+
+**Gate:** (1) R9 JSON integrity **PASS** (99/99 parse). (2) `brand_recall` **did NOT
+split — 98/99 "confident"** (1 unsure, 0 none); the engaged-but-forgot-the-brand cell
+= **0**. (3) resonance×recall = **5/99 (5%)**, narrow (only `aspirant_cafe_culture`
+lingered, ~1/3 of them, and only in the weekend-leisure context); `_broad_trust`
+correctly → **DIRECTIONAL** (only 1 disposition registered, <3). (4) `inferred_purpose`
+**PASS** (= brand_building, "no product/price/CTA… feel-and-remember"). Decision = ITERATE.
+
+**The finding (at the altitude the evidence supports — NOT "stills can't do it", and
+NOT "just withhold the image" — both were wrong earlier guesses):** the uniform-confident
+result is **overdetermined**, and the load-bearing mechanism is deeper than the image.
+- **(a) The mechanism — the blind reaction NAMES the brand, and it is replayed.** R2
+  COMPREHENSION asks *"what's it selling, who's it for"*, so on a logo-in-frame creative
+  the persona names the brand in its very first impression — **empirically 100% (99/99)**
+  named "Starbucks" in R1/R2 (even the pragmatist who "moved on": *"Group of women… Starbucks
+  cups everywhere"*). That encoding text is **replayed as the assistant turn** in the
+  reflection call (`agent/runtime.py` Call B), so R9 *"without scrolling back, which brand?"*
+  is answerable **from the persona's own prior words — with or without the image on screen.**
+  → **Withholding the image is necessary but NOWHERE NEAR sufficient.** On a logo-in-frame
+  creative, brand attribution is **degenerate wherever you read it**.
+- **(b) Panel primed by construction.** Every `starbucks_coffee` persona is anchored ON
+  Starbucks → recognition was baked in. **Tension worth keeping:** brand-*matching* the panel
+  (which the resonance half wants) **sabotages** the attribution half. `resonance_brand_memory`'s
+  two halves want opposite panels.
+- **(c)** iconic brand. Any one confound alone yields uniform-confident.
+
+**"Recall a day later" is not simulable here** — the persona carries a *verbatim transcript*
+of its own brand-naming thoughts; humans don't. Do NOT try to patch it by withholding the
+image or by scrubbing brand tokens from the replayed encoding text (that tests
+"re-infer the brand from your redacted notes", not memory, and unravels the moment the notes
+mention the green siren).
+
+**The ONLY valid test = a probe REDESIGN + a new creative (not a patch):** measure brand
+**attribution at first impression** — does the persona correctly link the creative to the
+brand in R1/R2, read off the existing blind reaction (no fake "recall" turn). But attribution
+only *varies* on a creative where the mark isn't handed over → needs **(i) a mark-absent /
+logo-revealed-late emotional creative AND (ii) an attribution read over R1/R2**, on a
+non-brand-anchored panel. There is nothing to salvage from *this* run by re-parsing R2 (it's
+100% correct because the logo is in-frame — same degeneracy, new location).
+
+**Consequences.** The brand-building metric **collapsed to its resonance half** (attribution
+added zero discrimination); resonance itself (5%) is **context-suppressed** by the
+passive/drained envelope → **doubly not a floor**. Keep `brand_building` floor 0.60 provisional.
+
+**Wins banked:** the panel is a **validated instrument** (sharply differentiated in-character
+voices — aspirant stops for the Saturday-hangout image, loyalist rejects the group framing vs
+their solo corner-seat routine, skeptic's "₹270 … is a toll booth", enthusiast "the drink
+inside is irrelevant … the whole problem with Starbucks in one image"). **P8 held** (novelty
+uniformly False = parser default, never asked on this brand_building run). JSON clean,
+`inferred_purpose` correct, `_broad_trust` correct.
+
+**Decision-wiring note (intended, flagged):** the brand-building decision pairs a **broad**
+headline metric (denom 99) with **within-target** pain branching (`load_bearing_pain_id: P3`,
+within = [loyalist, aspirant]). This is by design — `agent/decision.py:420-423`, "branch
+structure transfers; within_rate drives the wrong-crowd / no-evidence branches" — but a
+broad-frame job diagnosing off a within-target pain is worth one explicit line of
+justification, or it reads as a latent wiring smell.
+
+---
+
 ## 1. The one principle (the spine of the whole feature)
 
 Every serious effectiveness framework converges on the same truth:
