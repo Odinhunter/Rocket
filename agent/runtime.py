@@ -29,6 +29,7 @@ import anthropic
 from agent.artifact_pack import CategoryArtifactPack
 from agent.config import CreativeInputs, RunConfig
 from agent.panel import PanelAgent
+from agent.purpose import resolve_purpose
 from agent.render import render_context, render_persona_core
 from agent.schema import (
     AgentTranscript,
@@ -121,10 +122,23 @@ _ENCODING_USER = (
 )
 
 # R7 is a single terminal JSON line so it parses deterministically out of
-# otherwise free-form reflection prose. v2.4 folds two always-on self-report
-# probes (novelty, brand_recall) into that same JSON — asked on every run so the
-# panel stays purpose-blind; the purpose layer decides which to score.
-_REFLECTION_USER = (
+# otherwise free-form reflection prose.
+#
+# v2.4 CONDITIONAL PROBES (see the 2026-07-11 finding, docs/v2_4 §probe-contamination):
+# an earlier build asked R8 novelty + R9 brand_recall on EVERY run. A paid anchor
+# run proved this CONTAMINATES the blind reaction — asking "did this teach you
+# something new?" before "would you buy?" reframes purchase intent around novelty
+# and roughly HALVED within-target would_act on a familiar-brand direct-sell ad
+# (68% -> 26%, same ad/seed, actions unchanged). So a probe is now asked ONLY on
+# the purpose that reads it: novelty on informer, brand_recall on brand-building.
+# The three would_act/action jobs (direct-sell, cold-hook, retain) get the
+# probe-free reflection prompt that is BYTE-IDENTICAL to the validated v2.3 one
+# (guarded by tests/test_reflection_prompt.py). Per-persona blindness holds — an
+# extra reflection question never reveals the ad's objective.
+
+# The validated, probe-free base (R4/R5/R6). MUST stay byte-identical to the
+# v2.3 reflection prompt for the core three — the identity test asserts it.
+_REFLECTION_BASE = (
     "REFLECTION PHASE — a day or two later, still a real person, still "
     "plain and short. Keep every section to 1-2 sentences. If an ad left "
     "almost nothing behind, say so plainly — don't manufacture depth.\n\n"
@@ -134,23 +148,50 @@ _REFLECTION_USER = (
     "R6 FRICTION: 1-2 sentences. If you'd consider buying, the one thing "
     "that stops you. If the ad isn't aimed at someone like you, that's a "
     "fine reason — one factor, not a lecture.\n\n"
+)
+_NOVELTY_BLOCK = (
     "R8 NEW-TO-YOU: 1-2 sentences. Did the ad tell you something about the "
     "brand you didn't already know — 'huh, I didn't know they made this', a "
     "claim or fact that changed your picture of them? Or was it all stuff "
     "you'd already expect? Be honest — most ads teach you nothing.\n\n"
+)
+_BRAND_CHECK_BLOCK = (
     "R9 BRAND CHECK: 1-2 sentences. Without scrolling back, which brand was "
     "this ad for, and how sure are you? Totally fine to say you don't "
     "remember or you're guessing.\n\n"
-    "R7 ACTION: emit exactly ONE line of JSON and nothing after it:\n"
+)
+_R7_HEAD = "R7 ACTION: emit exactly ONE line of JSON and nothing after it:\n"
+_R7_CORE = (
     '{"action": "<scroll_past|linger|tap_cta|save|share|seek_info>", '
     '"reasoning": "<one short in-character sentence, anchored to the '
-    'creative>", "would_act_within_week": <true|false>, '
-    '"novelty": <true|false>, "brand_recall": "<confident|unsure|none>"}\n'
-    "novelty = did R8 genuinely teach you something new about the brand. "
-    "brand_recall = how sure you are which brand it was (confident if you can "
-    "name it, unsure if you're hazy, none if you couldn't say). The action is "
-    "what you would actually DO. Never a funnel rate or percentage."
+    'creative>", "would_act_within_week": <true|false>'
 )
+_R7_ACTION_NOTE = "What you would actually DO. Never a funnel rate or percentage."
+
+
+def _reflection_user_for(purpose: str) -> str:
+    """The reflection prompt for a run's declared purpose. The core three
+    (direct-sell / cold-hook / retain) get the probe-free string, byte-identical
+    to the validated v2.3 prompt. informer adds R8 novelty; brand-building adds
+    R9 brand_recall — each only where its metric reads it, so the would_act/action
+    jobs are never contaminated."""
+    probes = resolve_purpose(purpose).scored_probes
+    prose = ""
+    json_extra = ""
+    notes: list[str] = []
+    if "novelty" in probes:
+        prose += _NOVELTY_BLOCK
+        json_extra += ', "novelty": <true|false>'
+        notes.append("novelty = did R8 genuinely teach you something new about the brand")
+    if "brand_attribution" in probes:
+        prose += _BRAND_CHECK_BLOCK
+        json_extra += ', "brand_recall": "<confident|unsure|none>"'
+        notes.append("brand_recall = how sure you are which brand it was "
+                     "(confident if you can name it, unsure if hazy, none if you couldn't say)")
+    action_note = _R7_ACTION_NOTE
+    if notes:
+        action_note = "; ".join(notes) + ". The " + _R7_ACTION_NOTE[0].lower() + _R7_ACTION_NOTE[1:]
+    return _REFLECTION_BASE + prose + _R7_HEAD + _R7_CORE + json_extra + "}\n" + action_note
 
 
 def _creative_copy_block(ci: CreativeInputs) -> str:
@@ -323,6 +364,8 @@ def run_agent(
         encoding_text = enc_artifact["response_text"]
 
     # Call B — Reflection (R4-R7). Same system + image -> cached prefix reused.
+    # The reflection prompt is purpose-conditional (probes only where scored).
+    reflection_user = _reflection_user_for(config.creative_inputs.purpose)
     ref_artifact = _load_artifact(run_id, config, agent.agent_id, "reflection")
     if ref_artifact is None:
         response_b = call_with_telemetry(
@@ -333,7 +376,7 @@ def run_agent(
             messages=[
                 {"role": "user", "content": encoding_user_content},
                 {"role": "assistant", "content": encoding_text},
-                {"role": "user", "content": _REFLECTION_USER},
+                {"role": "user", "content": reflection_user},
             ],
         )
         reflection_text = _extract_text(response_b)
@@ -344,7 +387,7 @@ def run_agent(
                 "messages": [
                     {"role": "user", "content": "(image + context elided)"},
                     {"role": "assistant", "content": encoding_text},
-                    {"role": "user", "content": _REFLECTION_USER},
+                    {"role": "user", "content": reflection_user},
                 ],
                 "model": model, "max_tokens": _MAX_TOKENS,
             },

@@ -40,27 +40,39 @@ Built as ONE build (the user's call), commit-per-phase P0–P7, offline suite 31
   informer) and the load-bearing mismatch guard have **never touched a real
   creative**.
 
-**THE PAID VALIDATION GATE — FOUR checks, one greenlight covers all** (blocks the
-claim "v2.4 works / is shippable"; does NOT block this code-complete checkpoint):
-  - **(a) R7 JSON integrity** — the terminal JSON grew two fields; if the model
-    malforms the longer line even a few % more, `parse_r7_signal` returns None
-    more often and denominators silently shrink on EVERY run (direct-sell too).
-    Offline fixtures have clean JSON, so this is invisible today.
-  - **(b) direct-sell anchor rates held** — perturbation from the probed prompt;
-    check the *rates* (~68% etc.), not just labels. Fixtures are frozen pre-probe
-    and structurally cannot detect this.
-  - **(c) R8/R9 distributions non-degenerate** — do novelty/brand_recall vary
-    sensibly across ads + dispositions, or come back constant? Gates
-    brand-building + informer.
-  - **(d) `inferred_purpose` takes confident, correct values on a known off-job
-    ad** — the field is `required` but `_SYSTEM` tells the model to be
-    conservative and default to `unclear`; if it plays safe, the mismatch guard
-    silently NEVER fires and the default-user category error still happens
-    invisibly. Gates the mismatch guard (the headline guardrail).
-  - Cheapest first dollar: a **single ~$4 live run** exercises the real wiring
-    (target_id's new tool schema, `prepare()`'s mismatch path, the longer
-    reflection prompt) AND yields the (a)–(d) reads on one ad — highest
-    information before any multi-anchor recalibration.
+**THE PAID VALIDATION GATE — status after the 2026-07-11 anchor run + P8 fix:**
+  - **(a) R7 JSON integrity — PASSED live.** MB re-run parsed 100/100 behavioural
+    + 100/100 probe signals; the longer line did not raise malform rate.
+  - **(b) direct-sell rate held — FAILED, then FIXED (P8).** The MB re-run cratered
+    within-target would_act 68% → 26% on the same ad/seed with UNCHANGED actions
+    (86 vs 85 scroll-past). Cause: the R8 novelty probe, asked before R7,
+    contaminated purchase intent (`would_act | novelty=False` = 0/74; personas
+    literally weighed "is this new enough to switch"). Fix = **conditional probes**
+    (below); the core three are now re-validated for **$0** by an offline identity
+    test, not another paid run.
+  - **(c) R8/R9 distributions non-degenerate — PARTLY confirmed.** MB novelty
+    varied 26/74 (sensible); brand_recall 95/5 confident (realistic for a clear
+    pack-shot but near-degenerate — validate brand_recall later on an emotional/
+    story ad where attribution is genuinely at risk).
+  - **(d) `inferred_purpose` confident + correct — PASSED live.** MB read as
+    `direct_sell` with specific reasoning ("marketplace PDP-style… no emotional
+    story, no range"); the model commits rather than retreating to `unclear`. The
+    mismatch guard's fire-path is deterministic given this + unit-tested.
+
+## Probe contamination — the finding + fix (P8, 2026-07-11)
+
+The always-on-probes design (asking R8 novelty + R9 brand_recall on every run) was
+WRONG: it contaminated the blind reaction on the jobs that read `would_act`
+(direct-sell, retain). **Fix: conditional probes** — a probe is asked ONLY on the
+purpose whose metric reads it (novelty → informer; brand_recall → brand-building).
+The three would_act/action jobs get a reflection prompt **byte-identical to the
+validated v2.3 one** (`tests/test_reflection_prompt.py` asserts it), so they are
+re-validated at **$0**. Cold-hook was never at risk (it reads the action, which
+held). informer + brand-building read their own probe and never read would_act, so
+would_act contamination is irrelevant to them; their probe realism is validated by
+their own per-purpose anchor runs (already gated). Per-persona blindness is
+preserved — an extra reflection question never reveals the ad's objective. The
+evidence run: `runs/demo/health_wellness_demo/20260711_125406_*`.
 
 - Every non-direct-sell `provisional_scale_floor` (and the informer register
   threshold 0.5) is a **reference-free best-guess** — §7 gate satisfied only
