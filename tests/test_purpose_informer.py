@@ -34,8 +34,8 @@ def _t(agent_id: int, label: str, novelty: bool,
     return AgentTranscript(
         agent_id=agent_id, disposition_label=label, context_label="feed",
         seed_idx=0, encoding_text="", reflection_text="",
-        behavioral_signal=BehavioralSignal(action=action, reasoning="x",
-                                           would_act_within_week=False),
+        behavioral_signal=BehavioralSignal(action=action, action_reasoning="x",
+                                           next_step="nothing", next_step_reasoning="x"),
         probe_signal=ProbeSignal(novelty=novelty, brand_recall=recall),
     )
 
@@ -98,7 +98,7 @@ def test_no_novelty_signal_is_inconclusive() -> None:
     # every agent lacks the probe -> no novelty signal -> INCONCLUSIVE.
     ts = [AgentTranscript(agent_id=i, disposition_label="a", context_label="f",
                           seed_idx=0, encoding_text="", reflection_text="",
-                          behavioral_signal=BehavioralSignal("linger", "x", False),
+                          behavioral_signal=BehavioralSignal("linger", "x", "nothing", "x"),
                           probe_signal=None) for i in range(3)]
     d = build_decision(ts, _tc(["a"]), None, "MIXED", [], [], purpose="awareness_informer")
     assert d.decision == "INCONCLUSIVE" and d.target_action_rate is None

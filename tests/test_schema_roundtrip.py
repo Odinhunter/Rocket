@@ -304,8 +304,8 @@ def _make_full_fixture_report() -> Report:
     r.provisional_dispositions = ["value_calculating_skeptic"]
     r.methodology_flags = ["provisional_disposition_present"]
     pop_dist = BehavioralSignalDistribution(
-        counts={"scroll_past": 6, "linger": 4, "tap_cta": 3, "seek_info": 2},
-        would_act_within_week_count=4,
+        counts={"scroll_past": 6, "linger": 6, "tap_cta": 3},
+        next_step_counts={"buy_now": 4, "research_first": 2, "nothing": 9},
         n=15,
     )
     r.funnel_projection = FunnelProjection(
@@ -315,7 +315,7 @@ def _make_full_fixture_report() -> Report:
                 segment_label="brand_loyal_boat_user::impulsive",
                 behavioral_distribution=BehavioralSignalDistribution(
                     counts={"tap_cta": 3, "linger": 2},
-                    would_act_within_week_count=3,
+                    next_step_counts={"buy_now": 3, "nothing": 2},
                     n=5,
                 ),
                 funnel_rates=_make_funnel_rates(),
@@ -427,8 +427,9 @@ def test_agent_transcript_behavioral_signal_roundtrip() -> None:
         reflection_text="R4 ...\n\nR5 ...\n\nR6 ...\n\nR7 ACTION: {...}",
         behavioral_signal=BehavioralSignal(
             action="tap_cta",
-            reasoning="the ₹1,199 deal price is a clear-enough hook to tap",
-            would_act_within_week=True,
+            action_reasoning="the ₹1,199 deal price is a clear-enough hook to tap",
+            next_step="buy_now",
+            next_step_reasoning="cheap enough to just order it",
         ),
     )
     t2 = AgentTranscript.from_dict(t.to_dict())

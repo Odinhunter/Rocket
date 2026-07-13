@@ -35,8 +35,9 @@ def _t(agent_id: int, label: str, would_act: bool | None) -> AgentTranscript:
     if would_act is not None:
         bs = BehavioralSignal(
             action="tap_cta" if would_act else "scroll_past",
-            reasoning="x",
-            would_act_within_week=would_act,
+            action_reasoning="x",
+            next_step="buy_now" if would_act else "nothing",
+            next_step_reasoning="x",
         )
     return AgentTranscript(
         agent_id=agent_id,

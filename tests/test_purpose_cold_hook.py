@@ -26,8 +26,9 @@ def _t(agent_id: int, label: str, action: str, would_act: bool) -> AgentTranscri
     return AgentTranscript(
         agent_id=agent_id, disposition_label=label, context_label="commute_scroll",
         seed_idx=0, encoding_text="", reflection_text="",
-        behavioral_signal=BehavioralSignal(action=action, reasoning="x",
-                                           would_act_within_week=would_act),
+        behavioral_signal=BehavioralSignal(
+            action=action, action_reasoning="x",
+            next_step="buy_now" if would_act else "nothing", next_step_reasoning="x"),
     )
 
 
@@ -55,14 +56,14 @@ def test_stop_rate_is_broad_and_ignores_would_act() -> None:
     # would buy — the cold audience stops without purchasing.
     ts = (
         [_t(i, "aud_a", "linger", False) for i in range(4)]
-        + [_t(10 + i, "aud_b", "seek_info", False) for i in range(4)]
+        + [_t(10 + i, "aud_b", "linger", False) for i in range(4)]
         + [_t(20, "aud_a", "scroll_past", False), _t(21, "aud_b", "scroll_past", False)]
         + [_t(30 + i, "cold_x", "linger", False) for i in range(3)]
         + [_t(40, "cold_x", "scroll_past", False)]
     )
     tc = _tc({"aud_a": "within", "aud_b": "within", "cold_x": "outside"})
     (rate, num, denom), by_disp = purpose_primary_metric(ts, tc, COLD)
-    # broad frame: 11 stops (linger/seek) of 14 with signal.
+    # broad frame: 11 stops (linger) of 14 with signal.
     assert denom == 14 and num == 11, (num, denom)
     assert abs(rate - 11 / 14) < 1e-9, rate
     # direct-sell over the same transcripts reads ~0 (nobody would buy).
@@ -77,7 +78,7 @@ def test_clean_broad_hook_scales_at_cold_floor() -> None:
     # is NOT what gates this — the cold floor is.)
     ts = (
         [_t(i, "aud_a", "linger", False) for i in range(5)]
-        + [_t(10 + i, "aud_b", "seek_info", False) for i in range(5)]
+        + [_t(10 + i, "aud_b", "linger", False) for i in range(5)]
         + [_t(20, "aud_a", "scroll_past", False), _t(21, "aud_b", "scroll_past", False)]
     )
     tc = _tc({"aud_a": "within", "aud_b": "within"})

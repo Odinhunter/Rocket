@@ -31,11 +31,12 @@ _BASELINE = {"stop_rate": 0.10, "click_rate": 0.02, "visit_rate": 0.015,
 
 def _l3() -> L3Summary:
     pop = BehavioralSignalDistribution(
-        counts={"tap_cta": 6, "seek_info": 4, "scroll_past": 6, "linger": 4},
-        would_act_within_week_count=5, n=20,
+        counts={"tap_cta": 6, "linger": 8, "scroll_past": 6},
+        next_step_counts={"buy_now": 5, "research_first": 4, "nothing": 11}, n=20,
     )
     seg = BehavioralSignalDistribution(
-        counts={"tap_cta": 3, "scroll_past": 2}, would_act_within_week_count=2, n=5,
+        counts={"tap_cta": 3, "scroll_past": 2},
+        next_step_counts={"buy_now": 2, "nothing": 3}, n=5,
     )
     return L3Summary(
         population_behavioral_distribution=pop,

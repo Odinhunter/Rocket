@@ -30,45 +30,54 @@ def _transcript(agent_id: int, signal: BehavioralSignal | None) -> AgentTranscri
     )
 
 
-def _sig(action: str, would_act: bool) -> BehavioralSignal:
-    return BehavioralSignal(action=action, reasoning="x", would_act_within_week=would_act)
+def _sig(action: str, next_step: str) -> BehavioralSignal:
+    return BehavioralSignal(
+        action=action, action_reasoning="x", next_step=next_step, next_step_reasoning="x"
+    )
 
 
 def test_counts_are_exact() -> None:
     transcripts = [
-        _transcript(0, _sig("tap_cta", True)),
-        _transcript(1, _sig("tap_cta", False)),
-        _transcript(2, _sig("scroll_past", False)),
-        _transcript(3, _sig("seek_info", True)),
-        _transcript(4, _sig("scroll_past", False)),
+        _transcript(0, _sig("tap_cta", "buy_now")),
+        _transcript(1, _sig("tap_cta", "research_first")),
+        _transcript(2, _sig("scroll_past", "nothing")),
+        _transcript(3, _sig("linger", "buy_at_restock")),
+        _transcript(4, _sig("scroll_past", "nothing")),
     ]
     dist = compute_behavioral_distribution(transcripts)
-    assert dist.counts == {"tap_cta": 2, "scroll_past": 2, "seek_info": 1}, dist.counts
-    assert dist.would_act_within_week_count == 2, dist.would_act_within_week_count
+    assert dist.counts == {"tap_cta": 2, "scroll_past": 2, "linger": 1}, dist.counts
+    assert dist.next_step_counts == {
+        "buy_now": 1, "research_first": 1, "nothing": 2, "buy_at_restock": 1
+    }, dist.next_step_counts
+    # buy-intent = buy_now + buy_at_restock (research_first is NOT counted).
+    assert dist.buy_intent_count == 2, dist.buy_intent_count
     assert dist.n == 5
     assert sum(dist.counts.values()) == dist.n
-    print("  OK  behavioral distribution counts are exact")
+    assert sum(dist.next_step_counts.values()) == dist.n
+    print("  OK  behavioral distribution counts (action + next_step) are exact")
 
 
-def test_unparsed_r7_excluded_from_n() -> None:
-    """A transcript whose R7 didn't parse (behavioral_signal is None) must
+def test_unparsed_signal_excluded_from_n() -> None:
+    """A transcript whose signal didn't parse (behavioral_signal is None) must
     not inflate n — proportions L3.5 derives must be over real signals."""
     transcripts = [
-        _transcript(0, _sig("tap_cta", True)),
-        _transcript(1, None),  # R7 failed to parse
-        _transcript(2, _sig("scroll_past", False)),
-        _transcript(3, None),  # R7 failed to parse
+        _transcript(0, _sig("tap_cta", "buy_now")),
+        _transcript(1, None),  # signal failed to parse
+        _transcript(2, _sig("scroll_past", "nothing")),
+        _transcript(3, None),  # signal failed to parse
     ]
     dist = compute_behavioral_distribution(transcripts)
     assert dist.n == 2, f"expected n=2 (None signals excluded), got {dist.n}"
     assert dist.counts == {"tap_cta": 1, "scroll_past": 1}
-    assert dist.would_act_within_week_count == 1
-    print("  OK  unparsed R7 signals are excluded from n")
+    assert dist.next_step_counts == {"buy_now": 1, "nothing": 1}
+    assert dist.buy_intent_count == 1
+    print("  OK  unparsed signals are excluded from n")
 
 
 def test_empty_segment() -> None:
     dist = compute_behavioral_distribution([])
-    assert dist.n == 0 and dist.counts == {} and dist.would_act_within_week_count == 0
+    assert dist.n == 0 and dist.counts == {} and dist.next_step_counts == {}
+    assert dist.buy_intent_count == 0
     # All-None also yields an empty distribution.
     dist2 = compute_behavioral_distribution([_transcript(0, None), _transcript(1, None)])
     assert dist2.n == 0 and dist2.counts == {}
@@ -76,7 +85,10 @@ def test_empty_segment() -> None:
 
 
 def test_roundtrips() -> None:
-    transcripts = [_transcript(0, _sig("save", True)), _transcript(1, _sig("share", False))]
+    transcripts = [
+        _transcript(0, _sig("save", "buy_at_restock")),
+        _transcript(1, _sig("share", "mention_to_someone")),
+    ]
     dist = compute_behavioral_distribution(transcripts)
     from agent.schema import BehavioralSignalDistribution
     dist2 = BehavioralSignalDistribution.from_dict(dist.to_dict())

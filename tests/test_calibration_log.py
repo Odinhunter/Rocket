@@ -33,10 +33,11 @@ def _cleanup() -> None:
 def _projection():
     dist = BehavioralSignalDistribution(
         counts={"tap_cta": 6, "scroll_past": 9, "linger": 5},
-        would_act_within_week_count=6, n=20,
+        next_step_counts={"buy_now": 6, "nothing": 14}, n=20,
     )
     seg = BehavioralSignalDistribution(
-        counts={"tap_cta": 3, "scroll_past": 2}, would_act_within_week_count=3, n=5,
+        counts={"tap_cta": 3, "scroll_past": 2},
+        next_step_counts={"buy_now": 3, "nothing": 2}, n=5,
     )
     l3 = L3Summary(
         population_behavioral_distribution=dist,

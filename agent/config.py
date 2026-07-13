@@ -78,7 +78,12 @@ def _base64_encoded_size(raw_bytes: int) -> int:
 #        terminal JSON — a REACTION-PROMPT change, hence a protocol bump; a
 #        declared-vs-apparent-purpose mismatch guard; per-purpose metric/decision
 #        (agent/purpose.py, PURPOSE_VERSION). Reactions stay purpose-blind.
-PROTOCOL_VERSION = "rocket-2.4.0"
+# 3.0.0-dev (v3 instrument, Week 1): two-call reaction — in-feed `action` at the
+#        encounter (Call A), defined `next_step` follow-through in reflection
+#        (Call B); would_act_within_week retired; the buy-vs-research split.
+#        Week-3 A/B arms take -rc{n}; the chosen arm becomes rocket-3.0.0.
+#        See docs/v3_protocol.md.
+PROTOCOL_VERSION = "rocket-3.0.0-dev"
 
 
 # Default model assignments per layer. Locked after 2026-05-12 telemetry +

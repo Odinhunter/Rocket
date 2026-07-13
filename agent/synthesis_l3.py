@@ -76,7 +76,7 @@ def _compute_behavioral_distributions(
     segment_label) and sum them into the population distribution."""
     seg_dists: dict[str, BehavioralSignalDistribution] = {}
     pop_counts: dict[str, int] = {}
-    pop_would_act = 0
+    pop_next_step: dict[str, int] = {}
     pop_n = 0
     for s in l2_summaries:
         label = s.segment_label or s.disposition_label
@@ -84,10 +84,11 @@ def _compute_behavioral_distributions(
         seg_dists[label] = dist
         for action, count in dist.counts.items():
             pop_counts[action] = pop_counts.get(action, 0) + count
-        pop_would_act += dist.would_act_within_week_count
+        for step, count in dist.next_step_counts.items():
+            pop_next_step[step] = pop_next_step.get(step, 0) + count
         pop_n += dist.n
     pop_dist = BehavioralSignalDistribution(
-        counts=pop_counts, would_act_within_week_count=pop_would_act, n=pop_n
+        counts=pop_counts, next_step_counts=pop_next_step, n=pop_n
     )
     return seg_dists, pop_dist
 

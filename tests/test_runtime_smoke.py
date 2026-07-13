@@ -125,18 +125,20 @@ def main() -> None:
             assert label in ref, f"{label} missing from reflection text"
         print("  OK  R1-R3 in encoding, R4-R6 in reflection")
 
-        # R7 behavioral signal parsed. The model may emit the JSON line
-        # without an "R7 ACTION:" label — what matters is parse_r7_signal
-        # finds it, which is exactly what this asserts.
+        # v3 two-call signal parsed: in-feed action from Call A, follow-through
+        # next_step from Call B. The model may emit each JSON line without its
+        # label — what matters is parse_behavioral_signal finds both.
         sig = transcript.behavioral_signal
-        assert sig is not None, "R7 behavioral_signal did not parse"
+        assert sig is not None, "v3 behavioral_signal did not parse"
         assert sig.action in (
-            "scroll_past", "linger", "tap_cta", "save", "share", "seek_info"
-        ), f"bad R7 action: {sig.action}"
-        assert isinstance(sig.would_act_within_week, bool)
-        print(f"  OK  R7 parsed: action={sig.action!r} "
-              f"would_act_within_week={sig.would_act_within_week}")
-        print(f"      reasoning: {sig.reasoning}")
+            "scroll_past", "linger", "tap_cta", "save", "share"
+        ), f"bad Call A action: {sig.action}"
+        assert sig.next_step in (
+            "buy_now", "buy_at_restock", "research_first", "mention_to_someone", "nothing"
+        ), f"bad Call B next_step: {sig.next_step}"
+        print(f"  OK  signal parsed: action={sig.action!r} next_step={sig.next_step!r}")
+        print(f"      action_reasoning: {sig.action_reasoning}")
+        print(f"      next_step_reasoning: {sig.next_step_reasoning}")
 
         # Idempotent resume: a second call loads artifacts, fires no API calls.
         rd = run_dir(_RUN, account_id=_ACCOUNT, brand_profile_id=_BRAND)

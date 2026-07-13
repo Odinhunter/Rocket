@@ -5,9 +5,11 @@
     The context is rendered separately and goes in the USER message,
     AFTER the cached image block — so agents that share a persona core
     share the cached system+image prefix even when their contexts differ.
-  - Call B (Reflection) emits R7 — a terminal in-character behavioral
-    signal as one JSON line, parsed into AgentTranscript.behavioral_signal.
-    The agent emits an action, never a funnel rate.
+  - v3 two-call reaction (docs/v3_protocol.md §2): Call A (Encounter) emits
+    the IN-FEED `action` as a terminal JSON line — captured at the glance,
+    System-1. Call B (Reflection) emits the defined follow-through `next_step`
+    as a terminal JSON line — the considered "a day or two later" judgement.
+    Both are parsed into AgentTranscript.behavioral_signal. Never a funnel rate.
 
 Caching layout: one cache_control marker on the system text block, one on
 the image block. The cached prefix is persona-core + image. Context prose
@@ -36,6 +38,7 @@ from agent.schema import (
     BehavioralSignal,
     ProbeSignal,
     _VALID_BEHAVIORAL_ACTIONS,
+    _VALID_NEXT_STEPS,
 )
 from agent.telemetry import call_with_telemetry, run_dir
 
@@ -102,7 +105,13 @@ def _usage_dict(response: object) -> dict | None:
 
 _log = logging.getLogger(__name__)
 
-# Sized to fit the R7 JSON line on Call B without crowding R4-R6.
+# The reaction-surface version. Bumped when the Call A / Call B prompt STRUCTURE
+# or the emitted signal shape changes — NOT for wording tweaks (Week-3 A/B arms
+# take -rc{n}). Pinned by the byte-identity guards (W1·E2). docs/v3_protocol.md §10.
+REACTION_PROTOCOL_VERSION = "reaction-v3"
+
+# Sized to fit a terminal JSON line on EACH call (Call A action / Call B
+# next_step) without crowding the R-sections. Both calls carry one now.
 _MAX_TOKENS = 1250
 
 _ENCODING_USER = (
@@ -118,26 +127,33 @@ _ENCODING_USER = (
     "aimed at someone like you, say so plainly — don't explain it away or "
     "assume what 'people like you' prefer.\n\n"
     "R3 EMOTION: 1-2 sentences. What it made you feel, or that it left you "
-    "cold. Plain words."
+    "cold. Plain words.\n\n"
+    "ACTION: after those three lines, emit exactly ONE line of JSON and nothing "
+    "after it:\n"
+    '{"action": "<scroll_past|linger|tap_cta|save|share>", "reasoning": "<one '
+    'short in-character sentence, anchored to the creative>"}\n'
+    "This is what your thumb ACTUALLY does in that half-second — scroll on by, "
+    "stop and look, tap through, save it, or send it to someone. Not what you "
+    "might do later; what you do right now. Never a funnel rate or a percentage."
 )
 
-# R7 is a single terminal JSON line so it parses deterministically out of
-# otherwise free-form reflection prose.
+# The next_step is a single terminal JSON line so it parses deterministically
+# out of otherwise free-form reflection prose.
 #
-# v2.4 CONDITIONAL PROBES (see the 2026-07-11 finding, docs/v2_4 §probe-contamination):
+# CONDITIONAL PROBES (the 2026-07-11 finding, docs/v3_protocol.md §2.2):
 # an earlier build asked R8 novelty + R9 brand_recall on EVERY run. A paid anchor
 # run proved this CONTAMINATES the blind reaction — asking "did this teach you
-# something new?" before "would you buy?" reframes purchase intent around novelty
-# and roughly HALVED within-target would_act on a familiar-brand direct-sell ad
-# (68% -> 26%, same ad/seed, actions unchanged). So a probe is now asked ONLY on
+# something new?" before the follow-through reframes purchase intent around
+# novelty and roughly HALVED within-target intent on a familiar-brand direct-sell
+# ad (68% -> 26%, same ad/seed, actions unchanged). So a probe is asked ONLY on
 # the purpose that reads it: novelty on informer, brand_recall on brand-building.
-# The three would_act/action jobs (direct-sell, cold-hook, retain) get the
-# probe-free reflection prompt that is BYTE-IDENTICAL to the validated v2.3 one
-# (guarded by tests/test_reflection_prompt.py). Per-persona blindness holds — an
-# extra reflection question never reveals the ad's objective.
+# The three would-act/action jobs (direct-sell, cold-hook, retain) get the
+# probe-free reflection. Per-persona blindness holds — an extra reflection
+# question never reveals the ad's objective.
 
-# The validated, probe-free base (R4/R5/R6). MUST stay byte-identical to the
-# v2.3 reflection prompt for the core three — the identity test asserts it.
+# The probe-free reflection base (R4/R5/R6) + the terminal next_step. v3 retires
+# the v2.3 byte-identity (the terminal line now emits next_step, not an R7
+# action); a new guard pins reaction-v3 (W1·E2). docs/v3_protocol.md §2.2, §10.
 _REFLECTION_BASE = (
     "REFLECTION PHASE — a day or two later, still a real person, still "
     "plain and short. Keep every section to 1-2 sentences. If an ad left "
@@ -160,21 +176,27 @@ _BRAND_CHECK_BLOCK = (
     "this ad for, and how sure are you? Totally fine to say you don't "
     "remember or you're guessing.\n\n"
 )
-_R7_HEAD = "R7 ACTION: emit exactly ONE line of JSON and nothing after it:\n"
-_R7_CORE = (
-    '{"action": "<scroll_past|linger|tap_cta|save|share|seek_info>", '
-    '"reasoning": "<one short in-character sentence, anchored to the '
-    'creative>", "would_act_within_week": <true|false>'
+_NEXT_STEP_HEAD = "NEXT_STEP: emit exactly ONE line of JSON and nothing after it:\n"
+_NEXT_STEP_CORE = (
+    '{"next_step": "<buy_now|buy_at_restock|research_first|mention_to_someone|nothing>", '
+    '"reasoning": "<one short in-character sentence>"'
 )
-_R7_ACTION_NOTE = "What you would actually DO. Never a funnel rate or percentage."
+_NEXT_STEP_NOTE = (
+    "next_step = what you would ACTUALLY do next about this, a day or two on: "
+    "buy_now (order it right away), buy_at_restock (buy it when you next run out "
+    "or need more), research_first (look it up or compare before deciding — "
+    "interest, not a commitment), mention_to_someone (wouldn't buy it yourself "
+    "but would tell or recommend someone), or nothing. Be honest — most ads end "
+    "in nothing. Never a funnel rate or a percentage."
+)
 
 
 def _reflection_user_for(purpose: str) -> str:
-    """The reflection prompt for a run's declared purpose. The core three
-    (direct-sell / cold-hook / retain) get the probe-free string, byte-identical
-    to the validated v2.3 prompt. informer adds R8 novelty; brand-building adds
-    R9 brand_recall — each only where its metric reads it, so the would_act/action
-    jobs are never contaminated."""
+    """The Call B reflection prompt for a run's declared purpose: R4-R6 + the
+    terminal next_step JSON. The core three (direct-sell / cold-hook / retain)
+    get the probe-free string; informer adds R8 novelty; brand-building adds R9
+    brand_recall — each only where its metric reads it, so the would-act/action
+    jobs are never contaminated (docs/v3_protocol.md §2.2)."""
     probes = resolve_purpose(purpose).scored_probes
     prose = ""
     json_extra = ""
@@ -188,10 +210,10 @@ def _reflection_user_for(purpose: str) -> str:
         json_extra += ', "brand_recall": "<confident|unsure|none>"'
         notes.append("brand_recall = how sure you are which brand it was "
                      "(confident if you can name it, unsure if hazy, none if you couldn't say)")
-    action_note = _R7_ACTION_NOTE
+    note = _NEXT_STEP_NOTE
     if notes:
-        action_note = "; ".join(notes) + ". The " + _R7_ACTION_NOTE[0].lower() + _R7_ACTION_NOTE[1:]
-    return _REFLECTION_BASE + prose + _R7_HEAD + _R7_CORE + json_extra + "}\n" + action_note
+        note = _NEXT_STEP_NOTE + " Also: " + "; ".join(notes) + "."
+    return _REFLECTION_BASE + prose + _NEXT_STEP_HEAD + _NEXT_STEP_CORE + json_extra + "}\n" + note
 
 
 def _creative_copy_block(ci: CreativeInputs) -> str:
@@ -214,60 +236,69 @@ def _creative_copy_block(ci: CreativeInputs) -> str:
     )
 
 
-# ---- R7 parsing (pure function — offline-testable) ----
+# ---- Signal parsing (pure functions — offline-testable) ----
 
-# Find the last {...} JSON object in the text. Tolerant of R6 prose bleed.
+# Find the last balanced {...} JSON object in the text. Tolerant of prose bleed.
 _JSON_OBJ_RE = re.compile(r"\{[^{}]*\}")
 
 
-def _terminal_signal_obj(reflection_text: str) -> dict | None:
-    """The last balanced {...} block carrying a valid R7 action, parsed to a
-    dict. Shared by R7 + probe parsing so both read the SAME terminal JSON. We
-    scan from the end so stray braces in R6 prose don't capture; the action
-    must be in the valid enum. None if no such block exists."""
-    for raw in reversed(_JSON_OBJ_RE.findall(reflection_text)):
+def _last_json_with(text: str, key: str, valid: set[str]) -> dict | None:
+    """The last balanced {...} block whose `key` holds a value in `valid`,
+    parsed to a dict. Scanned from the END so stray braces in earlier prose
+    don't capture. None if no such block exists. The enum-membership check is
+    the LOUD backstop against a stale/removed literal matching silently."""
+    for raw in reversed(_JSON_OBJ_RE.findall(text)):
         try:
             obj = json.loads(raw)
         except json.JSONDecodeError:
             continue
-        if obj.get("action") in _VALID_BEHAVIORAL_ACTIONS:
+        if obj.get(key) in valid:
             return obj
     return None
 
 
-def parse_r7_signal(reflection_text: str) -> BehavioralSignal | None:
-    """Extract the R7 behavioral signal from a reflection transcript.
+def parse_encounter_action(encoding_text: str) -> dict | None:
+    """The Call A terminal action JSON (or None if missing/malformed)."""
+    return _last_json_with(encoding_text, "action", _VALID_BEHAVIORAL_ACTIONS)
 
-    Returns None — never raises — if R7 is missing or malformed. L2 handles
-    the gap. Extra keys (the v2.4 probe fields) are ignored here."""
-    obj = _terminal_signal_obj(reflection_text)
-    if obj is None:
-        _log.warning("parse_r7_signal: no valid R7 JSON line found in reflection text")
+
+def parse_reflection_obj(reflection_text: str) -> dict | None:
+    """The Call B terminal next_step JSON — carries next_step, reasoning, and
+    (only when scored) the probe fields. Shared by signal + probe parsing so
+    both read the SAME terminal block."""
+    return _last_json_with(reflection_text, "next_step", _VALID_NEXT_STEPS)
+
+
+def parse_behavioral_signal(
+    encoding_text: str, reflection_text: str
+) -> BehavioralSignal | None:
+    """Assemble the v3 BehavioralSignal from the Call A action + the Call B
+    next_step. Returns None — never raises — if EITHER terminal block is missing
+    or malformed (L2 handles the gap; n counts only complete signals)."""
+    action_obj = parse_encounter_action(encoding_text)
+    if action_obj is None:
+        _log.warning("parse_behavioral_signal: no valid Call A action JSON found")
         return None
-    would_act = obj.get("would_act_within_week")
-    if not isinstance(would_act, bool):
-        # Tolerate "true"/"false"/1/0; reject anything genuinely unparseable.
-        if isinstance(would_act, str) and would_act.lower() in ("true", "false"):
-            would_act = would_act.lower() == "true"
-        elif would_act in (0, 1):
-            would_act = bool(would_act)
-        else:
-            _log.warning("parse_r7_signal: R7 JSON has unparseable would_act_within_week")
-            return None
+    step_obj = parse_reflection_obj(reflection_text)
+    if step_obj is None:
+        _log.warning("parse_behavioral_signal: no valid Call B next_step JSON found")
+        return None
     return BehavioralSignal(
-        action=obj["action"],
-        reasoning=str(obj.get("reasoning", "")),
-        would_act_within_week=would_act,
+        action=action_obj["action"],
+        action_reasoning=str(action_obj.get("reasoning", "")),
+        next_step=step_obj["next_step"],
+        next_step_reasoning=str(step_obj.get("reasoning", "")),
     )
 
 
 def parse_probe_signal(reflection_text: str) -> ProbeSignal | None:
-    """Extract the v2.4 R8/R9 probes from the same terminal JSON as R7.
+    """Extract the conditional R8/R9 probes from the same Call B terminal JSON
+    as the next_step.
 
-    Returns None — never raises — when there is no terminal signal at all, OR
-    when the terminal block predates the probes (neither probe key present) so a
-    pre-v2.4 transcript reads as no-probe-signal rather than a false default."""
-    obj = _terminal_signal_obj(reflection_text)
+    Returns None — never raises — when there is no terminal block at all, OR
+    when neither probe key is present (a probe-free run reads as no-probe-signal
+    rather than a false default)."""
+    obj = parse_reflection_obj(reflection_text)
     if obj is None:
         return None
     if "novelty" not in obj and "brand_recall" not in obj:
@@ -405,7 +436,7 @@ def run_agent(
         seed_idx=0,
         encoding_text=encoding_text,
         reflection_text=reflection_text,
-        behavioral_signal=parse_r7_signal(reflection_text),
+        behavioral_signal=parse_behavioral_signal(encoding_text, reflection_text),
         probe_signal=parse_probe_signal(reflection_text),
     )
 

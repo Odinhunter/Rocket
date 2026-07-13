@@ -266,7 +266,7 @@ def _print_report(report: Report) -> None:
                 # suppression: with no offer reaching the agents, the whole
                 # convert column is ungrounded and the asterisk is moot.
                 if (not convert_scenario
-                        and seg.behavioral_distribution.would_act_within_week_count == 0):
+                        and seg.behavioral_distribution.buy_intent_count == 0):
                     lo, hi = rates.convert_band
                     print(f"    {seg.segment_label:<42} "
                           f"   —    [{lo*100:.3f}% – {hi*100:.3f}%] *")

@@ -19,11 +19,16 @@ L2/L3/L4 so the multiplier table can later be FITTED to real customer
 outcomes (Phase 7 logs the inputs) without touching anything upstream.
 MULTIPLIER_TABLE_VERSION stamps every projection for that future fit.
 
-The heuristic_v1 multiplier table (the strawman the user approved):
-  tap_cta + seek_info combined >= 30%  -> click rate  x1.2-1.5
-  tap_cta + seek_info combined < 10%   -> click rate  x0.6-0.8
-  scroll_past >= 50%                   -> stop rate   x0.6-0.8
-  would_act_within_week >= 25%         -> convert     x1.2-1.4
+The heuristic_v1 multiplier table (the strawman the user approved). v3 re-maps
+the inputs onto the new signal shape (the CURVES are unchanged — same regime):
+`seek_info` (a removed action) → `research_first` (the next_step that carries
+the "will look it up" intent); `would_act_within_week` → buy-intent (next_step
+∈ {buy_now, buy_at_restock}). NB: this layer is unfit and gated OFF by default
+(D4) — the fitted regime lands with real outcomes (D2/D6).
+  tap_cta + research_first combined >= 30%  -> click rate  x1.2-1.5
+  tap_cta + research_first combined < 10%   -> click rate  x0.6-0.8
+  scroll_past >= 50%                        -> stop rate   x0.6-0.8
+  buy-intent >= 25%                         -> convert     x1.2-1.4
   band halfwidth = max(15%, 30%/sqrt(segment_n)) + 10% heuristic floor
 """
 
@@ -104,7 +109,7 @@ def _stop_multiplier(scroll_past_pct: float) -> float:
 
 
 def _click_multiplier(engage_pct: float) -> float:
-    """engage_pct = (tap_cta + seek_info) share. Monotonically increasing."""
+    """engage_pct = (tap_cta + research_first) share. Monotonically increasing."""
     if engage_pct >= 0.30:
         return _lerp(engage_pct, 0.30, 0.60, 1.20, 1.50)
     if engage_pct < 0.10:
@@ -120,12 +125,12 @@ def _visit_multiplier(engage_pct: float, save_pct: float) -> float:
     return damped + save_pct * 0.3
 
 
-def _convert_multiplier(would_act_pct: float) -> float:
-    """would_act_pct = share that said they'd act within the week.
-    Monotonically increasing."""
-    if would_act_pct >= 0.25:
-        return _lerp(would_act_pct, 0.25, 0.60, 1.20, 1.40)
-    return _lerp(would_act_pct, 0.00, 0.25, 0.70, 1.20)
+def _convert_multiplier(buy_intent_pct: float) -> float:
+    """buy_intent_pct = share whose next_step is a purchase (buy_now or
+    buy_at_restock). Monotonically increasing."""
+    if buy_intent_pct >= 0.25:
+        return _lerp(buy_intent_pct, 0.25, 0.60, 1.20, 1.40)
+    return _lerp(buy_intent_pct, 0.00, 0.25, 0.70, 1.20)
 
 
 def _band_halfwidth_fraction(n: int) -> float:
@@ -141,12 +146,14 @@ def _band_halfwidth_fraction(n: int) -> float:
 
 
 def _proportions(dist: BehavioralSignalDistribution) -> dict[str, float]:
-    """Action -> share of the segment. Empty dist -> all zeros."""
+    """Signal -> share of the segment. In-feed actions from `counts`; the
+    `research_first` and buy-intent shares from `next_step_counts`. Empty
+    dist -> all zeros."""
     n = dist.n
     if n <= 0:
         return {
             "scroll_past": 0.0, "linger": 0.0, "tap_cta": 0.0,
-            "save": 0.0, "share": 0.0, "seek_info": 0.0, "would_act": 0.0,
+            "save": 0.0, "share": 0.0, "research_first": 0.0, "buy_intent": 0.0,
         }
     return {
         "scroll_past": dist.counts.get("scroll_past", 0) / n,
@@ -154,8 +161,8 @@ def _proportions(dist: BehavioralSignalDistribution) -> dict[str, float]:
         "tap_cta": dist.counts.get("tap_cta", 0) / n,
         "save": dist.counts.get("save", 0) / n,
         "share": dist.counts.get("share", 0) / n,
-        "seek_info": dist.counts.get("seek_info", 0) / n,
-        "would_act": dist.would_act_within_week_count / n,
+        "research_first": dist.next_step_counts.get("research_first", 0) / n,
+        "buy_intent": dist.buy_intent_count / n,
     }
 
 
@@ -166,12 +173,12 @@ def _funnel_rates(
 ) -> FunnelRates:
     """Project one FunnelRates from one behavioral distribution."""
     p = _proportions(dist)
-    engage = p["tap_cta"] + p["seek_info"]
+    engage = p["tap_cta"] + p["research_first"]
 
     stop = baseline["stop_rate"] * _stop_multiplier(p["scroll_past"])
     click = baseline["click_rate"] * _click_multiplier(engage)
     visit = baseline["visit_rate"] * _visit_multiplier(engage, p["save"])
-    convert = baseline["convert_rate"] * _convert_multiplier(p["would_act"])
+    convert = baseline["convert_rate"] * _convert_multiplier(p["buy_intent"])
 
     hw = _band_halfwidth_fraction(dist.n)
 

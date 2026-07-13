@@ -50,7 +50,7 @@ from agent.entities import DispositionLibrary
 from agent.panel import PanelAgent, build_panel, compute_panel_version
 from agent.projection_l35 import project_funnel
 from agent.render import render_persona_core
-from agent.runtime import run_agent_async
+from agent.runtime import REACTION_PROTOCOL_VERSION, run_agent_async
 from agent.schema import AgentTranscript, Report
 from agent.synthesis_assess import ASSESS_PROMPT_VERSION, frozen_painmap_from_report
 from agent.synthesis_l2 import synthesize_segment_async
@@ -268,6 +268,7 @@ def _run_json_payload(
         "run_id": run_id,
         "status": status,
         "protocol_version": config.protocol_version,
+        "reaction_protocol_version": REACTION_PROTOCOL_VERSION,
         "l4_prompt_version": L4_PROMPT_VERSION,
         "assess_prompt_version": ASSESS_PROMPT_VERSION,
         "prescribe_prompt_version": PRESCRIBE_PROMPT_VERSION,

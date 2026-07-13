@@ -1,12 +1,14 @@
-"""Offline test: the purpose-conditional reflection prompt (v2.4 P8).
+"""Offline guard: the purpose-conditional Call B (reflection) prompt (v3).
 
-THE $0 re-validation. A paid anchor run (2026-07-11) proved that asking the R8
-novelty probe before R7 contaminates purchase intent — within-target would_act
-fell 68% -> 26% on the same MB ad, actions unchanged. The fix: ask a probe ONLY
-on the purpose that reads it. This test is the guarantee that the three
-would_act/action jobs (direct-sell, cold-hook, retain) run a reflection prompt
-BYTE-IDENTICAL to the validated v2.3 prompt — so they are re-validated here for
-$0, not with another paid run. No API calls.
+Retires the v2.3 byte-identity (v3 emits `next_step`, not an R7 action). Pins
+the v3 assembly: the three would-act/action jobs (direct-sell, cold-hook,
+retain) get a probe-FREE reflection; informer adds ONLY novelty; brand-building
+adds ONLY brand_recall — the conditional-probe rule that prevents the
+68->26 contamination (docs/v3_protocol.md §2.2). Byte-identity is asserted
+against the runtime's own assembled constants (no hand-transcription), so any
+drift in _reflection_user_for's assembly or a probe leaking into a core job
+fails here. The reaction-surface VERSION pin + the Call-A guard land in W1·E2.
+No API calls.
 
 Run: python tests/test_reflection_prompt.py
 """
@@ -18,71 +20,71 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from agent.runtime import _reflection_user_for
-
-# The exact v2.3 reflection prompt that produced the validated anchors (68% MB,
-# etc.) — the golden string the core three MUST reproduce byte-for-byte.
-_V23_REFLECTION = (
-    "REFLECTION PHASE — a day or two later, still a real person, still "
-    "plain and short. Keep every section to 1-2 sentences. If an ad left "
-    "almost nothing behind, say so plainly — don't manufacture depth.\n\n"
-    "R4 STICKINESS: 1-2 sentences. What, if anything, stuck.\n\n"
-    "R5 SOCIAL: 1-2 sentences. Would you share or mention it, and why or "
-    "why not?\n\n"
-    "R6 FRICTION: 1-2 sentences. If you'd consider buying, the one thing "
-    "that stops you. If the ad isn't aimed at someone like you, that's a "
-    "fine reason — one factor, not a lecture.\n\n"
-    "R7 ACTION: emit exactly ONE line of JSON and nothing after it:\n"
-    '{"action": "<scroll_past|linger|tap_cta|save|share|seek_info>", '
-    '"reasoning": "<one short in-character sentence, anchored to the '
-    'creative>", "would_act_within_week": <true|false>}\n'
-    "What you would actually DO. Never a funnel rate or percentage."
+from agent.runtime import (
+    _NEXT_STEP_CORE,
+    _NEXT_STEP_HEAD,
+    _NEXT_STEP_NOTE,
+    _REFLECTION_BASE,
+    _reflection_user_for,
 )
 
+# The probe-free v3 core-three prompt, assembled from the frozen pieces. This
+# pins the ASSEMBLY (what drifts) exactly, without a hand-typed golden.
+_V3_CORE = _REFLECTION_BASE + _NEXT_STEP_HEAD + _NEXT_STEP_CORE + "}\n" + _NEXT_STEP_NOTE
 
-def test_core_jobs_get_the_validated_probe_free_prompt() -> None:
+
+def test_core_jobs_get_the_probe_free_prompt() -> None:
     for purpose in ("direct_sell", "cold_hook", "retain_winback"):
         got = _reflection_user_for(purpose)
-        assert got == _V23_REFLECTION, f"{purpose}: reflection prompt drifted from v2.3"
-        # contamination-free: no probe ever mentioned to a would_act/action job.
+        assert got == _V3_CORE, f"{purpose}: reflection prompt drifted"
+        # contamination-free: no probe ever mentioned to a would-act/action job.
         assert "novelty" not in got and "brand_recall" not in got
         assert "NEW-TO-YOU" not in got and "BRAND CHECK" not in got
-    print("  OK  direct-sell / cold-hook / retain == the byte-identical v2.3 prompt")
+    print("  OK  direct-sell / cold-hook / retain == the probe-free v3 prompt")
+
+
+def test_terminal_is_next_step_not_r7() -> None:
+    # v3: the terminal JSON emits next_step; the old R7 action / would_act keys
+    # are gone from the reflection prompt (action moved to Call A).
+    got = _reflection_user_for("direct_sell")
+    assert '"next_step":' in got
+    assert '"would_act_within_week"' not in got
+    assert "R7 ACTION" not in got
+    print("  OK  terminal reflection JSON is next_step (R7/would_act retired)")
 
 
 def test_informer_adds_only_novelty() -> None:
     got = _reflection_user_for("awareness_informer")
     assert "R8 NEW-TO-YOU" in got and '"novelty": <true|false>' in got
-    # informer never asks the brand-attribution probe.
     assert "R9 BRAND CHECK" not in got and "brand_recall" not in got
-    print("  OK  informer adds ONLY the novelty probe (not brand_recall)")
+    print("  OK  informer adds ONLY the novelty probe")
 
 
 def test_brand_building_adds_only_brand_recall() -> None:
     got = _reflection_user_for("brand_building")
     assert "R9 BRAND CHECK" in got and '"brand_recall": "<confident|unsure|none>"' in got
-    # brand-building never asks the novelty probe.
     assert "R8 NEW-TO-YOU" not in got and "novelty" not in got
-    print("  OK  brand-building adds ONLY the brand_recall probe (not novelty)")
+    print("  OK  brand-building adds ONLY the brand_recall probe")
 
 
-def test_probe_prompts_still_end_in_one_json_line() -> None:
-    # the probe versions keep R7 as a single terminal JSON object (parse relies
-    # on the last {...}); just with the extra field folded in.
+def test_probe_prompts_keep_one_terminal_json() -> None:
+    # the probe versions fold their field into the single terminal next_step
+    # object (parse relies on the last {...}); still exactly one next_step key.
     for purpose in ("awareness_informer", "brand_building"):
         got = _reflection_user_for(purpose)
-        assert got.count('"action":') == 1
+        assert got.count('"next_step":') == 1
         assert got.rstrip().count("}") == 1
-    print("  OK  probe prompts keep a single terminal R7 JSON object")
+    print("  OK  probe prompts keep a single terminal next_step JSON object")
 
 
 def main() -> None:
-    print("=== purpose-conditional reflection prompt (v2.4 P8) ===")
-    test_core_jobs_get_the_validated_probe_free_prompt()
+    print("=== purpose-conditional v3 reflection prompt ===")
+    test_core_jobs_get_the_probe_free_prompt()
+    test_terminal_is_next_step_not_r7()
     test_informer_adds_only_novelty()
     test_brand_building_adds_only_brand_recall()
-    test_probe_prompts_still_end_in_one_json_line()
-    print("PASS — core jobs on the validated prompt; probes confined to their purpose.")
+    test_probe_prompts_keep_one_terminal_json()
+    print("PASS — core jobs on the probe-free v3 prompt; probes confined to their purpose.")
 
 
 if __name__ == "__main__":

@@ -209,18 +209,17 @@ def compute_behavioral_distribution(
     counted in `n` is NOT — n is the count of agents with a usable signal,
     so the proportions L3.5 derives are over real signals, not gaps."""
     counts: dict[str, int] = {}
-    would_act = 0
+    next_step_counts: dict[str, int] = {}
     n = 0
     for t in transcripts:
         sig = t.behavioral_signal
         if sig is None:
             continue
         counts[sig.action] = counts.get(sig.action, 0) + 1
-        if sig.would_act_within_week:
-            would_act += 1
+        next_step_counts[sig.next_step] = next_step_counts.get(sig.next_step, 0) + 1
         n += 1
     return BehavioralSignalDistribution(
-        counts=counts, would_act_within_week_count=would_act, n=n
+        counts=counts, next_step_counts=next_step_counts, n=n
     )
 
 

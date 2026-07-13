@@ -25,8 +25,8 @@ def _t(agent_id: int, label: str, would_act: bool) -> AgentTranscript:
         agent_id=agent_id, disposition_label=label, context_label="feed",
         seed_idx=0, encoding_text="", reflection_text="",
         behavioral_signal=BehavioralSignal(
-            action="tap_cta" if would_act else "scroll_past",
-            reasoning="x", would_act_within_week=would_act),
+            action="tap_cta" if would_act else "scroll_past", action_reasoning="x",
+            next_step="buy_now" if would_act else "nothing", next_step_reasoning="x"),
     )
 
 

@@ -62,7 +62,8 @@ def _funnel() -> FunnelProjection:
     return FunnelProjection(
         overall=fr, by_segment=[],
         population_behavioral_distribution=BehavioralSignalDistribution(
-            counts={"linger": 4, "tap_cta": 3}, would_act_within_week_count=3, n=15),
+            counts={"linger": 4, "tap_cta": 3},
+            next_step_counts={"buy_now": 3, "nothing": 12}, n=15),
         calibration_note="directional",
     )
 
@@ -159,7 +160,7 @@ def test_run_json_stamps_both_prompt_versions() -> None:
     assert payload["decision_version"] == "decision-2"  # unchanged by v2.4
     assert payload["purpose_version"] == "purpose-1"  # rocket-2.4.0 (purpose layer)
     assert "l4_prompt_version" in payload  # retained for back-compat
-    assert payload["protocol_version"] == "rocket-2.4.0"
+    assert payload["protocol_version"] == "rocket-3.0.0-dev"
     print("  OK  run.json stamps assess + prescribe + decision + purpose versions (+ legacy l4)")
 
 

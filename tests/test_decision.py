@@ -337,12 +337,19 @@ def test_integration_from_real_runs() -> None:
         rd = base / d
         if not (rd / "transcripts.json").exists():
             continue
+        run = json.loads((rd / "run.json").read_text())
+        # v3 clean break (docs/v3_protocol.md §3): pre-v3 runs carry the old
+        # signal shape (no next_step) AND pre-v3 rate semantics (would_act, not
+        # buy-intent) — neither deserializes nor compares. Skip them; this path
+        # re-arms once a v3 run exists (its anchors are re-derived from it, not
+        # the v2 numbers in ANCHORS).
+        if not str(run.get("protocol_version", "")).startswith("rocket-3"):
+            continue
         from agent.schema import AgentTranscript
         ts = [AgentTranscript.from_dict(x) for x in json.loads((rd / "transcripts.json").read_text())]
         tc = TargetClassification.from_dict(json.loads((rd / "target_classification.json").read_text()))
         pm_data = json.loads((rd / "painmap.json").read_text())
         pains = [Pain.from_dict(p) for p in pm_data["pain_map"]]
-        run = json.loads((rd / "run.json").read_text())
         rep = run.get("report") or {}
         am = rep.get("audience_match")
         audience = AudienceMatch.from_dict(am) if am else None
@@ -358,7 +365,7 @@ def test_integration_from_real_runs() -> None:
         checked += 1
         print(f"  integration[{name:9}] -> {dec.decision:11} A_within={dec.target_action_rate*100:.0f}% ✓")
     if checked == 0:
-        print("  integration: SKIP (no local run dirs — expected under CI)")
+        print("  integration: SKIP (no local v3 run dirs — pre-v3 runs skipped by design)")
 
 
 def _sig(agent_id: int, label: str, act: bool) -> AgentTranscript:
@@ -366,8 +373,8 @@ def _sig(agent_id: int, label: str, act: bool) -> AgentTranscript:
         agent_id=agent_id, disposition_label=label, context_label="feed",
         seed_idx=0, encoding_text="", reflection_text="",
         behavioral_signal=BehavioralSignal(
-            action="tap_cta" if act else "scroll_past", reasoning="x",
-            would_act_within_week=act,
+            action="tap_cta" if act else "scroll_past", action_reasoning="x",
+            next_step="buy_now" if act else "nothing", next_step_reasoning="x",
         ),
     )
 

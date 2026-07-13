@@ -91,7 +91,8 @@ def _funnel() -> FunnelProjection:
         overall=fr,
         by_segment=[],
         population_behavioral_distribution=BehavioralSignalDistribution(
-            counts={"linger": 4, "tap_cta": 3}, would_act_within_week_count=3, n=15
+            counts={"linger": 4, "tap_cta": 3},
+            next_step_counts={"buy_now": 3, "nothing": 12}, n=15
         ),
         calibration_note="directional",
     )

@@ -63,14 +63,34 @@ _VALID_METHODOLOGY_FLAGS = {
     "declared_audience_disjoint",
 }
 
-# rocket-2.0.0: R7 behavioral signal action enum. The agent emits one of
-# these as its terminal in-character action — never a funnel rate.
+# rocket-3.0.0 (v3 two-call reaction): the IN-FEED action is captured at the
+# encounter (Call A) — what the thumb actually does in the moment. NEVER a
+# funnel rate. `seek_info` was REMOVED here: it conflated an in-feed tap
+# (`tap_cta`) with a later intent to look it up — the latter is now a
+# next_step (`research_first`). See docs/v3_protocol.md §2.1.
 BEHAVIORAL_ACTION = Literal[
-    "scroll_past", "linger", "tap_cta", "save", "share", "seek_info"
+    "scroll_past", "linger", "tap_cta", "save", "share"
 ]
 _VALID_BEHAVIORAL_ACTIONS = {
-    "scroll_past", "linger", "tap_cta", "save", "share", "seek_info"
+    "scroll_past", "linger", "tap_cta", "save", "share"
 }
+
+# rocket-3.0.0: the follow-through intent captured in reflection (Call B). A
+# DEFINED enum — the fix for the semantically-undefined would_act_within_week.
+# docs/v3_protocol.md §2.2.
+NEXT_STEP = Literal[
+    "buy_now", "buy_at_restock", "research_first", "mention_to_someone", "nothing"
+]
+_VALID_NEXT_STEPS = {
+    "buy_now", "buy_at_restock", "research_first", "mention_to_someone", "nothing"
+}
+# Buy-intent = the two purchase next_steps. The honest headline for buy jobs
+# (direct-sell, retain); `research_first` is reported separately, never folded
+# in (the A3 split that kills the "63% = buyers + info-seekers" error).
+_BUY_INTENT_NEXT_STEPS = {"buy_now", "buy_at_restock"}
+# In-feed hand-raise actions — real engagement with the ad (used by the
+# coherence guard, A7, in decision.py).
+_HAND_RAISE_ACTIONS = {"tap_cta", "save", "share"}
 
 # rocket-2.2.0 (v2.2 diagnosis rung): the PainMap axes. A Pain is a diagnosed
 # root cause, not a surface theme. funnel_stage locates where the pain bites;
@@ -219,23 +239,29 @@ class Pain:
 
 @dataclass
 class BehavioralSignal:
-    """R7 — one agent's terminal in-character behavioral signal. The agent
-    emits an action + creative-anchored reasoning + a would-act-this-week
-    flag. It NEVER emits a funnel rate; turning signals into rates is the
-    job of the L3.5 projection layer."""
+    """One agent's terminal behavioral signal, v3 two-call protocol
+    (docs/v3_protocol.md §3). `action` + `action_reasoning` come from Call A
+    (the encounter, System-1 — what the thumb does); `next_step` +
+    `next_step_reasoning` from Call B (reflection, the considered follow-
+    through). NEVER a funnel rate; turning signals into rates is L3.5's job."""
     action: BEHAVIORAL_ACTION
-    reasoning: str
-    would_act_within_week: bool
+    action_reasoning: str
+    next_step: NEXT_STEP
+    next_step_reasoning: str
 
     def to_dict(self) -> dict:
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict) -> "BehavioralSignal":
+        # Clean v3 break — action + next_step are required (loud on a missing
+        # key); reasonings default to "". Pre-v3 signals do not deserialize
+        # (they carry no next_step) — an accepted, stated consequence.
         return cls(
             action=data["action"],
-            reasoning=data["reasoning"],
-            would_act_within_week=bool(data["would_act_within_week"]),
+            action_reasoning=str(data.get("action_reasoning", "")),
+            next_step=data["next_step"],
+            next_step_reasoning=str(data.get("next_step_reasoning", "")),
         )
 
 
@@ -244,11 +270,12 @@ _VALID_BRAND_RECALL = ("confident", "unsure", "none")
 
 @dataclass
 class ProbeSignal:
-    """v2.4 — R8 + R9, two always-on self-report probes emitted alongside R7 in
-    the terminal reflection JSON. Asked on EVERY run regardless of the declared
-    purpose, so the panel stays purpose-BLIND; the purpose layer decides which
-    to score. Like BehavioralSignal these are captured, never rated — scoring
-    counts them in Python.
+    """v2.4/v3 — R8 + R9, CONDITIONAL self-report probes emitted alongside the
+    next_step in the terminal reflection JSON. Asked ONLY on the purpose whose
+    metric reads the probe (novelty→informer, brand_recall→brand-building) so
+    the would-act/action jobs are never contaminated (the v2.4 P8 fix; see
+    docs/v3_protocol.md §2.2). Like BehavioralSignal these are captured, never
+    rated — scoring counts them in Python.
 
       - novelty (R8): did the ad update a belief ('I didn't know they made X')?
         The informer's core signal — R2 captures comprehension, not news.
@@ -274,18 +301,25 @@ class ProbeSignal:
 
 @dataclass
 class BehavioralSignalDistribution:
-    """Aggregate of BehavioralSignal.action over a segment or the whole
-    population. Counts, not rates — computed deterministically in Python
-    (the locked 'distributions are Python, not the model' pattern). L3.5
-    turns counts into rates."""
-    counts: dict[str, int] = field(default_factory=dict)
-    would_act_within_week_count: int = 0
+    """Aggregate over a segment or the whole population: histograms of the
+    in-feed `action` (Call A) and the follow-through `next_step` (Call B).
+    Counts, not rates — computed deterministically in Python (the locked
+    'distributions are Python, not the model' pattern). L3.5 turns counts
+    into rates. docs/v3_protocol.md §3."""
+    counts: dict[str, int] = field(default_factory=dict)            # action histogram
+    next_step_counts: dict[str, int] = field(default_factory=dict)  # next_step histogram
     n: int = 0
+
+    @property
+    def buy_intent_count(self) -> int:
+        """Agents whose next_step is a purchase (buy_now or buy_at_restock) —
+        the honest buy-intent numerator (research_first is NOT counted here)."""
+        return sum(self.next_step_counts.get(s, 0) for s in _BUY_INTENT_NEXT_STEPS)
 
     def to_dict(self) -> dict:
         return {
             "counts": dict(self.counts),
-            "would_act_within_week_count": self.would_act_within_week_count,
+            "next_step_counts": dict(self.next_step_counts),
             "n": self.n,
         }
 
@@ -293,9 +327,9 @@ class BehavioralSignalDistribution:
     def from_dict(cls, data: dict) -> "BehavioralSignalDistribution":
         return cls(
             counts={str(k): int(v) for k, v in data.get("counts", {}).items()},
-            would_act_within_week_count=int(
-                data.get("would_act_within_week_count", 0)
-            ),
+            next_step_counts={
+                str(k): int(v) for k, v in data.get("next_step_counts", {}).items()
+            },
             n=int(data.get("n", 0)),
         )
 
@@ -844,6 +878,12 @@ def _validate_funnel_projection(fp: "FunnelProjection") -> None:
                 raise SchemaError(
                     f"behavioral_distribution for {seg.segment_label!r} has "
                     f"unknown action {action!r}"
+                )
+        for step in seg.behavioral_distribution.next_step_counts:
+            if step not in _VALID_NEXT_STEPS:
+                raise SchemaError(
+                    f"behavioral_distribution for {seg.segment_label!r} has "
+                    f"unknown next_step {step!r}"
                 )
     # Stage gating metadata — only enforced when present (legacy/recomputed-
     # without-meta projections leave it empty and skip these checks).

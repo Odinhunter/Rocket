@@ -23,10 +23,18 @@ from agent.schema import BehavioralSignalDistribution, _validate_funnel_projecti
 from agent.synthesis_types import L3Summary
 
 
-def _dist(counts: dict[str, int], would_act: int, n: int) -> BehavioralSignalDistribution:
-    return BehavioralSignalDistribution(
-        counts=counts, would_act_within_week_count=would_act, n=n
-    )
+def _dist(
+    counts: dict[str, int], buy_intent: int, n: int, research: int = 0
+) -> BehavioralSignalDistribution:
+    ns: dict[str, int] = {}
+    if buy_intent:
+        ns["buy_now"] = buy_intent
+    if research:
+        ns["research_first"] = research
+    rest = n - buy_intent - research
+    if rest > 0:
+        ns["nothing"] = rest
+    return BehavioralSignalDistribution(counts=counts, next_step_counts=ns, n=n)
 
 
 def _l3(pop: BehavioralSignalDistribution, segments: dict) -> L3Summary:
@@ -42,16 +50,16 @@ def test_rates_are_baseline_multiples() -> None:
     above baseline; a scroll-heavy one pushes stop below baseline."""
     baseline = {"stop_rate": 0.10, "click_rate": 0.02, "visit_rate": 0.015,
                 "convert_rate": 0.006}
-    hot = _dist({"tap_cta": 10, "seek_info": 8, "linger": 2}, would_act=10, n=20)
-    cold = _dist({"scroll_past": 18, "linger": 2}, would_act=0, n=20)
+    hot = _dist({"tap_cta": 10, "linger": 10}, buy_intent=10, n=20, research=8)
+    cold = _dist({"scroll_past": 18, "linger": 2}, buy_intent=0, n=20)
     proj_hot = project_funnel(_l3(hot, {}), baseline)
     proj_cold = project_funnel(_l3(cold, {}), baseline)
 
-    # Hot: high tap_cta + seek_info -> click ABOVE baseline.
+    # Hot: high tap_cta + research_first -> click ABOVE baseline.
     assert proj_hot.overall.click_rate > baseline["click_rate"], (
         f"hot click {proj_hot.overall.click_rate} not above baseline"
     )
-    # Cold: scroll-heavy -> stop BELOW baseline; no would_act -> convert below.
+    # Cold: scroll-heavy -> stop BELOW baseline; no buy-intent -> convert below.
     assert proj_cold.overall.stop_rate < baseline["stop_rate"], (
         f"cold stop {proj_cold.overall.stop_rate} not below baseline"
     )
@@ -61,7 +69,7 @@ def test_rates_are_baseline_multiples() -> None:
 
 def test_bands_present_and_ordered() -> None:
     baseline = dict(DEFAULT_BASELINE_FUNNEL)
-    d = _dist({"tap_cta": 5, "seek_info": 5, "scroll_past": 10}, would_act=5, n=20)
+    d = _dist({"tap_cta": 5, "linger": 5, "scroll_past": 10}, buy_intent=5, n=20, research=5)
     proj = project_funnel(_l3(d, {"disp_a::moderate": d}), baseline)
     for fr in (proj.overall, proj.by_segment[0].funnel_rates):
         for stage in ("stop", "click", "visit", "convert"):
@@ -87,8 +95,8 @@ def test_small_segments_get_wider_bands() -> None:
     one — the heuristic must not pretend a tiny segment is precise."""
     counts_big = {"tap_cta": 100, "scroll_past": 100}
     counts_small = {"tap_cta": 1, "scroll_past": 1}
-    big = _dist(counts_big, would_act=100, n=200)
-    small = _dist(counts_small, would_act=1, n=2)
+    big = _dist(counts_big, buy_intent=100, n=200)
+    small = _dist(counts_small, buy_intent=1, n=2)
     big_fr = project_funnel(_l3(big, {}), None).overall
     small_fr = project_funnel(_l3(small, {}), None).overall
 
@@ -105,9 +113,9 @@ def test_small_segments_get_wider_bands() -> None:
 
 
 def test_per_segment_projection() -> None:
-    pop = _dist({"tap_cta": 6, "scroll_past": 9, "linger": 5}, would_act=6, n=20)
-    seg_hot = _dist({"tap_cta": 8, "seek_info": 2}, would_act=8, n=10)
-    seg_cold = _dist({"scroll_past": 9, "linger": 1}, would_act=0, n=10)
+    pop = _dist({"tap_cta": 6, "scroll_past": 9, "linger": 5}, buy_intent=6, n=20)
+    seg_hot = _dist({"tap_cta": 8, "linger": 2}, buy_intent=8, n=10, research=2)
+    seg_cold = _dist({"scroll_past": 9, "linger": 1}, buy_intent=0, n=10)
     proj = project_funnel(
         _l3(pop, {"disp_a::impulsive": seg_hot, "disp_a::deliberate": seg_cold}),
         None,
@@ -123,8 +131,8 @@ def test_per_segment_projection() -> None:
 
 
 def test_projection_validates_against_schema() -> None:
-    pop = _dist({"tap_cta": 6, "scroll_past": 9, "linger": 5}, would_act=6, n=20)
-    seg = _dist({"tap_cta": 3, "scroll_past": 2}, would_act=3, n=5)
+    pop = _dist({"tap_cta": 6, "scroll_past": 9, "linger": 5}, buy_intent=6, n=20)
+    seg = _dist({"tap_cta": 3, "scroll_past": 2}, buy_intent=3, n=5)
     proj = project_funnel(_l3(pop, {"disp_a::moderate": seg}), None)
     _validate_funnel_projection(proj)  # raises SchemaError on any violation
     print("  OK  the projection passes _validate_funnel_projection")

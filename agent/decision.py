@@ -34,6 +34,7 @@ from agent.schema import (
     AudienceMatch,
     Decision,
     Pain,
+    _BUY_INTENT_NEXT_STEPS,
 )
 from agent.synthesis_l2 import compute_behavioral_distribution
 from agent.synthesis_types import TargetClassification
@@ -112,17 +113,19 @@ def within_target_action_rate(
     target_classification: TargetClassification,
 ) -> tuple[float | None, int, int]:
     """The headline metric: of agents whose disposition is classified `within`,
-    the fraction with would_act_within_week == True. Returns (rate, num, denom)
-    where rate is 0-1, or (None, 0, 0) when no within-target agent has a parsed
-    signal (0/0 — never divide by zero). Denominator counts only parsed signals
-    (reuses compute_behavioral_distribution, so it stays consistent with the
-    funnel layer)."""
+    the fraction with a BUY-INTENT next_step (buy_now or buy_at_restock).
+    `research_first` is NOT counted here — it is reported separately, never
+    folded into the headline (the A3 split; docs/v3_protocol.md §4). Returns
+    (rate, num, denom) where rate is 0-1, or (None, 0, 0) when no within-target
+    agent has a parsed signal (0/0 — never divide by zero). Denominator counts
+    only parsed signals (reuses compute_behavioral_distribution, so it stays
+    consistent with the funnel layer)."""
     within = set(target_classification.within_target_labels())
     subset = [t for t in transcripts if t.disposition_label in within]
     dist = compute_behavioral_distribution(subset)
     if dist.n == 0:
         return None, 0, 0
-    return dist.would_act_within_week_count / dist.n, dist.would_act_within_week_count, dist.n
+    return dist.buy_intent_count / dist.n, dist.buy_intent_count, dist.n
 
 
 def action_by_disposition(
@@ -137,8 +140,8 @@ def action_by_disposition(
     out: dict[str, tuple[float, int, int]] = {}
     for label, ts in by_label.items():
         dist = compute_behavioral_distribution(ts)
-        rate = dist.would_act_within_week_count / dist.n if dist.n else 0.0
-        out[label] = (rate, dist.would_act_within_week_count, dist.n)
+        rate = dist.buy_intent_count / dist.n if dist.n else 0.0
+        out[label] = (rate, dist.buy_intent_count, dist.n)
     return out
 
 
@@ -202,12 +205,13 @@ def _agent_win(t: AgentTranscript, preset: PurposePreset) -> bool | None:
     if bs is None:
         return None
     if metric == "cold_stop_lean_in":
-        # Stop-and-lean-in: anything other than a scroll-past (linger / seek_info
-        # / save / tap / share). The cold-hook job is the stop, not the sale.
+        # Stop-and-lean-in: anything other than a scroll-past (linger / tap /
+        # save / share). The cold-hook job is the stop, not the sale.
         return bs.action != "scroll_past"
-    # direct_sell + retain (reorder/return framing) both key off would-act.
+    # direct_sell + retain (reorder/return framing) both key off buy-intent
+    # (next_step ∈ {buy_now, buy_at_restock}); research_first is NOT a win.
     # awareness/informer is a breadth read handled on its own path (P6).
-    return bs.would_act_within_week
+    return bs.next_step in _BUY_INTENT_NEXT_STEPS
 
 
 def _frame_subset(

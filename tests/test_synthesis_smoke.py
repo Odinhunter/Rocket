@@ -55,14 +55,14 @@ _SEGMENTS = {
                 "R6 FRICTION: The asterisk on the price. If the real price is "
                 "₹1,199 all-in I'd consider it; if it's a bait number I'm out. "
                 "The ad didn't resolve that.\n"
-                'R7 ACTION: {"action": "seek_info", "reasoning": "the asterisk '
-                'on ₹1,199 needs resolving before I would buy", '
-                '"would_act_within_week": true}'
+                'NEXT_STEP: {"next_step": "research_first", "reasoning": "the '
+                'asterisk on ₹1,199 needs resolving before I would buy"}'
             ),
             behavioral_signal=BehavioralSignal(
-                action="seek_info",
-                reasoning="the asterisk on ₹1,199 needs resolving before I would buy",
-                would_act_within_week=True,
+                action="linger",
+                action_reasoning="stopped on the ₹1,199 but the asterisk needs resolving",
+                next_step="research_first",
+                next_step_reasoning="the asterisk on ₹1,199 needs resolving before I would buy",
             ),
         ),
         AgentTranscript(
@@ -80,14 +80,14 @@ _SEGMENTS = {
                 "R5 SOCIAL: No.\n"
                 "R6 FRICTION: Still the asterisk — but in research mode I'll "
                 "just go check the landing page, so it's lower friction here.\n"
-                'R7 ACTION: {"action": "tap_cta", "reasoning": "in research '
-                'mode the price is enough to make me tap through and compare", '
-                '"would_act_within_week": true}'
+                'NEXT_STEP: {"next_step": "buy_now", "reasoning": "in research '
+                'mode the price is enough to tap through and just order"}'
             ),
             behavioral_signal=BehavioralSignal(
                 action="tap_cta",
-                reasoning="in research mode the price is enough to tap through",
-                would_act_within_week=True,
+                action_reasoning="in research mode the price is enough to tap through",
+                next_step="buy_now",
+                next_step_reasoning="the price is enough to just order in research mode",
             ),
         ),
     ],
@@ -107,14 +107,14 @@ _SEGMENTS = {
                 "R5 SOCIAL: No.\n"
                 "R6 FRICTION: The whole proposition — it's solving for a buyer "
                 "who isn't me. No friction to act on because there's no intent.\n"
-                'R7 ACTION: {"action": "scroll_past", "reasoning": "budget '
-                'earbuds are not a category I engage with at all", '
-                '"would_act_within_week": false}'
+                'NEXT_STEP: {"next_step": "nothing", "reasoning": "budget '
+                'earbuds are not a category I engage with at all"}'
             ),
             behavioral_signal=BehavioralSignal(
                 action="scroll_past",
-                reasoning="budget earbuds are not a category I engage with",
-                would_act_within_week=False,
+                action_reasoning="budget earbuds are not a category I engage with",
+                next_step="nothing",
+                next_step_reasoning="not a category I engage with",
             ),
         ),
         AgentTranscript(
@@ -131,14 +131,14 @@ _SEGMENTS = {
                 "R4 STICKINESS: Nothing.\n"
                 "R5 SOCIAL: No.\n"
                 "R6 FRICTION: N/A — no purchase consideration at all.\n"
-                'R7 ACTION: {"action": "scroll_past", "reasoning": "low '
-                'attention and wrong category, gone in half a second", '
-                '"would_act_within_week": false}'
+                'NEXT_STEP: {"next_step": "nothing", "reasoning": "low '
+                'attention and wrong category, gone in half a second"}'
             ),
             behavioral_signal=BehavioralSignal(
                 action="scroll_past",
-                reasoning="low attention and wrong category",
-                would_act_within_week=False,
+                action_reasoning="low attention and wrong category",
+                next_step="nothing",
+                next_step_reasoning="low attention and wrong category",
             ),
         ),
     ],
@@ -190,7 +190,7 @@ def main() -> None:
         assert sum(bd.counts.values()) == bd.n
         l2_summaries.append(summary)
         print(f"  OK  L2 {segment_label}: summary + behavioral_distribution "
-              f"{dict(bd.counts)} (would_act={bd.would_act_within_week_count})")
+              f"{dict(bd.counts)} (buy_intent={bd.buy_intent_count})")
 
     # L3 — population synthesis + behavioral distributions.
     l3 = synthesize_population(l2_summaries, _TARGET, config)

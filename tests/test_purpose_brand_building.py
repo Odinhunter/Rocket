@@ -28,8 +28,8 @@ def _t(agent_id: int, label: str, action: str, recall: str | None) -> AgentTrans
     return AgentTranscript(
         agent_id=agent_id, disposition_label=label, context_label="feed",
         seed_idx=0, encoding_text="", reflection_text="",
-        behavioral_signal=BehavioralSignal(action=action, reasoning="x",
-                                           would_act_within_week=False),
+        behavioral_signal=BehavioralSignal(action=action, action_reasoning="x",
+                                           next_step="nothing", next_step_reasoning="x"),
         probe_signal=(ProbeSignal(novelty=False, brand_recall=recall)
                       if recall is not None else None),
     )

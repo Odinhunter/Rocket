@@ -17,10 +17,18 @@ from agent.schema import BehavioralSignalDistribution
 from agent.synthesis_types import L3Summary
 
 
-def _dist(counts: dict[str, int], would_act: int, n: int) -> BehavioralSignalDistribution:
-    return BehavioralSignalDistribution(
-        counts=counts, would_act_within_week_count=would_act, n=n
-    )
+def _dist(
+    counts: dict[str, int], buy_intent: int, n: int, research: int = 0
+) -> BehavioralSignalDistribution:
+    ns: dict[str, int] = {}
+    if buy_intent:
+        ns["buy_now"] = buy_intent
+    if research:
+        ns["research_first"] = research
+    rest = n - buy_intent - research
+    if rest > 0:
+        ns["nothing"] = rest
+    return BehavioralSignalDistribution(counts=counts, next_step_counts=ns, n=n)
 
 
 def _overall(dist: BehavioralSignalDistribution):
@@ -35,11 +43,11 @@ def test_more_positive_never_lowers_funnel() -> None:
     all of them."""
     n = 20
     prev = None
-    # Step k: k agents engage (tap_cta + would_act), the rest scroll past.
+    # Step k: k agents engage (tap_cta + buy-intent), the rest scroll past.
     for k in range(0, n + 1):
         dist = _dist(
             {"tap_cta": k, "scroll_past": n - k},
-            would_act=k,
+            buy_intent=k,
             n=n,
         )
         fr = _overall(dist)
@@ -63,8 +71,8 @@ def test_more_positive_never_lowers_funnel() -> None:
 def test_strictly_better_distribution_dominates() -> None:
     """A distribution that is strictly better on every axis must produce a
     funnel that is >= on every stage."""
-    worse = _dist({"scroll_past": 16, "linger": 4}, would_act=1, n=20)
-    better = _dist({"tap_cta": 8, "seek_info": 6, "linger": 6}, would_act=12, n=20)
+    worse = _dist({"scroll_past": 16, "linger": 4}, buy_intent=1, n=20)
+    better = _dist({"tap_cta": 8, "linger": 12}, buy_intent=12, n=20, research=6)
     fw, fb = _overall(worse), _overall(better)
     for stage in ("stop_rate", "click_rate", "visit_rate", "convert_rate"):
         assert getattr(fb, stage) >= getattr(fw, stage) - 1e-9, (
