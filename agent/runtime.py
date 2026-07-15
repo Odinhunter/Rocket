@@ -306,6 +306,22 @@ def parse_probe_signal(reflection_text: str) -> ProbeSignal | None:
     return ProbeSignal.from_dict(obj)
 
 
+_CYCLE_PROSE = {
+    "just_bought": "just recently stocked up on {cat} — well supplied, with no near-term need.",
+    "mid_cycle": "partway through their current {cat} — not thinking about restocking yet.",
+    "running_low": "nearly out of {cat} — they'll need to restock soon.",
+}
+
+
+def _cycle_line(cycle_position: str, category: str) -> str:
+    """A deterministic, TEMPLATED (no model call) line stating where the persona
+    is in their category cycle right now. Goes in the UNCACHED context block so it
+    never fragments the cached persona core (v3 A4, docs/v3_protocol.md §5)."""
+    cat = category.replace("_", " ")
+    body = _CYCLE_PROSE.get(cycle_position, _CYCLE_PROSE["mid_cycle"]).format(cat=cat)
+    return "WHERE THEY ARE IN THEIR BUYING CYCLE RIGHT NOW: " + body
+
+
 # ---- Public API ----
 
 
@@ -356,6 +372,7 @@ def run_agent(
     context_block = (
         "THE EXACT MOMENT THIS AD APPEARS IN THEIR FEED\n\n"
         f"{context_prose.strip()}\n\n"
+        f"{_cycle_line(agent.cycle_position, agent.category)}\n\n"
         "Attention gates everything that follows. If this context implies "
         "low attention, the ad probably gets a sub-second thumb-flick "
         "regardless of whether the persona would be interested in a more "
@@ -438,6 +455,7 @@ def run_agent(
         reflection_text=reflection_text,
         behavioral_signal=parse_behavioral_signal(encoding_text, reflection_text),
         probe_signal=parse_probe_signal(reflection_text),
+        cycle_position=agent.cycle_position,
     )
 
 

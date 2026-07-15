@@ -31,6 +31,40 @@ from agent.vectors import ChaosProfile, DemographicPoint, NamedContext, NamedDis
 SegmentGranularity = str  # "disposition" | "disposition_chaos_band"
 
 
+# v3 (A4, docs/v3_protocol.md §5): purchase-cycle position — where the persona is
+# in their category replenishment cycle right now. A per-agent SAMPLED state (NOT
+# a vector axis): it rides the UNCACHED context render, is excluded from the
+# persona-core cache key AND the segment key (so it neither fragments the render
+# cache nor explodes the L2 fan-out), and is reported as a mix-INDEPENDENT
+# breakdown so the blended headline never hides its mix assumption (Catch 2).
+CYCLE_POSITIONS: tuple[str, ...] = ("just_bought", "mid_cycle", "running_low")
+# The provisional default mix — a documented best-guess (fail-conservative), NOT
+# an invented baseline buried in code: it is spec-declarable via
+# AudienceSpec.cycle_mix and always shown alongside the headline. Recalibrate per
+# category later.
+DEFAULT_CYCLE_MIX: dict[str, float] = {
+    "just_bought": 0.25, "mid_cycle": 0.50, "running_low": 0.25,
+}
+
+
+def resolve_cycle_mix(mix: dict[str, float] | None) -> dict[str, float]:
+    """Validate + NORMALISE the purchase-cycle mix (weights sum to 1, as
+    _largest_remainder requires). None -> the provisional default. A bad key or a
+    negative / all-zero weight fails loud."""
+    if mix is None:
+        return dict(DEFAULT_CYCLE_MIX)
+    if not mix or any(k not in CYCLE_POSITIONS for k in mix):
+        raise ValueError(
+            f"cycle_mix keys must be a subset of {CYCLE_POSITIONS}; got {sorted(mix)}"
+        )
+    if any(w < 0 for w in mix.values()) or sum(mix.values()) <= 0:
+        raise ValueError(
+            f"cycle_mix weights must be non-negative and sum > 0; got {mix}"
+        )
+    total = sum(mix.values())
+    return {k: v / total for k, v in mix.items()}
+
+
 @dataclass
 class PanelAgent:
     """One agent — a point across all four population axes."""
@@ -46,6 +80,10 @@ class PanelAgent:
     # declared audience frame; False for discovery-tail agents drawn from
     # personas outside it. Legacy panels (no key) default True.
     in_declared_frame: bool = True
+    # v3 (A4): purchase-cycle position (just_bought / mid_cycle / running_low).
+    # Sampled at build; rendered into the UNCACHED context; deliberately NOT part
+    # of persona_core_hash or segment_key. Legacy panels default to mid_cycle.
+    cycle_position: str = "mid_cycle"
 
     @property
     def chaos_band(self) -> str:
@@ -91,6 +129,7 @@ class PanelAgent:
             "category": self.category,
             "segment_granularity": self.segment_granularity,
             "in_declared_frame": self.in_declared_frame,
+            "cycle_position": self.cycle_position,
             "segment_key": self.segment_key,
             "chaos_band": self.chaos_band,
             "persona_core_hash": self.persona_core_hash,
@@ -109,6 +148,7 @@ class PanelAgent:
                 "segment_granularity", "disposition_chaos_band"
             ),
             in_declared_frame=bool(data.get("in_declared_frame", True)),
+            cycle_position=data.get("cycle_position", "mid_cycle"),
         )
 
 
@@ -540,11 +580,23 @@ def build_panel(
     )
     profile_by_label = {p.label: p for p in profiles}
 
-    # Zip cells with the spread chaos sequence into the agent multiset.
+    # v3 (A4): purchase-cycle positions, apportioned + even-spread EXACTLY like
+    # chaos so cycle does not correlate with the disposition/context/chaos cells.
+    # Deterministic in the spec (mix + panel_size), independent of the seed.
+    cycle_mix = resolve_cycle_mix(spec.cycle_mix)
+    cyc_labels = sorted(cycle_mix)
+    cyc_counts = _largest_remainder(
+        [cycle_mix[label] for label in cyc_labels], spec.panel_size
+    )
+    cycle_seq = _even_spread(
+        {cyc_labels[i]: cyc_counts[i] for i in range(len(cyc_labels))}
+    )
+
+    # Zip cells with the spread chaos + cycle sequences into the agent multiset.
     agents_unordered: list[tuple] = [
         (
             cells[i][0], cells[i][1], cells[i][2],
-            profile_by_label[chaos_seq[i]], frame_flags[i],
+            profile_by_label[chaos_seq[i]], frame_flags[i], cycle_seq[i],
         )
         for i in range(spec.panel_size)
     ]
@@ -556,7 +608,7 @@ def build_panel(
 
     panel: list[PanelAgent] = []
     for agent_id, slot in enumerate(order):
-        demo, disp, ctx, chaos, in_frame = agents_unordered[slot]
+        demo, disp, ctx, chaos, in_frame, cycle = agents_unordered[slot]
         panel.append(
             PanelAgent(
                 agent_id=agent_id,
@@ -567,6 +619,7 @@ def build_panel(
                 category=category,
                 segment_granularity=segment_granularity,
                 in_declared_frame=in_frame,
+                cycle_position=cycle,
             )
         )
     panel.sort(key=lambda a: a.agent_id)

@@ -535,6 +535,27 @@ def _research_over_frame(frame: list[AgentTranscript]) -> tuple[float | None, in
     return num / denom, num, denom
 
 
+def _buy_intent_by_cycle(frame: list[AgentTranscript]) -> dict[str, dict]:
+    """Buy-intent rate per purchase-cycle position — the mix-INDEPENDENT read
+    (A4, Catch 2, docs/v3_protocol.md §5). {position: {"rate","num","denom"}}
+    over the frame's parsed signals. The blended headline is a weighted average
+    over the panel's realised cycle mix and MOVES with it; this breakdown does
+    not, so it is the honest primary number the render leads with."""
+    by: dict[str, dict[str, int]] = {}
+    for t in frame:
+        bs = t.behavioral_signal
+        if bs is None:
+            continue
+        cell = by.setdefault(t.cycle_position, {"num": 0, "denom": 0})
+        cell["denom"] += 1
+        if bs.next_step in _BUY_INTENT_NEXT_STEPS:
+            cell["num"] += 1
+    return {
+        pos: {"rate": c["num"] / c["denom"], "num": c["num"], "denom": c["denom"]}
+        for pos, c in by.items() if c["denom"] > 0
+    }
+
+
 def _intent_action_incoherent(
     frame: list[AgentTranscript], preset: PurposePreset
 ) -> bool:
@@ -682,4 +703,9 @@ def build_decision(
     decision.research_num = research_num
     decision.research_denom = research_denom
     decision.coherence_incoherent = incoherent
+    # A4: buy-intent broken down by purchase-cycle position — the mix-independent
+    # read. Only for the buy-frame jobs (direct-sell / retain), where the headline
+    # IS buy-intent; a stop/breadth job's cycle split would not be meaningful.
+    if preset.name in (DIRECT_SELL, RETAIN_WINBACK):
+        decision.by_cycle_position = _buy_intent_by_cycle(frame)
     return decision

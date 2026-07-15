@@ -136,6 +136,11 @@ def _inconclusive_lines(report: Report) -> list[str]:
     ]
 
 
+_CYCLE_LABEL = {
+    "running_low": "running low", "mid_cycle": "mid-cycle", "just_bought": "just bought",
+}
+
+
 def _headline_metric_line(d) -> str:
     """The one number the brand manager reads, phrased for the ad's JOB. Direct-
     sell is byte-for-byte the v2.3 line; other jobs swap the metric + frame."""
@@ -208,6 +213,16 @@ def _print_decision_headline(report: Report) -> None:
             print("  ⚠ Coherence check: buy-intent was stated but no one actually "
                   "engaged with the ad in-feed (no tap/save/share) — treat the buy "
                   "number with caution.")
+        # A4: the mix-independent read — lead with the per-cycle breakdown so the
+        # blended headline never hides its cycle-mix assumption (Catch 2).
+        if d.by_cycle_position:
+            print("  Where they are in the buying cycle (the mix-independent read):")
+            for pos in ("running_low", "mid_cycle", "just_bought"):
+                c = d.by_cycle_position.get(pos)
+                if c:
+                    print(f"    {_CYCLE_LABEL[pos]:<12} {c['rate']:.0%} would buy "
+                          f"({c['num']} of {c['denom']})")
+            print("  (The headline above blends these at the panel's sampled cycle mix.)")
         if d.decision == "RETARGET" and d.champion_disposition:
             print(f"  But the {_humanize(d.champion_disposition)} — whom you are NOT "
                   f"targeting — acts at {d.champion_action_rate:.0%}. Right ad, wrong person.")

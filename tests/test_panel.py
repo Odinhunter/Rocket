@@ -125,6 +125,52 @@ def test_chaos_distribution_matched() -> None:
     print(f"  OK  chaos distribution matched exactly at 200 agents: {dict(counts)}")
 
 
+def test_cycle_distribution_matched() -> None:
+    spec, disps = _spec(200)
+    panel = build_panel(spec, disps, category="coffee", seed=71)
+    counts = Counter(a.cycle_position for a in panel)
+    # default mix 0.25/0.50/0.25 of 200 = 50/100/50, exact under largest-remainder.
+    assert counts["just_bought"] == 50, counts
+    assert counts["mid_cycle"] == 100, counts
+    assert counts["running_low"] == 50, counts
+    print(f"  OK  cycle distribution matched the default mix at 200: {dict(counts)}")
+
+
+def test_custom_cycle_mix_respected() -> None:
+    spec, disps = _spec(60)
+    spec.cycle_mix = {"running_low": 3.0, "mid_cycle": 1.0}  # 3:1 -> 45 / 15 (normalised)
+    panel = build_panel(spec, disps, category="coffee", seed=71)
+    counts = Counter(a.cycle_position for a in panel)
+    assert counts["running_low"] == 45 and counts["mid_cycle"] == 15, counts
+    assert counts["just_bought"] == 0, counts  # not in the declared mix
+    print(f"  OK  custom cycle_mix respected (normalised): {dict(counts)}")
+
+
+def test_cycle_reproducible_same_seed() -> None:
+    spec, disps = _spec(100)
+    p1 = build_panel(spec, disps, category="coffee", seed=71)
+    p2 = build_panel(spec, disps, category="coffee", seed=71)
+    assert [a.cycle_position for a in p1] == [a.cycle_position for a in p2]
+    print("  OK  cycle_position is reproducible for the same spec + seed")
+
+
+def test_cycle_not_in_persona_cache_or_segment_key() -> None:
+    from agent.vectors import ChaosProfile, ChaosVector
+    chaos = ChaosProfile(label="moderate", vector=ChaosVector(
+        decision_velocity="moderate", suggestibility="medium",
+        consistency="variable", risk_tolerance="balanced"))
+    demo = DemographicPoint(gender="male", age_band="25_34",
+                            income_tier="upper_mid", geography="metro")
+    base = dict(agent_id=0, demographic=demo, disposition=_disposition("d"),
+                context=_context("c"), chaos=chaos, category="coffee")
+    a1 = PanelAgent(**base, cycle_position="running_low")
+    a2 = PanelAgent(**base, cycle_position="just_bought")
+    # cycle rides the UNCACHED context render, so it must not change either key.
+    assert a1.persona_core_hash == a2.persona_core_hash
+    assert a1.segment_key == a2.segment_key
+    print("  OK  cycle_position excluded from persona_core_hash + segment_key")
+
+
 def test_marginal_coverage_full() -> None:
     """panel_size (200) >= grid (7x3x1 = 21): every joint cell populated."""
     spec, disps = _spec(200)
@@ -466,6 +512,10 @@ def main() -> None:
     print("=== population construction (panel) smoke ===")
     test_panel_size_exact()
     test_chaos_distribution_matched()
+    test_cycle_distribution_matched()
+    test_custom_cycle_mix_respected()
+    test_cycle_reproducible_same_seed()
+    test_cycle_not_in_persona_cache_or_segment_key()
     test_marginal_coverage_full()
     test_marginal_coverage_small()
     test_reproducible_same_seed()

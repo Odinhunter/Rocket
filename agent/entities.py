@@ -84,6 +84,11 @@ class AudienceSpec:
     context_envelope: list[NamedContext] = field(default_factory=list)
     chaos_distribution: ChaosDistribution | None = None
     panel_size: int = 200
+    # v3 (A4): purchase-cycle mix — the share of the panel in each replenishment
+    # state {just_bought, mid_cycle, running_low}. None -> panel.DEFAULT_CYCLE_MIX
+    # (a documented provisional default). Validated + normalised in build_panel
+    # (resolve_cycle_mix), so it is never a silent hard-coded baseline (Catch 2).
+    cycle_mix: dict[str, float] | None = None
 
     def validate(self) -> None:
         if not self.demographics:
@@ -134,6 +139,7 @@ class AudienceSpec:
                 else None
             ),
             "panel_size": self.panel_size,
+            "cycle_mix": dict(self.cycle_mix) if self.cycle_mix is not None else None,
         }
 
     @classmethod
@@ -151,6 +157,10 @@ class AudienceSpec:
                 ChaosDistribution.from_dict(cd) if cd is not None else None
             ),
             panel_size=int(data.get("panel_size", 200)),
+            cycle_mix=(
+                {str(k): float(v) for k, v in data["cycle_mix"].items()}
+                if data.get("cycle_mix") is not None else None
+            ),
         )
 
 

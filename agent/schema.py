@@ -981,6 +981,10 @@ class AgentTranscript:
     # JSON as R7. None for pre-v2.4 transcripts (no probe line) — scoring treats
     # a missing probe as no-signal, like a missing behavioral_signal.
     probe_signal: "ProbeSignal | None" = None
+    # v3 (A4): the agent's purchase-cycle position, carried through from the
+    # PanelAgent so the decision layer can report buy-intent BY cycle (the
+    # mix-independent read). Legacy transcripts default to mid_cycle.
+    cycle_position: str = "mid_cycle"
 
     def to_dict(self) -> dict:
         return {
@@ -990,6 +994,7 @@ class AgentTranscript:
             "seed_idx": self.seed_idx,
             "encoding_text": self.encoding_text,
             "reflection_text": self.reflection_text,
+            "cycle_position": self.cycle_position,
             "behavioral_signal": (
                 self.behavioral_signal.to_dict()
                 if self.behavioral_signal is not None
@@ -1019,4 +1024,5 @@ class AgentTranscript:
             probe_signal=(
                 ProbeSignal.from_dict(ps) if ps is not None else None
             ),
+            cycle_position=data.get("cycle_position", "mid_cycle"),
         )
