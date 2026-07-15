@@ -94,9 +94,9 @@ _L2_TOOL = {
             "emotional_read": {
                 "type": "string",
                 "description": (
-                    "1-2 sentences synthesizing the R3 EMOTION sections across "
-                    "the transcripts. What did the ad make this disposition "
-                    "feel, in their own register?"
+                    "1-2 sentences synthesizing the R3 INTEREST sections across "
+                    "the transcripts. Did the ad catch this disposition's "
+                    "interest or wash over them, in their own register?"
                 ),
             },
             "friction_summary": {
@@ -156,13 +156,13 @@ findings.
 Each transcript comes from ONE agent and contains two text blocks:
 
 - **encoding_text** has three labelled sections:
-  - `R1 GUT:` 1-2 sentences, the agent's first-glance reaction
-  - `R2 COMPREHENSION:` 3 sentences on what message landed
-  - `R3 EMOTION:` 4-5 sentences on emotional texture
+  - `R1 GUT:` 1-2 sentences, the agent's first-glance gut reaction
+  - `R2 COMPREHENSION:` 1-2 sentences on what it is + who they picture it being for (and whether that feels like them)
+  - `R3 INTEREST:` 1-2 sentences on whether it caught their interest or washed over them
 - **reflection_text** has these labelled sections:
-  - `R4 STICKINESS:` what stuck 48 hours later
-  - `R5 SOCIAL:` would they share / mention / post
-  - `R6 FRICTION:` the single biggest friction on purchase
+  - `R4 STICKINESS:` 1-2 sentences on what, if anything, they remember a day or two later
+  - `R5 SOCIAL:` 1-2 sentences on whether they'd bring it up to anyone
+  - `R6 FRICTION:` 1-2 sentences on the one thing that would hold them back from buying
   - `R8 NEW-TO-YOU:` whether the ad taught them something new about the brand
   - `R9 BRAND CHECK:` how confidently they can name the brand
   - `R7 ACTION:` a one-line JSON behavioral signal (an action + reasoning +

@@ -46,10 +46,12 @@ The panel stays **purpose-blind** (the persona never learns the declared job). T
 Sections R1–R3 (unchanged in spirit — 1–2 plain sentences each), **then a terminal action line**. The action is emitted *here*, at the encounter, conditioned only on the immediate impression.
 
 ```
-R1 GUT · R2 COMPREHENSION · R3 EMOTION        (1–2 plain sentences each)
+R1 GUT · R2 COMPREHENSION · R3 INTEREST        (1–2 plain sentences each)
 ACTION: emit exactly ONE line of JSON and nothing after it:
 {"action": "<scroll_past|linger|tap_cta|save|share>", "reasoning": "<one short in-character sentence, anchored to the creative>"}
 ```
+
+**Register de-contamination (2026-07-16, qualitative-research-grounded — laddering / projective / non-leading interview technique).** The R-section wording was reworked so the persona *reacts like a person* and the engine *infers*, instead of asking the persona to be its own market researcher (which produced marketer-speak like "broadly my demographic" and echoed planted phrases like "left me cold"). Key moves: (a) **never plant the answer's words** — dropped "…or that it left you cold" from R3; (b) **projection over self-classification** — R2 asks "who do you *picture* it being for, and does that feel like you?" not "is that you? (gender/age/life-stage)", preserving fit-sensitivity in plain language; (c) **interest, not emotion-labeling** — R3 relabeled EMOTION→INTEREST ("did any of it catch your interest, or wash over you?"), truer to a glance; (d) plainer R4/R5/R6 (dropped "stuck", "not aimed at someone like you"). Prompt wording stays provisional per §2.3 — the Week-3 A/B validates it against the human panel. L2's section map kept in sync.
 
 **`action` enum (in-feed behaviour — what the thumb does in ~1–2s):**
 
