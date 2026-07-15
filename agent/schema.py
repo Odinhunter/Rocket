@@ -51,6 +51,7 @@ METHODOLOGY_FLAG = Literal[
     "single_context_only",           # only one context label in the run
     "provisional_disposition_present",  # rocket-2.0.0: an on-the-spot disposition
     "declared_audience_disjoint",    # rocket-2.1.0: declared audience vs ad-inferred target grossly disjoint
+    "intent_action_incoherent",      # rocket-3.0.0 (A7): buy_now intent w/ zero in-feed hand-raise
 ]
 _VALID_METHODOLOGY_FLAGS = {
     "pool_archetype_mismatch",
@@ -61,6 +62,7 @@ _VALID_METHODOLOGY_FLAGS = {
     "single_context_only",
     "provisional_disposition_present",
     "declared_audience_disjoint",
+    "intent_action_incoherent",
 }
 
 # rocket-3.0.0 (v3 two-call reaction): the IN-FEED action is captured at the
@@ -509,10 +511,14 @@ class Decision:
     when no within-target agent had a parsed signal. champion_* name the
     disposition a RETARGET creative actually resonates with (the "right ad,
     wrong person" story). load_bearing_pain_id points at the pain that drove the
-    call. SCALE is un-gated behind a PROVISIONAL bar (decision-2); validate_report
-    enforces its structural invariant (a SCALE carries a within-target rate and
-    no load-bearing pain). See _SCALE_FLOOR in agent/decision.py — KNOWN RISK,
-    recalibrate post-v2.4.
+    call. SCALE is un-gated behind a PROVISIONAL bar; validate_report enforces its
+    invariant (a SCALE carries a within-target rate; v3/A5 lets an EXECUTION pain
+    coexist — "scale while iterating" — but not a STRUCTURAL one). See _SCALE_FLOOR
+    in agent/decision.py — KNOWN RISK, recalibrate.
+    research_* (v3/A3) is the "would research" companion, never folded into the buy
+    headline. coherence_incoherent (v3/A7) flags buy-intent with no in-feed
+    hand-raise (blocks SCALE; trust unchanged). by_cycle_position (v3/A4) is the
+    mix-independent per-cycle breakdown.
     """
     decision: DECISION
     target_action_rate: float | None
@@ -529,6 +535,20 @@ class Decision:
     # is phrased in the render; direct_sell is the v2.3 default. Legacy Decisions
     # without this key load as direct_sell.
     purpose: str = "direct_sell"
+    # v3 A3: the "would research" companion — research_first over the same frame,
+    # reported SEPARATELY and never folded into the buy headline (docs/v3 §4). The
+    # honesty fix that stops the headline mixing buyers with info-seekers.
+    research_rate: float | None = None
+    research_num: int = 0
+    research_denom: int = 0
+    # v3 A7: the coherence guard fired — buy_now intent present in the acquisition
+    # frame but ZERO in-feed hand-raise. Also carried as the "intent_action_
+    # incoherent" methodology flag; blocks SCALE directly. Trust is UNCHANGED
+    # (it stays evidence-sufficiency; coherence is a separate axis).
+    coherence_incoherent: bool = False
+    # v3 A4: the buy headline broken down by purchase-cycle position — the honest,
+    # mix-independent read. {position: {"rate","num","denom"}}. Populated in #5.
+    by_cycle_position: dict[str, dict] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -543,6 +563,11 @@ class Decision:
             "load_bearing_pain_id": self.load_bearing_pain_id,
             "rationale": self.rationale,
             "purpose": self.purpose,
+            "research_rate": self.research_rate,
+            "research_num": self.research_num,
+            "research_denom": self.research_denom,
+            "coherence_incoherent": self.coherence_incoherent,
+            "by_cycle_position": {k: dict(v) for k, v in self.by_cycle_position.items()},
         }
 
     @classmethod
@@ -567,6 +592,16 @@ class Decision:
             load_bearing_pain_id=data.get("load_bearing_pain_id", ""),
             rationale=data.get("rationale", ""),
             purpose=data.get("purpose") or "direct_sell",
+            research_rate=(
+                float(data["research_rate"])
+                if data.get("research_rate") is not None else None
+            ),
+            research_num=int(data.get("research_num", 0)),
+            research_denom=int(data.get("research_denom", 0)),
+            coherence_incoherent=bool(data.get("coherence_incoherent", False)),
+            by_cycle_position={
+                str(k): dict(v) for k, v in data.get("by_cycle_position", {}).items()
+            },
         )
 
 
@@ -811,12 +846,12 @@ def validate_report(report: Report) -> None:
                     f"TopChange derives_from_pains references unknown pain id "
                     f"{pid!r}; known ids: {sorted(pain_ids)}"
                 )
-    # rocket-2.3.0: decision-layer invariants, when present. SCALE is un-gated
-    # behind a PROVISIONAL bar (decision-2, v2.3 P4) — the numeric floor lives in
-    # agent/decision.py (single source of truth). Here we enforce the STRUCTURAL
-    # invariant that makes a SCALE self-consistent: it is a "no in-target lever
-    # left" call, so it must carry a within-target action rate and NO load-bearing
-    # within-target pain. A SCALE with a load-bearing pain is a logic bug.
+    # rocket-2.3.0/v3: decision-layer invariants, when present. SCALE is un-gated
+    # behind a PROVISIONAL bar — the numeric floor lives in agent/decision.py
+    # (single source of truth). The self-consistency invariant, RELAXED in v3 (A5,
+    # docs/v3_protocol.md §7): a SCALE must carry a within-target action rate, and
+    # an EXECUTION load-bearing pain MAY coexist with it ("scale while iterating"),
+    # but a STRUCTURAL within-target pain cannot — that path is REBUILD.
     if report.decision is not None:
         d = report.decision
         if d.decision not in _VALID_DECISIONS:
@@ -830,10 +865,15 @@ def validate_report(report: Report) -> None:
                     "strong-target call); got target_action_rate=None"
                 )
             if d.load_bearing_pain_id:
-                raise SchemaError(
-                    "SCALE must leave no in-target lever, so load_bearing_pain_id "
-                    f"must be empty; got {d.load_bearing_pain_id!r}"
+                lb = next(
+                    (p for p in report.pain_map if p.id == d.load_bearing_pain_id),
+                    None,
                 )
+                if lb is not None and lb.severity == "structural":
+                    raise SchemaError(
+                        "SCALE cannot carry a STRUCTURAL load-bearing within pain "
+                        f"(that path is REBUILD); got {d.load_bearing_pain_id!r}"
+                    )
         if d.trust not in ("HIGH", "DIRECTIONAL"):
             raise SchemaError(
                 f"decision.trust must be HIGH/DIRECTIONAL, got {d.trust!r}"

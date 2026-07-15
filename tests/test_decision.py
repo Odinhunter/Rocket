@@ -263,19 +263,27 @@ def test_scale_branch() -> None:
     d = resolve_decision(_SCALE_FLOOR - 0.01, action, cmap, within, None, "aligned", "MIXED", [])
     assert d.decision == "ITERATE", d.rationale
 
-    # above the floor BUT a within-target execution lever remains -> ITERATE.
-    #   (the composite: strong is not enough — a fixable lever means iterate.)
+    # v3/A5: above the floor WITH a within-target EXECUTION pain -> SCALE
+    #   ("scale while iterating") — the execution pain is carried, not a blocker.
     d = resolve_decision(0.9, action, cmap, within, _pain("P9", "execution"), "aligned", "MIXED", [])
-    assert d.decision == "ITERATE", d.rationale
+    assert d.decision == "SCALE", d.rationale
+    assert d.load_bearing_pain_id == "P9"
 
     # above the floor BUT a structural within-target pain -> REBUILD (step 4 first).
     d = resolve_decision(0.9, action, cmap, within, _pain("P9", "structural", stage="attention"), "aligned", "MIXED", [])
     assert d.decision == "REBUILD", d.rationale
 
-    # SCALE never overrides an audience mismatch (step 1 wins even when strong+clean).
+    # v3/A7: strong + HIGH trust BUT the coherence guard fired
+    #   (intent_action_incoherent) -> SCALE blocked -> ITERATE.
+    d = resolve_decision(0.9, action, cmap, within, None, "aligned", "MIXED",
+                         ["intent_action_incoherent"])
+    assert d.decision != "SCALE" and d.decision == "ITERATE", d.rationale
+
+    # SCALE never overrides an audience mismatch (step 1 wins even when strong).
     d = resolve_decision(0.9, action, cmap, within, None, "mismatched", "MIXED", [])
     assert d.decision == "RETARGET", d.rationale
-    print("  SCALE branch: strong+clean -> SCALE; floor/lever/structural/mismatch guards ✓")
+    print("  SCALE branch: strong -> SCALE (execution pain coexists); "
+          "floor/trust/A7/structural/mismatch guards ✓")
 
 
 def test_schema_roundtrip() -> None:
@@ -299,26 +307,32 @@ def test_schema_roundtrip() -> None:
     assert back.decision is not None
     assert back.decision.decision == "ITERATE"
     assert abs(back.decision.target_action_rate - 0.68) < 1e-9
-    # SCALE with a load-bearing pain is a logic bug — validate_report rejects it
-    # (a SCALE must leave no in-target lever). dec still has load_bearing_pain_id="P1".
+    # v3/A5: a SCALE MAY carry an EXECUTION load-bearing pain ("scale while
+    # iterating"); a STRUCTURAL one cannot (that path is REBUILD).
+    from agent.schema import Pain
     dec.decision = "SCALE"
+    dec.load_bearing_pain_id = "P1"
+    dec.target_action_rate = 0.82
+    rep.pain_map = [Pain(id="P1", pain="p", funnel_stage="conversion",
+                         severity="execution", within_target=True, cited_by=["a"])]
+    validate_report(rep)  # execution pain coexists with SCALE -> OK
+    # flip P1 to structural -> rejected (a SCALE over a structural block is a bug).
+    rep.pain_map[0].severity = "structural"
     try:
         validate_report(rep)
-        raise AssertionError("SCALE with a load-bearing pain should be rejected")
+        raise AssertionError("SCALE with a STRUCTURAL load-bearing pain should be rejected")
     except Exception as e:
-        assert "no in-target lever" in str(e), e
-    # SCALE with no load-bearing pain AND a within-target rate is self-consistent.
-    dec.load_bearing_pain_id = ""
-    dec.target_action_rate = 0.82
-    validate_report(rep)
+        assert "STRUCTURAL" in str(e), e
     # SCALE without a within-target rate is rejected (it is a strong-target call).
+    rep.pain_map = []
+    dec.load_bearing_pain_id = ""
     dec.target_action_rate = None
     try:
         validate_report(rep)
         raise AssertionError("SCALE without a within-target rate should be rejected")
     except Exception as e:
         assert "requires a within-target action rate" in str(e), e
-    print("  schema round-trip + provisional-SCALE invariants ✓")
+    print("  schema round-trip + v3 SCALE invariants (execution coexists, structural rejected) ✓")
 
 
 def test_integration_from_real_runs() -> None:
@@ -384,8 +398,10 @@ def test_synthesize_report_seam() -> None:
     build_decision(...) -> validate_report — with the two model calls mocked.
     This is the seam no other offline test reaches (assess/prescribe need the
     API). Guards arg order + the validate_report interaction on every run."""
-    # 2 within dispositions (loyalist 2/2, aspirant 1/2 -> A_within 3/4), 1
-    # outside; one within EXECUTION pain -> ITERATE @ HIGH trust.
+    # 2 within dispositions (loyalist 2/2, aspirant 1/2 -> A_within 3/4 = 0.75), 1
+    # outside; one within EXECUTION pain. v3/A5: this now SCALEs @ HIGH trust
+    # ("scale while iterating") — the execution pain coexists, and the buy-intent
+    # is corroborated by in-feed taps so A7 does not fire.
     transcripts = [
         _sig(1, "loyalist", True), _sig(2, "loyalist", True),
         _sig(3, "aspirant", True), _sig(4, "aspirant", False),
@@ -423,8 +439,10 @@ def test_synthesize_report_seam() -> None:
     finally:
         l4.assess_reactions, l4.prescribe_from_painmap = orig_a, orig_p
     assert report.decision is not None
-    assert report.decision.decision == "ITERATE", report.decision.decision
+    assert report.decision.decision == "SCALE", report.decision.decision
     assert report.decision.trust == "HIGH", report.decision.trust
+    assert report.decision.load_bearing_pain_id == "P1"  # execution pain carried
+    assert not report.decision.coherence_incoherent      # in-feed taps corroborate
     assert (report.decision.target_action_num, report.decision.target_action_denom) == (3, 4)
     assert abs(report.decision.target_action_rate - 0.75) < 1e-9
     validate_report(report)  # already called inside; re-assert it holds

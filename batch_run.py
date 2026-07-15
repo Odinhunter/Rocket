@@ -145,7 +145,7 @@ def _headline_metric_line(d) -> str:
             if d.target_action_denom else "")
     if preset.name == "direct_sell":
         who = _humanize(", ".join(d.within_dispositions)) if d.within_dispositions else "your target"
-        return f"  {rate} of your target ({who}) would act{tail}."
+        return f"  {rate} of your target ({who}) would buy{tail}."
     if preset.name == "cold_hook":
         return (f"  {rate} of a cold audience stopped and leaned in{tail}  "
                 f"(vs scrolling past — the hook, not the sale).")
@@ -198,6 +198,16 @@ def _print_decision_headline(report: Report) -> None:
     elif d.target_action_rate is not None:
         print(_headline_metric_line(d))
         preset = resolve_purpose(getattr(d, "purpose", "direct_sell") or "direct_sell")
+        # A3: the "would research" companion — reported SEPARATELY, never folded
+        # into the buy headline (a researcher is not a buyer). Buy-frame jobs only.
+        if (d.research_rate is not None and d.research_denom
+                and preset.name in ("direct_sell", "retain_winback")):
+            print(f"  Separately, {d.research_rate:.0%} would look it up first "
+                  f"({d.research_num} of {d.research_denom}) — research, not a purchase.")
+        if d.coherence_incoherent:
+            print("  ⚠ Coherence check: buy-intent was stated but no one actually "
+                  "engaged with the ad in-feed (no tap/save/share) — treat the buy "
+                  "number with caution.")
         if d.decision == "RETARGET" and d.champion_disposition:
             print(f"  But the {_humanize(d.champion_disposition)} — whom you are NOT "
                   f"targeting — acts at {d.champion_action_rate:.0%}. Right ad, wrong person.")
@@ -364,6 +374,11 @@ def _print_preparation(prep: RunPreparation) -> None:
         print("   Advisory, not a block — the run proceeds. Re-run with "
               f"{pm.suggested_flag} to grade against the apparent job.")
         print("!" * 78)
+    if prep.trust_ceiling_warning is not None:
+        print("\n" + "~" * 78)
+        print("⚠  TRUST CEILING  —  a confident 'ship it' is unreachable with this panel")
+        print(f"   {prep.trust_ceiling_warning}")
+        print("~" * 78)
     print(f"\nEstimated cost: ~${prep.estimated_cost_usd:.2f}   "
           f"(persona cores rendered: {prep.persona_cores_rendered})")
     print("=" * 78)

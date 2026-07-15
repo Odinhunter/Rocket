@@ -453,6 +453,11 @@ def synthesize_report(
         assess.verdict, report.methodology_flags, assess.pain_map,
         purpose=config.creative_inputs.purpose,
     )
+    # v3 A7: surface the coherence guard as a data-quality caveat on the report
+    # (it already blocked SCALE inside build_decision). docs/v3_protocol.md §6.
+    if (report.decision.coherence_incoherent
+            and "intent_action_incoherent" not in report.methodology_flags):
+        report.methodology_flags.append("intent_action_incoherent")
     validate_report(report)
     _validate_bet_ranking(report)
     _log.info(

@@ -39,7 +39,10 @@ from dataclasses import dataclass
 # Owns the per-purpose metric selection + per-purpose provisional floors —
 # kept separate from DECISION_VERSION (direct-sell SCALE-floor lineage) so the
 # two calibration histories don't collide.
-PURPOSE_VERSION = "purpose-1"
+# purpose-2 (v3): direct-sell headline metric is buy-intent (next_step buy_now /
+# buy_at_restock), NOT the old undefined would-act; "would research" reported
+# separately (A3). Labels updated to match. See docs/v3_protocol.md §4.
+PURPOSE_VERSION = "purpose-2"
 
 
 # Purpose identifiers (the declared job). direct_sell is the default — the D2C
@@ -92,7 +95,7 @@ PURPOSE_REGISTRY: dict[str, PurposePreset] = {
         name=DIRECT_SELL,
         label="Direct-sell",
         headline_metric="within_target_action",
-        metric_label="would act this week",
+        metric_label="would buy",
         audience_frame="narrow",
         scored_probes=(),
         # MUST match decision._SCALE_FLOOR until P3 unifies the source of truth

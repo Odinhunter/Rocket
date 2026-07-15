@@ -188,6 +188,11 @@ class RunPreparation:
     # v2.4: the ad's apparent job differs from the declared one (advisory,
     # warn-not-block). The load-bearing guardrail for the default-purpose user.
     purpose_mismatch: PurposeMismatch | None = None
+    # v3 (A6): the panel carries <2 within-target dispositions, so HIGH trust —
+    # and therefore a SCALE 'ship it' — is unreachable regardless of ad quality.
+    # Deterministic, advisory, non-blocking; computed post-target_id. A message
+    # string (None when >=2 within-target dispositions). docs/v3_protocol.md §8.
+    trust_ceiling_warning: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -212,10 +217,26 @@ class RunPreparation:
                 self.purpose_mismatch.to_dict()
                 if self.purpose_mismatch is not None else None
             ),
+            "trust_ceiling_warning": self.trust_ceiling_warning,
         }
 
 
 # ---- Helpers ----
+
+
+def _trust_ceiling_warning(n_within: int) -> str | None:
+    """v3 (A6): the advisory shown when a panel carries <2 within-target
+    dispositions, so a HIGH-trust verdict — and therefore a SCALE 'ship it' —
+    is unreachable regardless of ad quality. None when >=2 (no ceiling). Pure
+    + deterministic so it is offline-testable. docs/v3_protocol.md §8."""
+    if n_within >= 2:
+        return None
+    return (
+        f"This panel has {n_within} within-target disposition"
+        f"{'' if n_within == 1 else 's'}; a HIGH-trust verdict — and therefore a "
+        "SCALE 'ship it' call — is unreachable regardless of ad quality. Add >=2 "
+        "within-target dispositions to the audience spec for a confident read."
+    )
 
 
 def _render_cache_dir(config: RunConfig) -> Path:
@@ -382,6 +403,16 @@ class RunService:
         if purpose_mismatch is not None:
             _log.warning("purpose mismatch: %s", purpose_mismatch.message)
 
+        # v3 (A6): a HIGH-trust verdict needs >=2 within-target dispositions.
+        # If the resolved panel has fewer, SCALE ('ship it') is unreachable
+        # regardless of ad quality — disclose it now, on the pre-run surface,
+        # so the marketer can broaden the audience spec. docs/v3_protocol.md §8.
+        trust_ceiling_warning = _trust_ceiling_warning(
+            len(target_cls.within_target_labels())
+        )
+        if trust_ceiling_warning is not None:
+            _log.warning("trust ceiling: %s", trust_ceiling_warning)
+
         # Warm the render cache: render each unique persona core once.
         cache_dir = _render_cache_dir(config)
         seen: set[str] = set()
@@ -429,6 +460,7 @@ class RunService:
             demographic_mismatch=demographic_mismatch,
             coverage_warning=coverage_warning,
             purpose_mismatch=purpose_mismatch,
+            trust_ceiling_warning=trust_ceiling_warning,
         )
         _persist_json(rd / "preparation.json", prep.to_dict())
         _persist_json(rd / "panel.json", [a.to_dict() for a in panel])

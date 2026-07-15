@@ -65,7 +65,11 @@ _log = logging.getLogger(__name__)
 #              <=35 and METHODOLOGY_GAP <=20 anchors (those caps stand). Added a
 #              structural example: a parent-company reveal that breaks an
 #              indie-DTC brand's permission is structural, not execution.
-ASSESS_PROMPT_VERSION = "assess-2"
+#   assess-3 — v3 (A5): explicit permission to return a SHORT PainMap (1-2, or
+#              none within-target) for a genuinely working ad, instead of always
+#              aiming for 5-9. Removes the "SCALE nearly unreachable" bias where
+#              assess always found a within pain that blocked the ship-it call.
+ASSESS_PROMPT_VERSION = "assess-3"
 
 
 _VERDICT_FRAMEWORK = """\
@@ -184,8 +188,13 @@ Rules for the PainMap:
   quote, NEVER a fix.
 - SYNTHESIZE: each pain accounts for a PATTERN across multiple reactions /
   dispositions where one exists. Merge symptoms that share a root cause into
-  ONE pain; do not split one cause into three. Aim for the 5-9 pains that
-  actually move the read, ordered by how much they cost the brand.
+  ONE pain; do not split one cause into three. Surface the pains that actually
+  move the read, ordered by how much they cost the brand — TYPICALLY 5-9 for a
+  leaky ad, but as few as 1-2, or NONE within-target, for a genuinely working
+  one. Never invent or pad pains to hit a count: a strong ad that mostly lands
+  should return a short PainMap, not a manufactured list. (A working ad with a
+  short, all-execution PainMap is exactly what lets the decision layer reach a
+  "ship it" call.)
 - GROUND every pain in 1-4 VERBATIM quotes copied exactly from the reactions
   (exact substrings; never paraphrase, never invent). Record cited_by
   (disposition labels), prevalence (roughly how widespread), and contexts.

@@ -155,10 +155,10 @@ def test_run_json_stamps_both_prompt_versions() -> None:
         archetype="unspecified", category="personal_audio",
     )
     payload = _run_json_payload(cfg, "rid123", status="complete", report=None)
-    assert payload["assess_prompt_version"] == "assess-2"
+    assert payload["assess_prompt_version"] == "assess-3"  # v3 A5 (short-PainMap permission)
     assert payload["prescribe_prompt_version"] == "prescribe-1"
-    assert payload["decision_version"] == "decision-2"  # unchanged by v2.4
-    assert payload["purpose_version"] == "purpose-1"  # rocket-2.4.0 (purpose layer)
+    assert payload["decision_version"] == "decision-3"  # v3 (A3/A5/A7)
+    assert payload["purpose_version"] == "purpose-2"  # v3 (buy-intent headline)
     assert "l4_prompt_version" in payload  # retained for back-compat
     assert payload["protocol_version"] == "rocket-3.0.0-dev"
     print("  OK  run.json stamps assess + prescribe + decision + purpose versions (+ legacy l4)")

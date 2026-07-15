@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from agent.purpose import (
     AWARENESS_INFORMER,
+    COLD_HOOK,
     DIRECT_SELL,
     RETAIN_WINBACK,
     PurposePreset,
@@ -35,6 +36,7 @@ from agent.schema import (
     Decision,
     Pain,
     _BUY_INTENT_NEXT_STEPS,
+    _HAND_RAISE_ACTIONS,
 )
 from agent.synthesis_l2 import compute_behavioral_distribution
 from agent.synthesis_types import TargetClassification
@@ -45,7 +47,11 @@ from agent.synthesis_types import TargetClassification
 #   decision-2 — SCALE un-gated behind a PROVISIONAL desk-research bar
 #                (_SCALE_FLOOR); a documented best-guess, not an anchor run.
 #                KNOWN RISK — recalibrate after v2.4 locks (spec §7a).
-DECISION_VERSION = "decision-2"
+#   decision-3 — v3: headline = buy-intent (next_step), research reported
+#                separately (A3); coherence guard (A7) blocks SCALE on
+#                buy-intent-without-hand-raise; SCALE reachable with execution
+#                pains (A5). docs/v3_protocol.md §4,§6,§7.
+DECISION_VERSION = "decision-3"
 
 # ---- The provisional SCALE bar (KNOWN RISK — recalibrate post-v2.4) ----
 #
@@ -420,8 +426,8 @@ def resolve_decision(
            and clears the absolute floor F
         3. no within-target evidence at all              -> INCONCLUSIVE
         4. load-bearing within pain is STRUCTURAL        -> REBUILD
-        5. A_within >= _SCALE_FLOOR AND no in-target      -> SCALE  [provisional]
-           lever left AND trust == HIGH
+        5. A_within >= floor AND trust == HIGH AND         -> SCALE  [provisional]
+           coherent (A7 not fired); an execution pain may coexist
         6. else (execution / fixable)                    -> ITERATE
     """
     trust = trust_override if trust_override is not None else _trust(within_labels, methodology_flags)
@@ -477,36 +483,85 @@ def resolve_decision(
     if load_bearing_pain is not None and load_bearing_pain.severity == "structural":
         return make("REBUILD", f"load-bearing within pain {lb_id} is structural")
 
-    # 5. Strong, clean, WELL-EVIDENCED read -> SCALE (PROVISIONAL bar, decision-2).
-    #    Three conditions, ALL required:
+    # 5. Strong, clean, WELL-EVIDENCED read -> SCALE (PROVISIONAL bar).
+    #    Conditions, ALL required (docs/v3_protocol.md §7):
     #      (a) the within target acts at/above the provisional floor;
-    #      (b) no in-target lever is left — step 4 already excluded a structural
-    #          within pain, so a None load-bearing pain here means zero within
-    #          pains survive;
-    #      (c) trust is HIGH (>=2 within dispositions, no thin-evidence flag).
-    #    (c) is load-bearing, not decoration: WITHOUT it the branch fires most
-    #    easily on THIN, single-persona reads (a_within is cheap on a small
-    #    denominator — 4/5 = 80% — and "no within pain" is easier when few
-    #    transcripts surface few pains), which would invert the "fails toward
-    #    ITERATE, never false-SCALE" posture the provisional bar is sold on. With
-    #    today's single-within-persona panels this means provisional SCALE rarely
-    #    fires — by design, that is the mild (understatement) failure. The floor
-    #    is a documented best-guess (see _SCALE_FLOOR), NOT an anchor run — KNOWN
-    #    RISK, recalibrate post-v2.4. Fails toward ITERATE (step 6).
+    #      (b) trust is HIGH (>=2 within dispositions, no thin-evidence flag);
+    #      (c) the A7 coherence guard did NOT fire — buy-intent-without-any-
+    #          hand-raise sets "intent_action_incoherent", which blocks SCALE.
+    #    v3/A5: an EXECUTION within pain MAY coexist with SCALE ("scale while
+    #    iterating") — step 4 already routed any STRUCTURAL within pain to REBUILD,
+    #    so we no longer require zero within pains here (that made SCALE nearly
+    #    unreachable, since assess almost always finds a pain). (b)+(c) keep the
+    #    "fails toward ITERATE, never false-SCALE" posture: (b) stops the branch
+    #    firing on thin single-persona reads; (c) stops it firing on incoherent
+    #    stated-intent. The floor is a documented best-guess (see _SCALE_FLOOR),
+    #    NOT an anchor run — KNOWN RISK, recalibrate. Fails toward ITERATE (step 6).
     if (
         a_within is not None
         and a_within >= scale_floor
-        and load_bearing_pain is None
         and trust == "HIGH"
+        and "intent_action_incoherent" not in methodology_flags
     ):
+        iterating = (
+            "" if load_bearing_pain is None
+            else f", iterating on execution pain {load_bearing_pain.id}"
+        )
         return make(
             "SCALE",
             f"metric at {a_within:.0%} >= provisional bar {scale_floor:.0%}, "
-            f"no in-target lever left, HIGH trust",
+            f"HIGH trust, coherent{iterating}",
         )
 
     # 6. The block is execution-level — a specific in-scope lever is leaking.
     return make("ITERATE", f"load-bearing within pain {lb_id or '(none)'} is fixable")
+
+
+def _research_over_frame(frame: list[AgentTranscript]) -> tuple[float | None, int, int]:
+    """The 'would research' companion (A3): research_first as a fraction of the
+    frame's parsed signals. Reported SEPARATELY from the buy headline — never
+    folded in (docs/v3_protocol.md §4). This is the honesty fix that stops the
+    headline mixing buyers with info-seekers."""
+    num = denom = 0
+    for t in frame:
+        bs = t.behavioral_signal
+        if bs is None:
+            continue
+        denom += 1
+        if bs.next_step == "research_first":
+            num += 1
+    if denom == 0:
+        return None, 0, 0
+    return num / denom, num, denom
+
+
+def _intent_action_incoherent(
+    frame: list[AgentTranscript], preset: PurposePreset
+) -> bool:
+    """The coherence guard (A7, docs/v3_protocol.md §6). On an ACQUISITION frame
+    (new prospects — direct-sell / cold-hook; NOT existing-customer retain, NOT
+    the probe-scored jobs), fire when there is immediate-purchase intent (buy_now)
+    yet ZERO in-feed hand-raise (tap_cta / save / share) — i.e. 'the panel claims
+    it would buy right now but nobody actually engaged with the ad'.
+
+    Scoped so it CANNOT fire on the legitimate A4 reorder pattern (a running-low
+    loyalist who scrolls past a familiar brand and intends buy_at_restock): that
+    is buy_at_restock (not buy_now) on the existing-customer frame — both excluded
+    here. Keys on buy_now + the total absence of any hand-raise."""
+    if preset.audience_frame == "existing":
+        return False
+    if preset.name not in (DIRECT_SELL, COLD_HOOK):
+        return False
+    buy_now = handraise = 0
+    for t in frame:
+        bs = t.behavioral_signal
+        if bs is None:
+            continue
+        if bs.next_step == "buy_now":
+            buy_now += 1
+        if bs.action in _HAND_RAISE_ACTIONS:
+            handraise += 1
+    return buy_now > 0 and handraise == 0
 
 
 def build_decision(
@@ -587,9 +642,21 @@ def build_decision(
         within_rate = _rate_of(within_subset, preset, none_on_empty=True)[0]
     load_bearing = load_bearing_within_pain(pain_map)
     am_verdict = audience_match.verdict if audience_match is not None else None
+
+    # A3 + A7 over the purpose's metric frame (the same agents the headline is
+    # computed over). Research is reported SEPARATELY; the coherence guard adds
+    # its OWN methodology flag — trust stays evidence-sufficiency (Catch 3).
+    frame = _frame_subset(transcripts, target_classification, preset)
+    research_rate, research_num, research_denom = _research_over_frame(frame)
+    incoherent = _intent_action_incoherent(frame, preset)
+    flags = (
+        list(methodology_flags) + ["intent_action_incoherent"]
+        if incoherent else methodology_flags
+    )
+
     # Broad-reach jobs earn trust by breadth of registration, not within-count.
     trust_override = (
-        _broad_trust(action_by_disp, methodology_flags)
+        _broad_trust(action_by_disp, flags)
         if preset.multi_target else None
     )
     decision = resolve_decision(
@@ -600,7 +667,7 @@ def build_decision(
         load_bearing,
         am_verdict,
         verdict,
-        methodology_flags,
+        flags,
         scale_floor=preset.provisional_scale_floor,
         within_rate=within_rate,
         trust_override=trust_override,
@@ -611,4 +678,8 @@ def build_decision(
     decision.target_action_num = num
     decision.target_action_denom = denom
     decision.purpose = preset.name
+    decision.research_rate = research_rate
+    decision.research_num = research_num
+    decision.research_denom = research_denom
+    decision.coherence_incoherent = incoherent
     return decision
