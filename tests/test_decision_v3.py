@@ -125,13 +125,25 @@ def test_a7_does_not_fire_on_reorder_pattern() -> None:
     print("  OK  A7: reorder pattern (buy_at_restock + scroll) is coherent -> can SCALE")
 
 
-def test_a7_does_not_fire_with_handraise_present() -> None:
-    frame = (
-        [_t(i, "aud", "tap_cta", "buy_now") for i in range(3)]
-        + [_t(10 + i, "aud", "scroll_past", "nothing") for i in range(2)]
-    )
-    assert _intent_action_incoherent(frame, DIRECT) is False
-    print("  OK  A7: any in-feed hand-raise (tap/save/share) clears the guard")
+def test_a7_does_not_fire_when_engaged_incl_linger() -> None:
+    # ANY non-scroll action clears the guard — crucially LINGER counts:
+    # "stopped, looked, would buy" is a coherent story, not incoherence.
+    for engaged_action in ("tap_cta", "save", "share", "linger"):
+        frame = (
+            [_t(i, "aud", engaged_action, "buy_now") for i in range(3)]
+            + [_t(10 + i, "aud", "scroll_past", "nothing") for i in range(2)]
+        )
+        assert _intent_action_incoherent(frame, DIRECT) is False, engaged_action
+    print("  OK  A7: any non-scroll action — including linger — clears the guard")
+
+
+def test_a7_exempt_on_cold_hook() -> None:
+    # cold-hook's headline is the STOP, not the buy; A7 keys on buy_now, which
+    # cold-hook does not report, so it must NOT gate cold-hook (it could only
+    # false-block). Even an all-scroll-past + buy_now frame is not flagged.
+    frame = [_t(i, "aud", "scroll_past", "buy_now") for i in range(5)]
+    assert _intent_action_incoherent(frame, COLD) is False
+    print("  OK  A7: exempt on cold-hook (its metric is the stop, not the buy)")
 
 
 def test_a7_exempt_on_existing_customer_frame() -> None:
@@ -216,7 +228,8 @@ def main() -> None:
     test_a3_research_helper_over_frame()
     test_a7_fires_on_buy_intent_without_handraise()
     test_a7_does_not_fire_on_reorder_pattern()
-    test_a7_does_not_fire_with_handraise_present()
+    test_a7_does_not_fire_when_engaged_incl_linger()
+    test_a7_exempt_on_cold_hook()
     test_a7_exempt_on_existing_customer_frame()
     test_a5_scale_reachable_with_execution_pain()
     test_a5_a7_interaction_blocks_scale()

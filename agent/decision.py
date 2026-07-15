@@ -24,7 +24,6 @@ from __future__ import annotations
 
 from agent.purpose import (
     AWARENESS_INFORMER,
-    COLD_HOOK,
     DIRECT_SELL,
     RETAIN_WINBACK,
     PurposePreset,
@@ -36,7 +35,6 @@ from agent.schema import (
     Decision,
     Pain,
     _BUY_INTENT_NEXT_STEPS,
-    _HAND_RAISE_ACTIONS,
 )
 from agent.synthesis_l2 import compute_behavioral_distribution
 from agent.synthesis_types import TargetClassification
@@ -559,30 +557,31 @@ def _buy_intent_by_cycle(frame: list[AgentTranscript]) -> dict[str, dict]:
 def _intent_action_incoherent(
     frame: list[AgentTranscript], preset: PurposePreset
 ) -> bool:
-    """The coherence guard (A7, docs/v3_protocol.md §6). On an ACQUISITION frame
-    (new prospects — direct-sell / cold-hook; NOT existing-customer retain, NOT
-    the probe-scored jobs), fire when there is immediate-purchase intent (buy_now)
-    yet ZERO in-feed hand-raise (tap_cta / save / share) — i.e. 'the panel claims
-    it would buy right now but nobody actually engaged with the ad'.
+    """The coherence guard (A7, docs/v3_protocol.md §6). Scoped to DIRECT-SELL —
+    the acquisition job whose headline IS buy-intent. (retain is existing-customer
+    and legitimately reorders without engaging THIS ad; cold-hook's headline is
+    the STOP, not the buy, so a buy-coherence guard there could only ever
+    FALSE-block it — it keys on a metric cold-hook does not report.)
 
-    Scoped so it CANNOT fire on the legitimate A4 reorder pattern (a running-low
-    loyalist who scrolls past a familiar brand and intends buy_at_restock): that
-    is buy_at_restock (not buy_now) on the existing-customer frame — both excluded
-    here. Keys on buy_now + the total absence of any hand-raise."""
-    if preset.audience_frame == "existing":
+    Fire when there is immediate-purchase intent (buy_now) but NOT ONE of those
+    claimers actually engaged with the ad in-feed — they all just scrolled past.
+    'Engaged' is any NON-scroll action (linger / tap_cta / save / share): stopping
+    to look IS engagement, so 'lingered, then would buy' is COHERENT and does not
+    fire. Only 'scrolled past without stopping, yet would buy right now' is the
+    hollow, incoherent signal this catches. Cannot fire on the A4 reorder pattern
+    (buy_at_restock + scroll_past): it keys on buy_now, not buy_at_restock."""
+    if preset.name != DIRECT_SELL:
         return False
-    if preset.name not in (DIRECT_SELL, COLD_HOOK):
-        return False
-    buy_now = handraise = 0
+    buy_now = engaged_buy_now = 0
     for t in frame:
         bs = t.behavioral_signal
         if bs is None:
             continue
         if bs.next_step == "buy_now":
             buy_now += 1
-        if bs.action in _HAND_RAISE_ACTIONS:
-            handraise += 1
-    return buy_now > 0 and handraise == 0
+            if bs.action != "scroll_past":
+                engaged_buy_now += 1
+    return buy_now > 0 and engaged_buy_now == 0
 
 
 def build_decision(

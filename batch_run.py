@@ -210,9 +210,9 @@ def _print_decision_headline(report: Report) -> None:
             print(f"  Separately, {d.research_rate:.0%} would look it up first "
                   f"({d.research_num} of {d.research_denom}) — research, not a purchase.")
         if d.coherence_incoherent:
-            print("  ⚠ Coherence check: buy-intent was stated but no one actually "
-                  "engaged with the ad in-feed (no tap/save/share) — treat the buy "
-                  "number with caution.")
+            print("  ⚠ Coherence check: buy-now intent was stated, but every one of "
+                  "those people scrolled past without even stopping on the ad — "
+                  "treat the buy number with caution.")
         # A4: the mix-independent read — lead with the per-cycle breakdown so the
         # blended headline never hides its cycle-mix assumption (Catch 2).
         if d.by_cycle_position:

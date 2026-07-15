@@ -90,9 +90,6 @@ _VALID_NEXT_STEPS = {
 # (direct-sell, retain); `research_first` is reported separately, never folded
 # in (the A3 split that kills the "63% = buyers + info-seekers" error).
 _BUY_INTENT_NEXT_STEPS = {"buy_now", "buy_at_restock"}
-# In-feed hand-raise actions — real engagement with the ad (used by the
-# coherence guard, A7, in decision.py).
-_HAND_RAISE_ACTIONS = {"tap_cta", "save", "share"}
 
 # rocket-2.2.0 (v2.2 diagnosis rung): the PainMap axes. A Pain is a diagnosed
 # root cause, not a surface theme. funnel_stage locates where the pain bites;
