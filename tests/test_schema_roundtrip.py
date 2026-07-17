@@ -270,7 +270,7 @@ def test_agent_transcript_roundtrip() -> None:
         disposition_label="brand_loyal_boat_user",
         context_label="commute_scroll",
         seed_idx=0,
-        encoding_text="R1 GUT: ...\n\nR2 COMPREHENSION: ...\n\nR3 EMOTION: ...",
+        encoding_text="R1 GUT: ...\n\nR2 COMPREHENSION: ...\n\nR3 INTEREST: ...",
         reflection_text="R4 STICKINESS: ...\n\nR5 SOCIAL: ...\n\nR6 FRICTION: ...",
     )
     d = t.to_dict()
@@ -423,8 +423,16 @@ def test_agent_transcript_behavioral_signal_roundtrip() -> None:
         disposition_label="brand_loyal_boat_user",
         context_label="commute_scroll",
         seed_idx=0,
-        encoding_text="R1 GUT: ...\n\nR2 COMPREHENSION: ...\n\nR3 EMOTION: ...",
-        reflection_text="R4 ...\n\nR5 ...\n\nR6 ...\n\nR7 ACTION: {...}",
+        # v3 two-call shape: Call A (R1-R3 + terminal action JSON), Call B
+        # (R4-R6 + terminal next_step JSON).
+        encoding_text=(
+            "R1 GUT: ...\n\nR2 COMPREHENSION: ...\n\nR3 INTEREST: ...\n\n"
+            '{"action": "tap_cta", "reasoning": "..."}'
+        ),
+        reflection_text=(
+            "R4 STICKINESS: ...\n\nR5 SOCIAL: ...\n\nR6 FRICTION: ...\n\n"
+            '{"next_step": "buy_now", "reasoning": "..."}'
+        ),
         behavioral_signal=BehavioralSignal(
             action="tap_cta",
             action_reasoning="the ₹1,199 deal price is a clear-enough hook to tap",

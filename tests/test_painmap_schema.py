@@ -40,7 +40,8 @@ _CORPUS = (
     "R6 FRICTION: I can just make this at home with dates and whey, why would I pay\n"
     "--- agent 002 | pragmatist_protein_snacker [WITHIN-TARGET] | context=pantry_restock ---\n"
     "R2 COMPREHENSION: the pink packaging reads like it is for women, not me\n"
-    "R7 ACTION: scroll past, nothing here tells me the price\n"
+    "R6 FRICTION: nothing here tells me the price\n"
+    '{"action": "scroll_past", "reasoning": "no price shown, not for me"}\n'
 )
 
 
@@ -123,7 +124,7 @@ def _make_painmap_fixture() -> Report:
         TopChange(
             change="Put the price in-frame for the pantry-restock placement",
             why="Absence of price is the terminal blocker on the action beat",
-            within_target_corroboration="snacker scrolled past citing missing price on R7",
+            within_target_corroboration="snacker scrolled past citing missing price at the action beat",
             derives_from_pains=["P1"],
             lever_class="offer",
         ),

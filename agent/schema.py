@@ -958,12 +958,13 @@ class AgentTranscript:
     Both the new bundled L1 runtime and the legacy checkpoint.json adapter
     produce this. L2 reads it without knowing which source.
 
-    `encoding_text` and `reflection_text` are the raw model outputs, each
-    containing labelled sections (R1 GUT: ..., R2 COMPREHENSION: ...,
-    R3 EMOTION: ... for encoding; R4, R5, R6 for reflection). L2 splits
-    them via section-header regex.
+    `encoding_text` and `reflection_text` are the raw model outputs of the v3
+    two-call reaction: encoding = R1 GUT / R2 COMPREHENSION / R3 INTEREST + a
+    terminal action JSON (Call A); reflection = R4 STICKINESS / R5 SOCIAL /
+    R6 FRICTION (+ conditional R8/R9 probes) + a terminal next_step JSON
+    (Call B). L2 splits the sections via section-header regex.
 
-    `behavioral_signal` carries the parsed R7 action. It defaults to None
+    `behavioral_signal` carries the parsed action + next_step. It defaults to None
     when R7 failed to parse (or for legacy transcripts predating R7); L2
     handles the gap.
     """

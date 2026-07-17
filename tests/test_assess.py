@@ -84,8 +84,14 @@ def test_classification_map_and_corpus() -> None:
         AgentTranscript(
             agent_id=8, disposition_label="purist_food_first",
             context_label="pantry_restock", seed_idx=0,
-            encoding_text="R1 GUT: I'd rather eat real food",
-            reflection_text="R7 ACTION: scroll past",
+            encoding_text=(
+                "R1 GUT: I'd rather eat real food\n\n"
+                '{"action": "scroll_past", "reasoning": "not for me"}'
+            ),
+            reflection_text=(
+                "R6 FRICTION: I make my own\n\n"
+                '{"next_step": "nothing", "reasoning": "would just cook instead"}'
+            ),
         ),
     ]
     corpus = build_corpus(transcripts, cls)

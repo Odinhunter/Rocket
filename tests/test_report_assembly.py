@@ -30,7 +30,9 @@ from agent.schema import (
 from agent.synthesis_assess import AssessResult, frozen_painmap_from_report
 from agent.synthesis_l4 import _assemble_report, _build_target_match
 from agent.synthesis_prescribe import PrescribeResult
+from agent.render import RENDER_PROMPT_VERSION
 from agent.run_service import _run_json_payload
+from agent.runtime import REACTION_PROTOCOL_VERSION
 from agent.synthesis_types import (
     DispositionTarget,
     InferredAudience,
@@ -149,19 +151,28 @@ def test_methodology_gap_empty_prescription() -> None:
     print("  OK  METHODOLOGY_GAP assembles with empty prescription + validates")
 
 
-def test_run_json_stamps_both_prompt_versions() -> None:
+def test_run_json_stamps_all_versions() -> None:
+    # The §10 version table must LAND in run.json — the -rc{n} arm scheme (#9's
+    # spend, the Week-3 comparison) is only attributable if every version the run
+    # used is stamped in the persisted record, not just held in a constant.
     cfg = RunConfig(
         asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
         archetype="unspecified", category="personal_audio",
     )
     payload = _run_json_payload(cfg, "rid123", status="complete", report=None)
+    assert payload["protocol_version"] == "rocket-3.0.0-dev"
+    assert payload["reaction_protocol_version"] == "reaction-v3"  # v3 two-call surface
+    assert payload["render_prompt_version"] == "render-6"  # v3 persona voice + gates
     assert payload["assess_prompt_version"] == "assess-3"  # v3 A5 (short-PainMap permission)
     assert payload["prescribe_prompt_version"] == "prescribe-1"
     assert payload["decision_version"] == "decision-3"  # v3 (A3/A5/A7)
     assert payload["purpose_version"] == "purpose-2"  # v3 (buy-intent headline)
     assert "l4_prompt_version" in payload  # retained for back-compat
-    assert payload["protocol_version"] == "rocket-3.0.0-dev"
-    print("  OK  run.json stamps assess + prescribe + decision + purpose versions (+ legacy l4)")
+    # Stamps must equal the live constants, so a bump can't drift from the record.
+    assert payload["reaction_protocol_version"] == REACTION_PROTOCOL_VERSION
+    assert payload["render_prompt_version"] == RENDER_PROMPT_VERSION
+    print("  OK  run.json stamps protocol + reaction + render + assess + prescribe "
+          "+ decision + purpose (+ legacy l4)")
 
 
 def main() -> None:
@@ -171,7 +182,7 @@ def main() -> None:
     test_assemble_mismatched_appends_flag()
     test_painmap_deliverable_roundtrips_from_report()
     test_methodology_gap_empty_prescription()
-    test_run_json_stamps_both_prompt_versions()
+    test_run_json_stamps_all_versions()
     print("PASS — report assembly + version stamps locked.")
 
 

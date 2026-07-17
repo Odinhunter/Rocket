@@ -43,7 +43,7 @@ _SEGMENTS = {
                 "R2 COMPREHENSION: Boat earbuds on sale, the price is the "
                 "headline, there's an asterisk next to it. The 'Prime' badge "
                 "is doing a lot of work. It reads as a quick online buy.\n"
-                "R3 EMOTION: Mildly interested, mostly because the number is "
+                "R3 INTEREST: Mildly interested, mostly because the number is "
                 "concrete and I trust a price I can see. No real excitement, "
                 "but no irritation either — it's a functional pitch and I "
                 "respond to functional pitches."
@@ -72,7 +72,7 @@ _SEGMENTS = {
                 "R1 GUT: Fine, a budget earbud deal, I've seen fifty of these.\n"
                 "R2 COMPREHENSION: It's a price-led Boat ad. The deal price is "
                 "the whole message. Comparison-shoppable.\n"
-                "R3 EMOTION: Neutral leaning slightly positive — in research "
+                "R3 INTEREST: Neutral leaning slightly positive — in research "
                 "mode the price anchor is exactly what I want to see."
             ),
             reflection_text=(
@@ -99,7 +99,7 @@ _SEGMENTS = {
                 "R1 GUT: Not for me, scrolling past.\n"
                 "R2 COMPREHENSION: A cheap-earbuds price ad. The message is "
                 "'cheap', and 'cheap' is not a category I shop. Nothing here.\n"
-                "R3 EMOTION: Indifference bordering on mild contempt for the "
+                "R3 INTEREST: Indifference bordering on mild contempt for the "
                 "'Prime' badge — it reads as a sticker pretending to be a tier."
             ),
             reflection_text=(
@@ -124,7 +124,7 @@ _SEGMENTS = {
                 "R1 GUT: Scroll.\n"
                 "R2 COMPREHENSION: Boat deal ad. Read it in half a second, "
                 "it's a price pitch for a tier I don't buy.\n"
-                "R3 EMOTION: Flat. Late-night low-attention scroll, this never "
+                "R3 INTEREST: Flat. Late-night low-attention scroll, this never "
                 "had a chance to register."
             ),
             reflection_text=(

@@ -26,7 +26,7 @@ from agent.schema import AgentTranscript, ProbeSignal
 
 _ENC = (
     "R1 GUT: bold pack.\n\nR2 COMPREHENSION: whey isolate, for lifters.\n\n"
-    "R3 EMOTION: mild interest.\n\n"
+    "R3 INTEREST: mild interest.\n\n"
     'ACTION: {"action": "tap_cta", "reasoning": "the ₹1,199 deal price is a concrete hook"}'
 )
 _REF = (

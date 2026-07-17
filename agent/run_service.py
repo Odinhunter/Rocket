@@ -49,7 +49,7 @@ from agent.config import RunConfig
 from agent.entities import DispositionLibrary
 from agent.panel import PanelAgent, build_panel, compute_panel_version
 from agent.projection_l35 import project_funnel
-from agent.render import render_persona_core
+from agent.render import RENDER_PROMPT_VERSION, render_persona_core
 from agent.runtime import REACTION_PROTOCOL_VERSION, run_agent_async
 from agent.schema import AgentTranscript, Report
 from agent.synthesis_assess import ASSESS_PROMPT_VERSION, frozen_painmap_from_report
@@ -290,6 +290,11 @@ def _run_json_payload(
         "status": status,
         "protocol_version": config.protocol_version,
         "reaction_protocol_version": REACTION_PROTOCOL_VERSION,
+        # render_prompt_version completes the §10 version table in run.json, so a
+        # run is attributable to its render arm (render-6-rc{n}) the same way
+        # reaction_protocol_version attributes the reaction arm. It also lives in
+        # persona_core_hash (cache key); this is the run-record attribution copy.
+        "render_prompt_version": RENDER_PROMPT_VERSION,
         "l4_prompt_version": L4_PROMPT_VERSION,
         "assess_prompt_version": ASSESS_PROMPT_VERSION,
         "prescribe_prompt_version": PRESCRIBE_PROMPT_VERSION,
