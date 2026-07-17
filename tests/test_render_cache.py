@@ -14,10 +14,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import agent.render as render_mod
 from agent.artifact_pack import load_pack
 from agent.render import (
+    RENDER_PROMPT_VERSION,
     _cache_load,
     _cache_store,
+    _CONTEXT_SYSTEM,
+    _PERSONA_SYSTEM,
     _validate_no_invented_artifacts,
     compose_persona_prompt,
     context_render_hash,
@@ -112,6 +116,91 @@ def test_context_render_hash_sensitive() -> None:
     print("  OK  context_render_hash changes on any context / category change")
 
 
+def test_prompt_version_invalidates_cache() -> None:
+    """A render-prompt bump MUST change every persona_core_hash, or render-6
+    cores would be served from the render-5 cache and the C1/C3 change would
+    silently never reach the agents. This is what makes a bump safe."""
+    base = persona_core_hash(_demo(), _disposition(), _chaos(), "coffee")
+    original = render_mod.RENDER_PROMPT_VERSION
+    try:
+        render_mod.RENDER_PROMPT_VERSION = "render-not-a-real-version"
+        assert persona_core_hash(_demo(), _disposition(), _chaos(), "coffee") != base, (
+            "persona_core_hash ignored RENDER_PROMPT_VERSION — a prompt bump "
+            "would reuse stale cached cores"
+        )
+    finally:
+        render_mod.RENDER_PROMPT_VERSION = original
+    assert persona_core_hash(_demo(), _disposition(), _chaos(), "coffee") == base
+    print("  OK  a RENDER_PROMPT_VERSION bump invalidates cached persona cores")
+
+
+def test_persona_system_render_6_contract() -> None:
+    """render-6 = C1 + C3 (docs/v3_protocol.md §9). The persona core is the
+    system block of every reaction call, so its register is what the agent
+    inherits. Offline can only pin the CONTRACT — that the instructions are
+    present. Whether the register actually lands is a LIVE check
+    (test_render_smoke); whether it stays un-parroted is the 2-persona live
+    check that gates this step."""
+    assert RENDER_PROMPT_VERSION == "render-6", RENDER_PROMPT_VERSION
+
+    # C3 — BOTH leaking registers are banned. NOTE: the banned analyst words
+    # ("aspirational", "gateway brand", ...) appear in _PERSONA_SYSTEM ON
+    # PURPOSE, as negative examples — so their absence can only be asserted of
+    # the rendered OUTPUT (the live check), never of the instruction itself.
+    assert "vivid" not in _PERSONA_SYSTEM.lower(), (
+        "C3: 'vivid' still primes the literary register that leaks into "
+        "every reaction"
+    )
+    assert "NOT literature" in _PERSONA_SYSTEM
+    assert "NOT market research" in _PERSONA_SYSTEM, (
+        "C3: the analyst register is the subtler leak — 'consumer research' "
+        "as the render engine's own identity is what produced 'trading on "
+        "the logo' out of a real person's 'paying for the logo'"
+    )
+    assert "downgrade analysis into speech" in _PERSONA_SYSTEM
+    # The render-3 guard on the register ban itself: strip jargon, KEEP the
+    # concrete specifics — plain must not decay into vague.
+    assert "Plain is NOT vague" in _PERSONA_SYSTEM
+
+    # C1 — the shown-register block, and the caption the AGENT reads.
+    assert "HOW THEY TALK" in _PERSONA_SYSTEM
+    assert "register only" in _PERSONA_SYSTEM
+    assert "Never repeat these lines" in _PERSONA_SYSTEM, (
+        "C1: the agent must be told the utterances are register, not a script"
+    )
+
+    # C1 guard — the planted-words seam. Cores are cached and replayed across
+    # ads, so an utterance that is a verdict on a product becomes a scripted
+    # answer. This is the guard 4cbcca9 established for R1-R6; it must hold
+    # in the system block too.
+    assert "ad-agnostic" in _PERSONA_SYSTEM
+    assert "anchored in something they DO" in _PERSONA_SYSTEM
+
+    # render-3/4/5 wins must survive the rewrite (anti-homogenization).
+    assert "SPINE" in _PERSONA_SYSTEM, "render-3 win lost"
+    assert "HARD CONSTRAINT" in _PERSONA_SYSTEM, "render-4 anchor win lost"
+    assert "Niche enthusiast communities" in _PERSONA_SYSTEM, "render-5 win lost"
+
+    # Input-audit finding §3 — expertise gated to involvement (generalises the
+    # render-5 community gate). The average buyer is NOT a category expert.
+    assert "EXPERTISE SCALES WITH category_involvement" in _PERSONA_SYSTEM, (
+        "the expertise gate is the fix for personas reading as product "
+        "catalogues — a medium/low buyer must not know varietals/estates/V60"
+    )
+    print("  OK  _PERSONA_SYSTEM: render-6 C1+C3 + expertise gate, render-3/4/5 intact")
+
+
+def test_context_system_de_literarised() -> None:
+    """Input-audit finding 3.3 — the context block is read by the very person
+    it describes, so its register imprints on the reaction the same way the
+    core's does. It must not be literary either."""
+    assert "NO literary phrasing" in _CONTEXT_SYSTEM
+    assert "vivid" not in _CONTEXT_SYSTEM.lower(), (
+        "'vivid' primes the literary register in the context prose"
+    )
+    print("  OK  _CONTEXT_SYSTEM: de-literarised (3.3)")
+
+
 def test_cache_roundtrip() -> None:
     if _TMP.exists():
         shutil.rmtree(_TMP)
@@ -173,6 +262,9 @@ def main() -> None:
     print("=== render cache + helpers smoke ===")
     test_persona_core_hash_stable()
     test_persona_core_hash_sensitive()
+    test_prompt_version_invalidates_cache()
+    test_persona_system_render_6_contract()
+    test_context_system_de_literarised()
     test_context_render_hash_sensitive()
     test_cache_roundtrip()
     test_compose_persona_prompt()

@@ -11,9 +11,14 @@ That constraint is the whole game: vividness comes from the curated
 artifacts, not from the vectors. _validate_no_invented_artifacts is the
 post-hoc check.
 
-Register note: the rendered persona core is THIRD-PERSON descriptive prose
-— the agent then reacts in first person. compose_persona_prompt assembles
-core + context into the final system prompt.
+Register note (render-6): the rendered persona core is a PLAIN third-person
+brief — the agent then reacts in first person. The core IS the system block
+of every reaction call (runtime.run_agent), so the register it is written in
+is the register the agent inherits; it is deliberately not literary. It ends
+with a HOW THEY TALK block — 2-3 first-person utterances that SHOW that
+register. Those utterances are habit-anchored and ad-agnostic on purpose: a
+core is cached and replayed across many ads, so a brand verdict written here
+would be a planted answer. See docs/v3_protocol.md §9.
 
 Caching: a persona core is a pure function of (demographic, disposition,
 chaos, category, schema+prompt version). It renders once and is reused for
@@ -59,9 +64,40 @@ _log = logging.getLogger(__name__)
 #           gated to high/obsessive category_involvement — lower-involvement
 #           personas are passively aware at most. User feedback after the
 #           render-4 vividness gate passed 7/7.
-RENDER_PROMPT_VERSION = "render-5"
+# render-6: C3 — the persona core stops being an identity document written in
+#           a register no real person uses. The core IS the system block of
+#           every reaction call (runtime.run_agent), so its register is the
+#           register the agent inherits; a user-turn "you are NOT a writer"
+#           cannot outweigh it. TWO registers leak, and both are banned:
+#           (a) literary ("quietly turned a corner of his life into a small,
+#           disciplined system"), and (b) MARKET-RESEARCH — the subtler one.
+#           "Consumer-research writer" as the render engine's identity was
+#           itself the analyst prime: it turned the pack's real consumer line
+#           "you're paying for the logo" into "trading on the logo", which the
+#           agent then echoed back as its own reaction. Hence the operative
+#           rule: downgrade analysis into speech, never upgrade speech into
+#           analysis. Differentiation still comes from SPECIFICS (the render-3
+#           win) — strip the abstract layer, never the brands/prices/channels.
+#           C1 — the core now ends with a HOW THEY TALK block: 2-3 first-person
+#           utterances that SHOW the register (a shown register is matched far
+#           better than a described one). Habit-anchored and ad-agnostic BY
+#           CONSTRUCTION: renders are cached and reused across ads, so a bare
+#           brand verdict here would be a planted answer replayed into every
+#           reaction of every agent sharing this core. docs/v3_protocol.md §9.
+#           C3+ (input audit) — EXPERTISE scales with category_involvement,
+#           generalising render-5's community gate from communities to product
+#           knowledge: varietals / estates / brew gear / spec sheets are
+#           obsessive/high ONLY; the average buyer knows a couple of brands and
+#           is hazy past that. And _CONTEXT_SYSTEM is de-literarised the same
+#           way the core is — the "soft conveyor belt" register leaked from the
+#           context block, which is read by the very person it describes.
+#           docs/v3_input_audit.md.
+RENDER_PROMPT_VERSION = "render-6"
 
-_RENDER_MAX_TOKENS = 900
+# Fits the prose + the HOW THEY TALK block. Brevity is enforced by the
+# sentence-count instruction, not by the ceiling — the ceiling only exists so
+# a core is never silently truncated mid-block and then cached.
+_RENDER_MAX_TOKENS = 1000
 
 
 # ---- Cache key ----
@@ -136,15 +172,51 @@ def _cache_store(cache_dir: Path | None, key: str, prose: str, kind: str) -> Non
 
 
 _PERSONA_SYSTEM = """\
-You are a consumer-research writer. You are given a structured profile of \
-one consumer — their demographics, their attitudinal stance toward a \
-product category (the disposition vector), and their decision-making \
-style (the chaos vector) — plus a curated artifact pack for that category \
-(real brands, real prices, real communities, real cultural references).
+You describe one real person, plainly — the way a friend who knows them would. \
+You are given a structured profile of one consumer — their demographics, their \
+attitudinal stance toward a product category (the disposition vector), and \
+their decision-making style (the chaos vector) — plus a curated artifact pack \
+for that category (real brands, real prices, real communities, real cultural \
+references).
 
-Your job: write a vivid THIRD-PERSON persona description of this EXACT \
-consumer. It becomes the system prompt for an agent that then reacts to \
-an ad in first person, so it must read like one real, specific person.
+Your job: write a THIRD-PERSON description of this EXACT person — what they \
+buy, where, at what price, and what they make of the stuff around them. It \
+becomes the system prompt for an agent that then reacts to an ad in first \
+person, so it must describe one real, specific person, in words that person \
+would actually recognise.
+
+# Register: how a friend describes them. NOT literature, NOT market research.
+
+This description is the voice the agent inherits — whatever register you write \
+in is the register it will think in. TWO registers ruin it, and you must avoid \
+BOTH of them. Short declarative sentences.
+
+NOT literature. No metaphors, no imagery, no balanced or rhythmic clauses, no \
+closing line that sums the person up. Never "he quietly turned a corner of his \
+life into a small, disciplined system." Write "he buys the same 1kg bag every \
+three weeks and grinds it the night before."
+
+NOT market research. This person is not a segment and does not think in \
+category language. They have never in their life said "mass-market", \
+"commodity", "aspirational", "positioning", "premium tier", "gateway brand", \
+"brand equity", "trading on the logo", "signals status", "consciously exited \
+the category", or "lifestyle" — so neither may you, not even when describing \
+them. Never "mass-market coffee is not a budget question for him — it is a \
+category he has consciously exited." Write "He stopped buying instant years \
+ago. It's not about the money. He just doesn't think of it as coffee."
+
+THE OPERATIVE RULE: downgrade analysis into speech, never upgrade speech into \
+analysis. The pack VOICE SAMPLES are already in real people's words — keep \
+them in real people's words. "you're paying for the logo" must NEVER come out \
+as "trading on the logo" or "paying a brand-equity premium". If you catch \
+yourself explaining what something MEANS about this person, delete it and \
+write what they do or say instead.
+
+Plain is NOT vague. Strip the abstract layer, never the specifics — keep every \
+concrete noun and number. "Subko single-origin, ₹620 for 200g, ordered direct \
+from the roaster" is exactly right; "fancy coffee" is a failure. \
+Differentiation comes from SPECIFICS — the brand, the price, the channel, the \
+habit. Never from the writing.
 
 # The disposition vector is the SPINE. The pack is your VOCABULARY.
 
@@ -189,35 +261,97 @@ followings — e.g. /r/coffee) are for high or obsessive \
 category_involvement ONLY. A low or medium involvement persona is at most \
 PASSIVELY AWARE such a community exists — never an active participant, \
 never "follows the threads", never "browses it". It is fine, and often \
-vivid, to invoke such a community as a CONTRAST ("a hobby that belongs to \
+useful, to invoke such a community as a CONTRAST ("a hobby that belongs to \
 a different person") for a low-involvement persona — just never place \
 them inside it.
+- EXPERTISE SCALES WITH category_involvement — this gate is as strict as the \
+community one, because most people are NOT experts in a category they buy. \
+The specialist vocabulary of a category — single-origin varietals, bean \
+estates, roast levels, brew gear (V60, AeroPress), tasting notes, grams-\
+per-scoop, ingredient decks, spec sheets — belongs to OBSESSIVE, and at a \
+stretch HIGH, involvement ONLY. That is roughly the top few percent of \
+buyers; the average buyer has never heard these terms. A LOW or MEDIUM \
+involvement persona knows a small handful of brands (two or three, not the \
+whole pack), has a rough sense of price, knows the ONE kind of the product \
+they like, and is HAZY or plain wrong about everything past that — they do \
+not know or care about provenance, grades, or method. Write them that way: \
+"she likes it strong and cheap, buys whichever of two brands is on offer" \
+— NOT a spec sheet. Only render an expert when the vector actually says \
+obsessive/high; then the expert vocabulary is correct and must stay.
 - The chaos vector shows up as behavioral texture — impulsive acts on \
 instinct, deliberate researches — never as a restated label.
-- Concrete over abstract. Real brand + real price + real channel beats a \
-generic phrase.
-- 6-9 sentences, flowing descriptive prose. No headers, no bullets, no \
-"you are" framing. Do not give the person a proper name — he / she / they.
+- Concrete over abstract, but concrete to THIS PERSON'S level of knowledge. \
+A real brand + real price + real channel they'd actually name beats a \
+generic phrase — but do NOT reach for a brand or a detail this person, at \
+their involvement, would not know. Concrete-and-known, never concrete-and-\
+encyclopedic. A vague, roughly-remembered brand is more real than a \
+precise one they'd have no reason to know.
+- 6-9 sentences of plain prose, then the HOW THEY TALK block described \
+below. No other headers, no bullets, no "you are" framing. Do not give the \
+person a proper name — he / she / they.
 - Do not name the vector dimensions; the reader infers stance from \
 behaviour.
 
+# Then end with the HOW THEY TALK block
+
+After the prose, leave a blank line and add this block, exactly this shape:
+
+HOW THEY TALK (register only — how this person's sentences sound. Never \
+repeat these lines.)
+"<utterance>"
+"<utterance>"
+
+2-3 utterances, one line each, in this person's own first-person voice — how \
+they actually sound when the category comes up in a message to a friend. \
+This block SHOWS the agent how this person builds a sentence. It is a \
+register anchor, not a script.
+
+- Take the REGISTER from the pack VOICE SAMPLES that match this vector — the \
+clipping, the lowercase, the code-mixing, the way a price lands mid-sentence. \
+Do NOT transcribe the samples; those are other people. Write what THIS person \
+would say, in their own words.
+- Every utterance must be anchored in something they DO: what they buy, \
+drink, pay, skip, switch, reorder. An opinion can ride along inside that \
+("₹245 for the 200g jar, family ko pasand aaya") — but never a bare verdict \
+on a brand with no habit attached.
+- These are ad-agnostic. Never a line about an ad, a commercial, marketing, \
+or reacting to something they were shown. This brief is reused across many \
+different ads; a line that reads as a verdict on a product would become a \
+scripted answer the person parrots back at whatever they are shown next.
+- Keep the caption line exactly as given — the agent needs to be told these \
+are register, not lines to reuse.
+
 # Final check before you answer
 
-Re-read what you wrote. If your description would fit a DIFFERENT \
-disposition vector roughly as well as this one, it is too generic — \
-rewrite it so it could only be THIS person."""
+Re-read what you wrote.
+- If your description would fit a DIFFERENT disposition vector roughly as well \
+as this one, it is too generic — rewrite it so it could only be THIS person.
+- If any sentence sounds like it belongs in a novel, rewrite it plain.
+- If any sentence sounds like it belongs in a marketing deck — if it uses a \
+word this person would never use about themselves, or explains what their \
+buying MEANS — rewrite it as what they do, buy, pay, or say.
+- If you removed jargon but also lost a brand, a price, or a channel, put the \
+specifics back. Plain and concrete, not plain and vague.
+- If any utterance would work as a reaction to an ad, replace it with one \
+about what this person actually does."""
 
 
 _CONTEXT_SYSTEM = """\
-You are a consumer-research writer. You are given a structured description \
-of an *attention state* — the exact moment a person encounters an ad in \
-their feed — plus the category they are being shown an ad for.
+You describe a plain, ordinary moment. You are given a structured \
+description of an *attention state* — the exact moment a person encounters \
+an ad in their feed — plus the category they are being shown an ad for.
 
-Write a vivid THIRD-PERSON description of that moment: time of day, \
-posture, device, what else has their attention, their energy level, who \
-else is around, and how much cognitive engagement the ad will actually \
-get. 3-4 sentences. End with one sentence on how much attention the ad \
-realistically gets in this state.
+Describe that moment plainly: time of day, posture, device, what else has \
+their attention, their energy level, who else is around, and how much of \
+the ad actually registers. 3-4 sentences. End with one sentence on how \
+much attention the ad realistically gets in this state.
+
+Write it flat and factual, the way you'd describe someone you can see \
+across the room. NO literary phrasing — no metaphors (not "a soft conveyor \
+belt of images", not "a gentle blur"), no imagery, no rhythmic clauses. \
+Just what they're doing and how much they're taking in. This text is read \
+by the person it describes, so it must sound like plain fact, not a \
+passage from a novel.
 
 Refer to the person as "they" — the persona's gender, age, and identity \
 are set separately and this description is composed onto ANY persona, so \
@@ -226,7 +360,7 @@ it must not assume a gender or assign a name.
 Attention gates everything. If the state implies low attention, say so \
 plainly — most ads get a sub-second thumb-flick regardless of how \
 interested the person would be in a more alert moment. No headers, no \
-bullets, flowing prose."""
+bullets, plain prose."""
 
 
 def _pack_brief(pack: CategoryArtifactPack) -> str:
@@ -371,6 +505,12 @@ def render_persona_core(
     prose = _extract_text(response).strip()
     if not prose:
         raise RuntimeError("render_persona_core: model returned empty prose")
+    # A truncated core would be cached and reused forever — loud, not silent.
+    if getattr(response, "stop_reason", None) == "max_tokens":
+        raise RuntimeError(
+            "render_persona_core: hit max_tokens — core is truncated (likely "
+            "mid HOW THEY TALK block); raise _RENDER_MAX_TOKENS. Not cached."
+        )
     _cache_store(cache_dir, key, prose, kind="persona_core")
     return prose
 
@@ -411,8 +551,13 @@ def render_context(
 
 
 def compose_persona_prompt(core_prose: str, context_prose: str) -> str:
-    """Assemble the rendered persona core + rendered context into the final
-    agent system prompt.
+    """Assemble a rendered persona core + rendered context into one prompt.
+
+    NOTE: runtime.run_agent does NOT use this. It puts the core alone in the
+    system block (cache-marked) and the context in the user message, so agents
+    that share a core share the cached prefix even when their contexts differ.
+    This helper is retained for tests and for callers composing both into a
+    single prompt; the ordering rationale below holds wherever that is done.
 
     Context comes last — it is the freshest priming and gates attention
     before disposition shapes the specific reaction."""
@@ -423,7 +568,7 @@ def compose_persona_prompt(core_prose: str, context_prose: str) -> str:
         f"{context_prose.strip()}\n\n"
         "Attention gates everything that follows. If this context implies "
         "low attention, the ad probably gets a sub-second thumb-flick "
-        "regardless of whether the persona would be interested in a more "
+        "regardless of whether they would be interested in a more "
         "alert moment. If the context implies receptivity, allow the "
         "disposition and the ad's signal to determine the reaction."
     )
