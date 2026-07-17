@@ -210,7 +210,12 @@ def test_frozen_painmap_shape_has_no_raw_reactions() -> None:
         methodology_flags=["single_within_target"],
     )
     frozen = ar.to_frozen_painmap()
-    assert set(frozen.keys()) == {"verdict", "confidence", "pain_map", "strengths_to_preserve", "context_fit"}
+    # v3 E3: `source` provenance is stamped in the data (painmap.json is a
+    # standalone deliverable) — a static label, NOT raw reactions.
+    assert set(frozen.keys()) == {
+        "source", "verdict", "confidence", "pain_map", "strengths_to_preserve", "context_fit"
+    }
+    assert "model-inferred" in frozen["source"]
     # The prescribe pass must NOT be able to see raw reactions or verbatim_voice.
     assert "verbatim_voice" not in frozen and "verbatim_consumer_voice" not in frozen
     assert frozen["pain_map"][0]["id"] == "P1"

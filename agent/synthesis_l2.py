@@ -7,10 +7,11 @@ PanelAgent.segment_key and hands each group here.
 
 The Sonnet call does the *narrative* aggregation (summary, variance,
 R1-R6 representative quotes). L2Summary also carries `segment_label` and
-`behavioral_distribution`. The behavioral_distribution is the R7 signal
-aggregate, computed DETERMINISTICALLY IN PYTHON from the transcripts —
-never emitted by the model ("distributions are Python, not the model",
-same as L3's quote pool and confidence signals).
+`behavioral_distribution`. The behavioral_distribution is the behavioral-
+signal aggregate (the Call-A action + the Call-B next_step), computed
+DETERMINISTICALLY IN PYTHON from the transcripts — never emitted by the
+model ("distributions are Python, not the model", same as L3's quote pool
+and confidence signals).
 """
 
 from __future__ import annotations
@@ -153,20 +154,31 @@ findings.
 
 # How to read the transcripts
 
-Each transcript comes from ONE agent and contains two text blocks:
+Each transcript comes from ONE agent and contains two text blocks, each a \
+few labelled sections followed by ONE terminal line of JSON (v3's two-call \
+reaction — docs/v3_protocol.md §2):
 
-- **encoding_text** has three labelled sections:
+- **encoding_text** (Call A — the glance, System-1) has three labelled \
+sections, then a terminal JSON line:
   - `R1 GUT:` 1-2 sentences, the agent's first-glance gut reaction
   - `R2 COMPREHENSION:` 1-2 sentences on what it is + who they picture it being for (and whether that feels like them)
   - `R3 INTEREST:` 1-2 sentences on whether it caught their interest or washed over them
-- **reflection_text** has these labelled sections:
+  - a final `{"action": ..., "reasoning": ...}` line — the in-feed action \
+their thumb actually took (scroll_past / linger / tap_cta / save / share).
+- **reflection_text** (Call B — the considered follow-through, "a day or \
+two later") has three labelled sections, SOMETIMES two more, then a terminal \
+JSON line:
   - `R4 STICKINESS:` 1-2 sentences on what, if anything, they remember a day or two later
   - `R5 SOCIAL:` 1-2 sentences on whether they'd bring it up to anyone
   - `R6 FRICTION:` 1-2 sentences on the one thing that would hold them back from buying
-  - `R8 NEW-TO-YOU:` whether the ad taught them something new about the brand
-  - `R9 BRAND CHECK:` how confidently they can name the brand
-  - `R7 ACTION:` a one-line JSON behavioral signal (an action + reasoning +
-    the R8/R9 answers as structured fields)
+  - `R8 NEW-TO-YOU:` CONDITIONAL — present only on awareness/informer runs; whether the ad taught them something new about the brand
+  - `R9 BRAND CHECK:` CONDITIONAL — present only on brand-building runs; how confidently they can name the brand
+  - a final `{"next_step": ..., "reasoning": ...}` line — the considered \
+follow-through (buy_now / buy_at_restock / research_first / mention_to_someone \
+/ nothing), plus the R8/R9 answers as structured fields WHEN those probes ran.
+
+Most runs are direct-sell or cold-hook and carry NEITHER R8 nor R9 — do not \
+expect them, and never treat their absence as a gap.
 
 All agents in this batch are the SAME segment. Variance across them comes \
 from the attention context. Your aggregation answers: what is this \
@@ -180,12 +192,13 @@ within_cell_variance, outlier_note, representative_quotes (one per round \
 R1-R6), emotional_read, friction_summary — exactly as the tool schema \
 describes.
 
-You do NOT summarize or count R7, R8, or R9. The R7 behavioral-signal \
-distribution and the R8/R9 probe signals are computed deterministically in \
-Python from the transcripts — not your job, and you must not emit them. Read \
-R7/R8/R9 only as context for your narrative (what the agent would DO, whether \
-the ad taught them anything, whether the brand stuck); the counts are handled \
-elsewhere.
+You do NOT summarize or count the terminal JSON lines. The action + \
+next_step behavioral distribution and the conditional R8/R9 probe signals \
+are computed deterministically in Python from the transcripts — not your \
+job, and you must not emit them. Read the action line, the next_step line, \
+and any probe fields only as context for your narrative (what the agent \
+would DO, whether the ad taught them anything, whether the brand stuck); the \
+counts are handled elsewhere.
 
 # Discipline
 
@@ -203,11 +216,12 @@ evidence base."""
 def compute_behavioral_distribution(
     transcripts: list[AgentTranscript],
 ) -> BehavioralSignalDistribution:
-    """Aggregate the R7 behavioral signals of a segment's transcripts into a
-    BehavioralSignalDistribution. Counts only — never emitted by the model.
-    Transcripts whose R7 failed to parse (behavioral_signal is None) are
-    counted in `n` is NOT — n is the count of agents with a usable signal,
-    so the proportions L3.5 derives are over real signals, not gaps."""
+    """Aggregate the action + next_step behavioral signals of a segment's
+    transcripts into a BehavioralSignalDistribution. Counts only — never
+    emitted by the model. Transcripts whose behavioral_signal failed to parse
+    (behavioral_signal is None) are NOT counted in `n` — n is the count of
+    agents with a usable signal, so the proportions L3.5 derives are over real
+    signals, not gaps."""
     counts: dict[str, int] = {}
     next_step_counts: dict[str, int] = {}
     n = 0

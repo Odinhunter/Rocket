@@ -304,6 +304,12 @@ class RunConfig:
     # projects multipliers against. Keys: stop_rate / click_rate / visit_rate /
     # convert_rate (all floats in 0..1). None until the customer supplies it.
     baseline_funnel: dict | None = None
+    # funnel_enabled (v3 D4): the L3.5 funnel projection is heuristic_v1 and NOT
+    # fitted to in-market outcomes, so it is OFF by default — the projection is
+    # still computed and logged (to accrue prediction/outcome pairs for a future
+    # fit) but is NOT attached to the customer-facing report and never reaches
+    # L4's prescription reasoning. Opt in with --funnel once it is calibrated.
+    funnel_enabled: bool = False
     # Entity references for the two-phase run + filesystem entity model.
     library_id: str = ""
     audience_id: str = ""

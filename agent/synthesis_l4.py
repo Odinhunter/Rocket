@@ -376,7 +376,7 @@ def _assemble_report(
     assess: AssessResult,
     prescription: PrescribeResult,
     tc: TargetClassification,
-    funnel_projection: FunnelProjection,
+    funnel_projection: FunnelProjection | None,
     audience_match,
     provisional: list[str],
 ) -> Report:
@@ -414,7 +414,7 @@ def synthesize_report(
     transcripts: list[AgentTranscript],
     l3_summary: L3Summary,
     target_classification: TargetClassification,
-    funnel_projection: FunnelProjection,
+    funnel_projection: FunnelProjection | None,
     config: RunConfig,
     *,
     provisional_dispositions: list[str] | None = None,

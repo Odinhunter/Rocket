@@ -567,21 +567,25 @@ class RunService:
         _persist_json(rd / "l3_summary.json", l3.to_dict())
 
         # ---- L3.5: funnel projection (deterministic Python) ----
+        # Always compute + persist + log the prediction (so a future calibration
+        # fit has the prediction/outcome pair once the customer reports real
+        # numbers). But v3 D4: the projection is heuristic/unfitted, so unless
+        # funnel_enabled it is NOT handed to L4 and NOT attached to the report —
+        # the unfit numbers must not reach the customer or move the prescription.
         projection = project_funnel(
             l3, config.baseline_funnel, provided_inputs=config.provided_inputs()
         )
         _persist_json(rd / "l35_projection.json", projection.to_dict())
-        # Log the prediction so a future calibration fit has the
-        # prediction/outcome pair once the customer reports real numbers.
         calibration_log.record_prediction(
             prep.run_id, config.account_id, config.brand_profile_id,
             projection, config.baseline_funnel,
         )
+        report_projection = projection if config.funnel_enabled else None
 
         # ---- L4: assess (raw corpus -> PainMap) -> prescribe (from PainMap) ----
         report = await asyncio.to_thread(
             synthesize_report, transcripts, l3, prep.target_classification,
-            projection, config,
+            report_projection, config,
             provisional_dispositions=prep.provisional_dispositions,
         )
         # The PainMap is a first-class, standalone brand-manager deliverable.
