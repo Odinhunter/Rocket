@@ -115,7 +115,7 @@ REACTION_PROTOCOL_VERSION = "reaction-v3"
 _MAX_TOKENS = 1250
 
 _ENCODING_USER = (
-    "ENCODING PHASE — you are a real person glancing at an ad, NOT a "
+    "You are a real person glancing at an ad, NOT a "
     "writer. Keep every section to 1-2 plain sentences (a line or two). "
     "Be blunt and conversational; never eloquent, thorough, or clever — "
     "no literary phrasing, no neat metaphors, no tidy summaries. Three "
@@ -130,7 +130,7 @@ _ENCODING_USER = (
     "ACTION: after those three lines, emit exactly ONE line of JSON and nothing "
     "after it:\n"
     '{"action": "<scroll_past|linger|tap_cta|save|share>", "reasoning": "<one '
-    'short in-character sentence, anchored to the creative>"}\n'
+    'short sentence in your own words, about the ad you just saw>"}\n'
     "This is what your thumb ACTUALLY does in that half-second — scroll on by, "
     "stop and look, tap through, save it, or send it to someone. Not what you "
     "might do later; what you do right now. Never a funnel rate or a percentage."
@@ -154,8 +154,8 @@ _ENCODING_USER = (
 # the v2.3 byte-identity (the terminal line now emits next_step, not an R7
 # action); a new guard pins reaction-v3 (W1·E2). docs/v3_protocol.md §2.2, §10.
 _REFLECTION_BASE = (
-    "REFLECTION PHASE — a day or two later, still a real person, still "
-    "plain and short. Keep every section to 1-2 sentences. If an ad left "
+    "It's a day or two later. Keep every section to 1-2 sentences, "
+    "plain and short. If an ad left "
     "almost nothing behind, say so plainly — don't manufacture depth.\n\n"
     "R4 STICKINESS: 1-2 sentences. If anything, what do you remember about "
     "the ad?\n\n"
@@ -177,7 +177,7 @@ _BRAND_CHECK_BLOCK = (
 _NEXT_STEP_HEAD = "NEXT_STEP: emit exactly ONE line of JSON and nothing after it:\n"
 _NEXT_STEP_CORE = (
     '{"next_step": "<buy_now|buy_at_restock|research_first|mention_to_someone|nothing>", '
-    '"reasoning": "<one short in-character sentence>"'
+    '"reasoning": "<one short sentence in your own words>"'
 )
 _NEXT_STEP_NOTE = (
     "next_step = what you would ACTUALLY do next about this, a day or two on: "
@@ -221,16 +221,16 @@ def _creative_copy_block(ci: CreativeInputs) -> str:
     cached persona-core/image prefix — so it does not perturb caching."""
     lines = []
     if ci.headline.strip():
-        lines.append(f"Headline: {ci.headline.strip()}")
+        lines.append(f"The big line on it: {ci.headline.strip()}")
     if ci.primary_text.strip():
-        lines.append(f"Body: {ci.primary_text.strip()}")
+        lines.append(f"The smaller text: {ci.primary_text.strip()}")
     if ci.offer.strip():
-        lines.append(f"Offer / price: {ci.offer.strip()}")
+        lines.append(f"The price / offer: {ci.offer.strip()}")
     if not lines:
         return ""
     return (
-        "AD COPY & OFFER accompanying this image (read it as you would in "
-        "feed, alongside the visual):\n" + "\n".join(lines) + "\n\n"
+        "There are words on the ad too — you read them off the picture as "
+        "you scroll:\n" + "\n".join(lines) + "\n\n"
     )
 
 
@@ -317,7 +317,7 @@ def _cycle_line(cycle_position: str, category: str) -> str:
     never fragments the cached persona core (v3 A4, docs/v3_protocol.md §5)."""
     cat = category.replace("_", " ")
     body = _CYCLE_PROSE.get(cycle_position, _CYCLE_PROSE["mid_cycle"]).format(cat=cat)
-    return "WHERE THEY ARE IN THEIR BUYING CYCLE RIGHT NOW: " + body
+    return "WHERE THINGS STAND FOR THEM RIGHT NOW: " + body
 
 
 # ---- Public API ----
@@ -373,7 +373,7 @@ def run_agent(
         f"{_cycle_line(agent.cycle_position, agent.category)}\n\n"
         "Attention gates everything that follows. If this context implies "
         "low attention, the ad probably gets a sub-second thumb-flick "
-        "regardless of whether the persona would be interested in a more "
+        "regardless of whether they would be interested in a more "
         "alert moment.\n\n"
     )
     copy_block = _creative_copy_block(config.creative_inputs)

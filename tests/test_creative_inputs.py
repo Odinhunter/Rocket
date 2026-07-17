@@ -45,7 +45,10 @@ def test_copy_block_contains_provided_text() -> None:
         offer="₹2,699, 20% off first order",
     )
     block = _creative_copy_block(ci)
-    assert "AD COPY & OFFER" in block
+    # The wrapper reads as words-on-a-picture, not a Meta Ads Manager form
+    # (input-audit 4.1) — but every field's text must still reach the agent.
+    assert "words on the ad" in block
+    assert "AD COPY & OFFER" not in block and "Headline:" not in block
     assert "AI-designed protein" in block
     assert "Clinically inspired" in block
     assert "₹2,699" in block  # the price reaches the agent — the gap we fixed
