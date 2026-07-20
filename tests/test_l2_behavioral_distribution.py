@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agent.schema import AgentTranscript, BehavioralSignal
-from agent.synthesis_l2 import compute_behavioral_distribution
+from agent.synthesis_l2 import _build_l2_summary, compute_behavioral_distribution
 
 
 def _transcript(agent_id: int, signal: BehavioralSignal | None) -> AgentTranscript:
@@ -96,12 +96,37 @@ def test_roundtrips() -> None:
     print("  OK  computed distribution round-trips through the schema")
 
 
+def test_malformed_representative_quotes_degrade_not_crash() -> None:
+    """The σ study surfaced the L2 model occasionally emitting
+    representative_quotes as a bare string (or list) instead of the
+    {round: Quote} object the schema asks for. _build_l2_summary must degrade
+    to no-quotes for that segment, never crash the (already-paid-for) run."""
+    base = {
+        "summary_paragraph": "they mostly scrolled past.",
+        "within_cell_variance": "tight",
+        "outlier_note": None,
+        "emotional_read": "flat",
+        "friction_summary": "price unclear",
+    }
+    for bad in ("a stray string the model emitted", ["not", "an", "object"], 42):
+        summary = _build_l2_summary("disp_a", "disp_a|impulsive", {**base, "representative_quotes": bad})
+        assert summary.representative_quotes == {}, f"expected no quotes for {type(bad).__name__}"
+        assert summary.summary_paragraph == "they mostly scrolled past."
+    # A well-formed map still parses.
+    good = {**base, "representative_quotes": {
+        "1": {"quote": "another clean bar", "disposition": "disp_a", "round": 1, "context": "c"}}}
+    summary = _build_l2_summary("disp_a", "disp_a|impulsive", good)
+    assert summary.representative_quotes[1].quote == "another clean bar"
+    print("  OK  malformed representative_quotes (str/list/int) degrade to {}; good map parses")
+
+
 def main() -> None:
     print("=== L2 v2 behavioral distribution smoke ===")
     test_counts_are_exact()
     test_unparsed_r7_excluded_from_n()
     test_empty_segment()
     test_roundtrips()
+    test_malformed_representative_quotes_degrade_not_crash()
     print("PASS — R7 distribution is computed deterministically in Python.")
 
 

@@ -299,6 +299,18 @@ def _build_l2_summary(
     disposition_label: str, segment_label: str, tool_input: dict
 ) -> L2Summary:
     rep = tool_input.get("representative_quotes", {}) or {}
+    # The model occasionally emits representative_quotes as a bare string (or a
+    # list) instead of the {round: Quote} object the tool schema asks for —
+    # surfaced by the σ study's repeated sampling. Degrade to no-quotes for this
+    # segment rather than crash the run; the behavioral distribution (the actual
+    # signal) is computed in Python and does not depend on these quotes.
+    if not isinstance(rep, dict):
+        _log.warning(
+            "L2 segment %r: representative_quotes came back as %s, not an "
+            "object — dropping this segment's quotes (distribution unaffected)",
+            segment_label, type(rep).__name__,
+        )
+        rep = {}
     quotes: dict[int, Quote] = {}
     for k, v in rep.items():
         try:

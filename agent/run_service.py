@@ -555,11 +555,35 @@ class RunService:
             async with l2_sem:
                 return await synthesize_segment_async(label, ts, config)
 
+        l2_labels = [label for label, _ in sorted(by_segment.items())]
         l2_coros = [
             _bounded_l2(label, ts) for label, ts in sorted(by_segment.items())
         ]
-        l2_summaries = await asyncio.gather(*l2_coros)
+        # Survive a stray per-segment failure (an API error, or an L2 output
+        # shape the parser can't use) rather than crash the whole committed run
+        # after the agent money is already spent — the same posture as L1. A
+        # dropped segment loses its agents from the population distribution, so
+        # it is recorded in panel_health (never silent), not swallowed.
+        l2_results = await asyncio.gather(*l2_coros, return_exceptions=True)
+        l2_summaries = []
+        l2_failed_segments: list[str] = []
+        for label, res in zip(l2_labels, l2_results):
+            if isinstance(res, Exception):
+                _log.warning("L2 segment %r failed: %s", label, res)
+                l2_failed_segments.append(label)
+            else:
+                l2_summaries.append(res)
+        if not l2_summaries:
+            raise RuntimeError(
+                "L2 produced zero usable segment summaries — the whole "
+                "synthesis is gutted; aborting rather than scoring nothing."
+            )
         l2_summaries = sorted(l2_summaries, key=lambda s: s.segment_label)
+        panel_health["l2_segments_expected"] = len(l2_labels)
+        panel_health["l2_segments_failed"] = len(l2_failed_segments)
+        panel_health["l2_failed_segments"] = l2_failed_segments
+        if l2_failed_segments:
+            panel_health["degraded"] = True
         _persist_json(
             rd / "l2_summaries.json", [s.to_dict() for s in l2_summaries]
         )
