@@ -31,6 +31,16 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 from agent.config import AssetSpec, CreativeInputs, RunConfig
 from agent.entities import AudienceSpec
 from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER, resolve_purpose
+from agent.read_model import (
+    CYCLE_LABEL as _CYCLE_LABEL,
+    DECISION_TAGLINE as _DECISION_TAGLINE,
+    LEVER_HEADING as _LEVER_HEADING,
+    headline_metric_line as _headline_metric_line,
+    humanize as _humanize,
+    inconclusive_lines as _inconclusive_lines,
+    purpose_scope_note as _purpose_scope_note,
+    trust_line as _trust_line,
+)
 from agent.run_service import RunPreparation, RunService
 from agent.schema import Report
 from agent.telemetry import run_dir, telemetry_summary
@@ -86,127 +96,11 @@ def _print_target_and_changes(report: Report) -> None:
         print(f"    — {q.disposition}, R{q.round}, {q.context}\n")
 
 
-# v3 F3 — launch scope. The per-purpose scoring is validated to different
-# depths: direct_sell + cold_hook are anchored; brand_building is beta (its
-# metric collapsed to the resonance half, attribution is a known limitation);
-# awareness_informer + retain_winback run but their scoring is not yet anchored
-# by a per-purpose calibration run. We WARN (never block) — the run still
-# produces a full read; the caveat sets how much to trust the headline metric.
-_PURPOSE_SCOPE_NOTE = {
-    "brand_building": (
-        "BETA — brand-building scoring is provisional (resonance half only; "
-        "brand-attribution is a known, flagged limitation). Trust the pains "
-        "and the voice; treat the headline metric as directional."
-    ),
-    "awareness_informer": (
-        "PARKED — informer scoring is not yet anchored by a per-purpose "
-        "calibration run. The reactions are sound; the headline metric is "
-        "unvalidated. Trust the pains and the voice, not the number."
-    ),
-    "retain_winback": (
-        "PARKED — retain/win-back needs existing-customer (loyalist/lapsed) "
-        "dispositions to score honestly; scoring is unvalidated. Trust the "
-        "pains and the voice, not the number."
-    ),
-}
-
-
-def _purpose_scope_note(purpose: str) -> str | None:
-    """v3 F3: the launch-scope caveat for a purpose, or None when the purpose
-    is active (direct_sell / cold_hook)."""
-    return _PURPOSE_SCOPE_NOTE.get(purpose)
-
-
-# rocket-2.3.0: the decision layer. Every line the brand manager reads is a
-# decision or an action; the categorical verdict is demoted to an engine read.
-_DECISION_TAGLINE = {
-    "SCALE": "Put spend behind it — no in-scope lever would materially lift it.",
-    "ITERATE": "Target responds; a specific in-scope fix is leaking conversion. "
-               "Fix it, re-run, then scale.",
-    "RETARGET": "The creative works — for a different audience than it's aimed at. "
-                "Fix the buy, not the ad.",
-    "REBUILD": "The target rejects it on grounds no in-scope tweak fixes. "
-               "Don't run as-is.",
-    "INCONCLUSIVE": "The read isn't trustworthy yet — see why below.",
-}
-_LEVER_HEADING = {
-    "ITERATE": "THE FIX(ES)  (highest-leverage first):",
-    "RETARGET": "RE-AIM + FIX  (highest-leverage first):",
-    "REBUILD": "IF YOU REBUILD, what has to change:",
-    "INCONCLUSIVE": "TO GET A TRUSTWORTHY READ:",
-    "SCALE": "PROTECT ON SCALE-UP:",
-}
-
-
-def _humanize(label: str) -> str:
-    return label.replace("_", " ")
-
-
-def _inconclusive_lines(report: Report) -> list[str]:
-    """Plain-language why + what-to-change for an INCONCLUSIVE read (spec §4).
-    An untrustworthy read must NEVER show a confident action-rate headline — the
-    number rests on the wrong people or an unreadable target."""
-    flags = set(report.methodology_flags)
-    if "pool_archetype_mismatch" in flags:
-        why = ("the audience this ad targets isn't represented in your "
-               "disposition library, so the read rests on the wrong people")
-        fix = ("add a disposition profile that matches this ad's audience, "
-               "then re-run")
-    elif "target_unsignaled" in flags:
-        why = ("the ad doesn't clearly signal who it's for — every audience "
-               "read as a maybe")
-        fix = ("clarify the creative's target, or declare the audience you're "
-               "buying against, then re-run")
-    else:
-        why = (report.decision.rationale if report.decision else
-               "the read isn't trustworthy on this pool")
-        fix = "check that the audience you declared matches who the ad is for"
-    return [
-        "  We can't give you a trustworthy read on this creative yet.",
-        f"  Why: {why}.",
-        f"  To get a real read: {fix}.",
-    ]
-
-
-_CYCLE_LABEL = {
-    "running_low": "running low", "mid_cycle": "mid-cycle", "just_bought": "just bought",
-}
-
-
-def _headline_metric_line(d) -> str:
-    """The one number the brand manager reads, phrased for the ad's JOB. Direct-
-    sell is byte-for-byte the v2.3 line; other jobs swap the metric + frame."""
-    preset = resolve_purpose(getattr(d, "purpose", "direct_sell") or "direct_sell")
-    rate = f"{d.target_action_rate:.0%}"
-    tail = (f"  —  {d.target_action_num} of {d.target_action_denom}"
-            if d.target_action_denom else "")
-    if preset.name == "direct_sell":
-        who = _humanize(", ".join(d.within_dispositions)) if d.within_dispositions else "your target"
-        return f"  {rate} of your target ({who}) would buy{tail}."
-    if preset.name == "cold_hook":
-        return (f"  {rate} of a cold audience stopped and leaned in{tail}  "
-                f"(vs scrolling past — the hook, not the sale).")
-    if preset.name == "brand_building":
-        return (f"  {rate} both felt it AND remembered the brand{tail}  "
-                f"(engaged but mis-attributed doesn't count).")
-    if preset.name == "awareness_informer":
-        # breadth is a disposition COUNT: num of denom audience TYPES registered.
-        return (f"  {d.target_action_num} of {d.target_action_denom} audience types "
-                f"registered it as news ({rate})  (breadth of noticing, not sales).")
-    # retain / others: a generic metric-labelled line.
-    return f"  {rate} — {preset.metric_label}{tail}."
-
-
-def _trust_line(d) -> str:
-    if d.trust == "HIGH":
-        line = "Trust: HIGH"
-        if len(d.within_dispositions) >= 2:
-            line += f" — {len(d.within_dispositions)} within-target dispositions agree"
-        if d.target_action_denom:
-            line += f" ({d.target_action_denom} in the target sample)"
-        return line + "."
-    return ("Trust: DIRECTIONAL — thin evidence (one narrow audience engaged); "
-            "treat as a lead, not a verdict.")
+# The report vocabulary (taglines, lever headings, the headline metric line,
+# the trust line, the INCONCLUSIVE copy, the F3 launch-scope caveats) lives in
+# agent/read_model.py and is imported above — the terminal report and the
+# client-facing HTML render from one source so they cannot drift apart on a
+# guardrail. Add new copy there, not here.
 
 
 def _print_decision_headline(report: Report) -> None:
