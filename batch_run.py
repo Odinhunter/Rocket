@@ -28,8 +28,7 @@ load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
-from agent.config import AssetSpec, CreativeInputs, RunConfig
-from agent.entities import AudienceSpec
+from agent.config import RunConfig, build_run_config, default_asset_label
 from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER, resolve_purpose
 from agent.read_model import (
     CYCLE_LABEL as _CYCLE_LABEL,
@@ -422,21 +421,29 @@ def main() -> None:
     if not asset_path.exists():
         print(f"ERROR: asset not found at {asset_path}", file=sys.stderr)
         sys.exit(1)
-    asset_label = args.asset_label or asset_path.stem.replace("_", " ").title()
-
-    spec_data = json.loads(Path(args.audience_spec).read_text())
-    audience_spec = AudienceSpec.from_dict(spec_data)
-
-    baseline_funnel = None
-    if args.baseline_funnel:
-        baseline_funnel = json.loads(Path(args.baseline_funnel).read_text())
+    asset_label = args.asset_label or default_asset_label(asset_path)
 
     # Creative inputs: a JSON file (if given) provides the defaults; individual
-    # flags override any field they set.
+    # flags override any field they set. This precedence is argparse semantics,
+    # so it is resolved here and handed to the builder as finished values.
     creative_data = {}
     if args.creative_json:
         creative_data = json.loads(Path(args.creative_json).read_text())
-    creative_inputs = CreativeInputs(
+
+    config = build_run_config(
+        asset_path=asset_path,
+        asset_label=asset_label,
+        audience_spec=args.audience_spec,
+        archetype=args.archetype,
+        category=args.category,
+        account_id=args.account,
+        brand_profile_id=args.brand_profile,
+        max_concurrent_agents=args.max_concurrent,
+        seed=args.seed,
+        segment_granularity=args.segment_granularity,
+        baseline_funnel=args.baseline_funnel or None,
+        library_id=args.library_id,
+        audience_id=args.audience_id,
         primary_text=args.primary_text or creative_data.get("primary_text", ""),
         headline=args.headline or creative_data.get("headline", ""),
         offer=args.offer or creative_data.get("offer", ""),
@@ -445,22 +452,6 @@ def main() -> None:
         # to the json only when json sets a non-default purpose.)
         purpose=(args.purpose if args.purpose != DEFAULT_PURPOSE
                  else creative_data.get("purpose") or DEFAULT_PURPOSE),
-    )
-
-    config = RunConfig(
-        asset=AssetSpec(image_path=str(asset_path), label=asset_label),
-        archetype=args.archetype,
-        category=args.category,
-        account_id=args.account,
-        brand_profile_id=args.brand_profile,
-        max_concurrent_agents=args.max_concurrent,
-        seed=args.seed,
-        audience_spec=audience_spec,
-        segment_granularity=args.segment_granularity,
-        baseline_funnel=baseline_funnel,
-        library_id=args.library_id,
-        audience_id=args.audience_id,
-        creative_inputs=creative_inputs,
         declared_targeting=args.declared_targeting,
         marketer_led=args.marketer_led,
         tail_fraction=args.tail_fraction,

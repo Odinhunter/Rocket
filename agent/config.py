@@ -13,6 +13,7 @@ a `list[AssetSpec]` field when the upsell mode ships in a later tier.
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -418,3 +419,96 @@ class RunConfig:
             "marketer_led": self.marketer_led,
             "tail_fraction": self.tail_fraction,
         }
+
+
+# ---- Building a RunConfig from plain inputs ----
+#
+# batch_run assembles a RunConfig from argparse; the operator tool assembles
+# one from an upload + form fields. Both resolve the SAME set of decisions
+# (default the asset label off the filename, load the AudienceSpec, pack the
+# creative inputs), so both call the builder below rather than each keeping
+# their own copy. A second inline assembly is how the two surfaces drift.
+#
+# What deliberately stays OUT: the CLI's flag-beats-JSON precedence for the
+# creative fields. That is argparse semantics, not run semantics — callers
+# resolve their own precedence and hand the builder finished values.
+
+
+def load_audience_spec(source: AudienceSpec | dict | str | Path) -> AudienceSpec:
+    """Resolve an AudienceSpec from an instance, a parsed dict, or a JSON path."""
+    if isinstance(source, AudienceSpec):
+        return source
+    if isinstance(source, dict):
+        return AudienceSpec.from_dict(source)
+    return AudienceSpec.from_dict(json.loads(Path(source).read_text()))
+
+
+def default_asset_label(asset_path: str | Path) -> str:
+    """The fallback caption when the caller supplies none: the filename, made
+    readable. `mb_biozyme_ad.png` -> `Mb Biozyme Ad`."""
+    return Path(asset_path).stem.replace("_", " ").title()
+
+
+def build_run_config(
+    *,
+    asset_path: str | Path,
+    audience_spec: AudienceSpec | dict | str | Path,
+    category: str,
+    asset_label: str = "",
+    archetype: str = "unspecified",
+    account_id: str = "internal",
+    brand_profile_id: str = "default",
+    library_id: str = "",
+    audience_id: str = "",
+    declared_targeting: str = "",
+    purpose: str = DEFAULT_PURPOSE,
+    primary_text: str = "",
+    headline: str = "",
+    offer: str = "",
+    seed: int = 71,
+    max_concurrent_agents: int = 4,
+    marketer_led: bool = False,
+    tail_fraction: float = 0.0,
+    segment_granularity: Literal[
+        "disposition", "disposition_chaos_band"
+    ] = "disposition_chaos_band",
+    baseline_funnel: dict | str | Path | None = None,
+    funnel_enabled: bool = False,
+) -> RunConfig:
+    """Assemble a run-ready RunConfig from primitives (paths, strings, flags).
+
+    The asset is NOT validated here — RunService.prepare calls
+    config.validate() first thing, which checks existence, extension and the
+    post-base64 size ceiling. Keeping validation there means an upload fails
+    the same way whoever submitted it.
+    """
+    if baseline_funnel is not None and not isinstance(baseline_funnel, dict):
+        baseline_funnel = json.loads(Path(baseline_funnel).read_text())
+
+    return RunConfig(
+        asset=AssetSpec(
+            image_path=str(asset_path),
+            label=asset_label or default_asset_label(asset_path),
+        ),
+        archetype=archetype,
+        category=category,
+        account_id=account_id,
+        brand_profile_id=brand_profile_id,
+        max_concurrent_agents=max_concurrent_agents,
+        seed=seed,
+        audience_spec=load_audience_spec(audience_spec),
+        segment_granularity=segment_granularity,
+        baseline_funnel=baseline_funnel,
+        library_id=library_id,
+        audience_id=audience_id,
+        creative_inputs=CreativeInputs(
+            primary_text=primary_text,
+            headline=headline,
+            offer=offer,
+            purpose=purpose,
+        ),
+        declared_targeting=declared_targeting,
+        marketer_led=marketer_led,
+        tail_fraction=tail_fraction,
+        funnel_enabled=funnel_enabled,
+    )
