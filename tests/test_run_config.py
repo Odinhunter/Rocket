@@ -231,6 +231,11 @@ def test_default_temperatures_match_advisor_schedule() -> None:
         "l3":        0.5,
         "l4":        None,  # claude-opus-4-7 deprecated temperature
         "target_id": None,  # claude-opus-4-7 deprecated temperature
+        # v3 word-cloud post-pass. 0.0 deliberately: it extracts vocabulary
+        # that is already in the corpus and judges it, rather than generating
+        # anything, so the same run must yield the same cloud. This layer reads
+        # finished transcripts only — it cannot affect reaction calibration.
+        "lexicon":   0.0,
     }
     assert DEFAULT_TEMPERATURES == expected, (
         f"DEFAULT_TEMPERATURES drift: expected {expected}, "

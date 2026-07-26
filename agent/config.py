@@ -100,6 +100,7 @@ DEFAULT_MODEL_VERSIONS: dict[str, str] = {
     "prescribe": "claude-opus-4-8",     # rocket-2.2.0 L4b prescription (from PainMap)
     "target_id": "claude-opus-4-7",     # Opus vision target classification
     "render": "claude-sonnet-4-6",      # rocket-2.0.0 Render Engine (persona prose)
+    "lexicon": "claude-sonnet-4-6",     # v3 word-cloud post-pass (read-only)
 }
 
 
@@ -125,6 +126,9 @@ DEFAULT_TEMPERATURES: dict[str, float | None] = {
     "l3":        0.5,
     "l4":        None,   # claude-opus-4-7: temperature deprecated, omit
     "target_id": None,   # claude-opus-4-7: temperature deprecated, omit
+    # Extraction + judgement, not generation: the same corpus should yield the
+    # same vocabulary run to run, so a word cloud isn't reshuffling on reruns.
+    "lexicon":   0.0,
 }
 
 
