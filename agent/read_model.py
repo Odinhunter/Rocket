@@ -122,10 +122,15 @@ FUNNEL_STAGE_ORDER = (
 # the page must not let one stand in for the other.
 LEXICON_CAVEAT = (
     "These are words people actually used — counted by how many PEOPLE said "
-    "each one, not how often. The colour is a model's judgement of whether the "
-    "word helps or hurts this ad in the sentence it appeared in, not a measure "
-    "of how strongly anyone felt. Grey covers words that are purely "
-    "descriptive, genuinely mixed, or the ad's own claims being repeated back."
+    "each one, not how often, and sized against their own group: a word from "
+    "half your target and a word from half the people outside it look the "
+    "same size because they mean the same thing about different groups. "
+    "Words from outside your target are shown separately and are NOT a score "
+    "against the ad — people who were never the audience saying it isn't for "
+    "them is your targeting working. The colour is a model's judgement of "
+    "whether a word helps or hurts, made from the sentences that group itself "
+    "said, not a measure of how strongly anyone felt. Grey covers words that "
+    "are descriptive, genuinely mixed, or the ad's own claims repeated back."
 )
 
 # v3 E3 — the one prominent, honest disclaimer. Every quote in a read is

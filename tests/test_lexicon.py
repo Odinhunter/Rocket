@@ -150,11 +150,20 @@ def test_build_lexicon_end_to_end_with_stubbed_model_calls() -> None:
     """Proves the whole path — corpus, grounding, classification, assembly —
     without an API call. The model is stubbed to return one real term and one
     invented one; only the real one may survive."""
+    # Two people per audience: a term must clear the >=2 display threshold
+    # WITHIN an audience to be judged for it, so one-per-side would leave both
+    # clouds empty and prove nothing. The FIRST sentence carries the
+    # distinguishing word, because context capture takes one sentence per
+    # person and stops at the first match.
     rows = [
-        _t("R1 GUT: chalky looking\n\nR2 COMPREHENSION: AI-designed longevity protein"
-           "\n\nR3 EMOTION: chalky and bland", disp="enthusiast_macros_lifter"),
-        _t("R1 GUT: chalky again\n\nR2 COMPREHENSION: AI-designed longevity protein"
-           "\n\nR3 EMOTION: not for me", disp="skeptic_lapsed_protein"),
+        _t("R1 GUT: chalky and bland\n\nR2 COMPREHENSION: AI-designed longevity"
+           "\n\nR3 EMOTION: flat", disp="enthusiast_macros_lifter"),
+        _t("R1 GUT: chalky, quite bland\n\nR2 COMPREHENSION: AI-designed longevity"
+           "\n\nR3 EMOTION: flat", disp="enthusiast_macros_lifter"),
+        _t("R1 GUT: chalky and not for me\n\nR2 COMPREHENSION: AI-designed longevity"
+           "\n\nR3 EMOTION: skip", disp="skeptic_lapsed_protein"),
+        _t("R1 GUT: chalky, not for me either\n\nR2 COMPREHENSION: AI-designed"
+           " longevity\n\nR3 EMOTION: skip", disp="skeptic_lapsed_protein"),
     ]
     with tempfile.TemporaryDirectory() as td:
         rd = Path(td)
@@ -167,8 +176,18 @@ def test_build_lexicon_end_to_end_with_stubbed_model_calls() -> None:
             seen["sample"] = corpus.sample_text()
             return ["chalky", "longevity", "unicorn"]
 
-        def fake_classify(grounded, config, client):
-            seen["classified"] = [t.term for t in grounded]
+        def fake_classify(grounded, config, client, *, audience=""):
+            # Record per audience: the whole point is that each audience is
+            # judged from its own sentences, so the stub must see them apart.
+            seen.setdefault("classified", []).extend(t.term for t in grounded)
+            seen.setdefault("audiences", []).append(audience)
+            key = "ctx_" + (audience or "pooled")
+            seen[key] = [
+                (t.term, list(t.contexts_within if audience == "within"
+                              else t.contexts_outside if audience == "outside"
+                              else t.contexts))
+                for t in grounded
+            ]
             return {t.term: "bad" for t in grounded}
 
         lex = build_lexicon(rd, ["enthusiast_macros_lifter"], config=None,
@@ -177,10 +196,20 @@ def test_build_lexicon_end_to_end_with_stubbed_model_calls() -> None:
 
     terms = {t.term for t in lex.terms}
     assert terms == {"chalky"}, f"expected only the grounded term, got {terms}"
-    assert lex.terms[0].within == 1 and lex.terms[0].outside == 1
+    assert lex.terms[0].within == 2 and lex.terms[0].outside == 2
     assert "unicorn" not in seen["classified"], "never spend judging an unsaid word"
     assert "longevity" not in seen["classified"], \
         "readback-only vocabulary must not survive grounding"
     assert "AI-designed" not in seen["sample"], "readback leaked into the prompt"
-    assert lex.corpus_n == 2 and lex.panel_n == 2
-    print("  end-to-end: only grounded, non-readback terms survive ✓")
+    assert lex.corpus_n == 4 and lex.panel_n == 4
+    assert lex.within_n == 2 and lex.outside_n == 2, "audience denominators set"
+    assert seen["audiences"] == ["within", "outside"], \
+        "each audience must be judged separately, in order"
+    # The in-target call must see ONLY in-target sentences, and vice versa.
+    within_ctx = dict(seen["ctx_within"])["chalky"]
+    outside_ctx = dict(seen["ctx_outside"])["chalky"]
+    assert any("bland" in c for c in within_ctx), "in-target sentence missing"
+    assert not any("bland" in c for c in outside_ctx), \
+        "an in-target sentence leaked into the out-of-target judgement"
+    assert any("not for me" in c for c in outside_ctx)
+    print("  end-to-end: grounded, non-readback, judged per audience ✓")

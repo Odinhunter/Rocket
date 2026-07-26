@@ -166,10 +166,21 @@ class Term:
     """One word or phrase, with counts computed in code — never model-reported."""
 
     term: str
-    sentiment: str = "neutral"
+    sentiment: str = "neutral"        # pooled judgement (legacy / whole corpus)
     within: int = 0
     outside: int = 0
     contexts: list[str] = field(default_factory=list)
+    # Contexts and judgement kept PER AUDIENCE. Pooling them is a category
+    # error: on a narrow ad most speakers are out-of-target, so a pooled
+    # judgement is made almost entirely from sentences spoken by people the ad
+    # was never for. An out-of-target "not for me" is targeting working, not
+    # the creative failing, and must never colour the target's own vocabulary.
+    contexts_within: list[str] = field(default_factory=list)
+    contexts_outside: list[str] = field(default_factory=list)
+    # "" means NOT judged for that audience — the renderer must show the word
+    # uncoloured rather than borrowing the other audience's colour.
+    sentiment_within: str = ""
+    sentiment_outside: str = ""
 
     @property
     def people(self) -> int:
@@ -178,16 +189,40 @@ class Term:
         same one the panel table uses."""
         return self.within + self.outside
 
+    def share(self, audience: str) -> float:
+        """This term's reach WITHIN one audience needs that audience's own
+        denominator — 6 of 18 target people is a third of them; 6 of 81
+        outsiders is noise. Set by the Lexicon that owns the term."""
+        n = self._audience_n.get(audience, 0)
+        c = self.within if audience == "within" else self.outside
+        return (c / n) if n else 0.0
+
+    _audience_n: dict = field(default_factory=dict, repr=False, compare=False)
+
+    def sentiment_for(self, audience: str) -> str:
+        """The judgement made from THIS audience's sentences, or "" when none
+        was. Never falls back to the pooled value: that is the defect."""
+        return (self.sentiment_within if audience == "within"
+                else self.sentiment_outside)
+
     def to_dict(self) -> dict:
         return {"term": self.term, "sentiment": self.sentiment,
                 "within": self.within, "outside": self.outside,
-                "people": self.people, "contexts": list(self.contexts)}
+                "people": self.people, "contexts": list(self.contexts),
+                "contexts_within": list(self.contexts_within),
+                "contexts_outside": list(self.contexts_outside),
+                "sentiment_within": self.sentiment_within,
+                "sentiment_outside": self.sentiment_outside}
 
     @classmethod
     def from_dict(cls, d: dict) -> "Term":
         return cls(term=d["term"], sentiment=d.get("sentiment", "neutral"),
                    within=int(d.get("within", 0)), outside=int(d.get("outside", 0)),
-                   contexts=list(d.get("contexts", [])))
+                   contexts=list(d.get("contexts", [])),
+                   contexts_within=list(d.get("contexts_within", [])),
+                   contexts_outside=list(d.get("contexts_outside", [])),
+                   sentiment_within=d.get("sentiment_within", ""),
+                   sentiment_outside=d.get("sentiment_outside", ""))
 
 
 def _term_pattern(term: str) -> re.Pattern:
@@ -205,14 +240,19 @@ def count_term(corpus: Corpus, term: str, *, max_contexts: int = 3) -> Term:
     for e in corpus.entries:
         if not pat.search(e.text):
             continue
+        bucket = out.contexts_within if e.within_target else out.contexts_outside
         if e.within_target:
             out.within += 1
         else:
             out.outside += 1
-        if len(out.contexts) < max_contexts:
+        if len(bucket) < max_contexts or len(out.contexts) < max_contexts:
             for sentence in re.split(r"(?<=[.!?])\s+|\n+", e.text):
                 if pat.search(sentence):
-                    out.contexts.append(sentence.strip()[:220])
+                    s = sentence.strip()[:220]
+                    if len(bucket) < max_contexts:
+                        bucket.append(s)
+                    if len(out.contexts) < max_contexts:
+                        out.contexts.append(s)
                     break
     return out
 
@@ -225,6 +265,19 @@ class Lexicon:
     corpus_n: int = 0
     excluded: int = 0
     panel_n: int = 0
+    # How many people are IN each audience. These are the denominators a term's
+    # reach is measured against, and they differ by ~4x on a narrow ad, so
+    # sharing one denominator across both is how "6 people" silently means two
+    # completely different things.
+    within_n: int = 0
+    outside_n: int = 0
+
+    def __post_init__(self) -> None:
+        self._sync()
+
+    def _sync(self) -> None:
+        for t in self.terms:
+            t._audience_n = {"within": self.within_n, "outside": self.outside_n}
 
     @property
     def is_empty(self) -> bool:
@@ -233,22 +286,47 @@ class Lexicon:
     def by_sentiment(self, sentiment: str) -> list[Term]:
         return [t for t in self.terms if t.sentiment == sentiment]
 
+    def audience_n(self, audience: str) -> int:
+        return self.within_n if audience == "within" else self.outside_n
+
+    def for_audience(self, audience: str, *, min_people: int = 2) -> list[Term]:
+        """Terms this audience actually used, on ITS OWN count.
+
+        A term nobody in the audience said cannot appear in its cloud — that
+        is the whole defect this exists to prevent: 19 of MuscleBlaze's 29
+        "working against you" terms had ZERO in-target speakers and were
+        out-of-target people correctly saying the ad was not for them.
+        """
+        self._sync()
+        pick = (lambda t: t.within) if audience == "within" else (lambda t: t.outside)
+        return [t for t in self.terms if pick(t) >= min_people]
+
+    def judged(self, audience: str) -> bool:
+        """True when this audience's terms carry a judgement made from ITS OWN
+        sentences. False means the renderer must show them uncoloured."""
+        return any(t.sentiment_for(audience) for t in self.for_audience(audience))
+
     def to_dict(self) -> dict:
         return {"terms": [t.to_dict() for t in self.terms],
                 "corpus_n": self.corpus_n, "excluded": self.excluded,
-                "panel_n": self.panel_n}
+                "panel_n": self.panel_n, "within_n": self.within_n,
+                "outside_n": self.outside_n}
 
     @classmethod
     def from_dict(cls, d: dict) -> "Lexicon":
         return cls(terms=[Term.from_dict(t) for t in d.get("terms", [])],
                    corpus_n=int(d.get("corpus_n", 0)),
                    excluded=int(d.get("excluded", 0)),
-                   panel_n=int(d.get("panel_n", 0)))
+                   panel_n=int(d.get("panel_n", 0)),
+                   within_n=int(d.get("within_n", 0)),
+                   outside_n=int(d.get("outside_n", 0)))
 
 
 def assemble_lexicon(
     corpus: Corpus, candidates: list[str], sentiments: dict[str, str],
     *, min_people: int = 2, limit: int = 40,
+    sentiments_within: dict[str, str] | None = None,
+    sentiments_outside: dict[str, str] | None = None,
 ) -> Lexicon:
     """Ground candidates against the corpus and assemble the final lexicon.
 
@@ -269,11 +347,23 @@ def assemble_lexicon(
             continue
         s = (sentiments.get(cand) or sentiments.get(key) or "neutral").lower()
         t.sentiment = s if s in SENTIMENT_VALUES else "neutral"
+
+        # Per-audience judgements stay EMPTY when that audience was not judged.
+        # Defaulting them to the pooled value would silently reintroduce the
+        # defect this split exists to remove.
+        for src, attr in ((sentiments_within, "sentiment_within"),
+                          (sentiments_outside, "sentiment_outside")):
+            if not src:
+                continue
+            v = (src.get(cand) or src.get(key) or "").lower()
+            setattr(t, attr, v if v in SENTIMENT_VALUES else "")
         terms.append(t)
 
     terms.sort(key=lambda t: (-t.people, t.term))
+    within_n = sum(1 for e in corpus.entries if e.within_target)
     return Lexicon(terms=terms[:limit], corpus_n=corpus.n,
-                   excluded=corpus.excluded, panel_n=corpus.n + corpus.excluded)
+                   excluded=corpus.excluded, panel_n=corpus.n + corpus.excluded,
+                   within_n=within_n, outside_n=corpus.n - within_n)
 
 
 def load_transcripts(run_dir: str | Path) -> list[dict]:
@@ -393,17 +483,34 @@ def propose_terms(corpus: Corpus, config, client) -> list[str]:
             .get("terms", [])]
 
 
-def classify_terms(grounded: list[Term], config, client) -> dict[str, str]:
+def classify_terms(grounded: list[Term], config, client, *,
+                   audience: str = "") -> dict[str, str]:
     """PAID. Judge each grounded term good/bad/neutral, WITH its real context.
 
-    Takes terms that have already survived grounding, so nothing is spent
-    judging words nobody said.
+    `audience` selects WHOSE sentences the judgement is made from. This is not
+    cosmetic: on a narrow ad ~78% of speakers are out-of-target, so a pooled
+    judgement is made almost entirely from people the ad was never for.
     """
     from agent.telemetry import call_with_telemetry
 
+    def ctx(t: Term) -> list[str]:
+        if audience == "within":
+            return t.contexts_within
+        if audience == "outside":
+            return t.contexts_outside
+        return t.contexts
+
+    def cnt(t: Term) -> int:
+        return (t.within if audience == "within"
+                else t.outside if audience == "outside" else t.people)
+
+    grounded = [t for t in grounded if ctx(t)]
+    if not grounded:
+        return {}
+
     block = "\n\n".join(
-        f"TERM: {t.term}  ({t.people} people)\n"
-        + "\n".join(f"  - \"{c}\"" for c in t.contexts)
+        f"TERM: {t.term}  ({cnt(t)} people)\n"
+        + "\n".join(f"  - \"{c}\"" for c in ctx(t))
         for t in grounded
     )
     response = call_with_telemetry(
@@ -445,5 +552,17 @@ def build_lexicon(
     grounded = [t for t in (count_term(corpus, " ".join(c.lower().split()))
                             for c in dict.fromkeys(candidates) if c)
                 if t.people >= 2]
-    sentiments = classify(grounded, config, client) if grounded else {}
-    return assemble_lexicon(corpus, [t.term for t in grounded], sentiments)
+    if not grounded:
+        return assemble_lexicon(corpus, [], {})
+
+    # Judge each audience from ITS OWN sentences. Two calls, because one
+    # pooled judgement on a narrow ad is made ~78% from people the ad was
+    # never for, and that colour would then be shown against the target.
+    s_within = classify([t for t in grounded if t.within >= 2], config, client,
+                        audience="within")
+    s_outside = classify([t for t in grounded if t.outside >= 2], config, client,
+                         audience="outside")
+    return assemble_lexicon(
+        corpus, [t.term for t in grounded], {},
+        sentiments_within=s_within, sentiments_outside=s_outside,
+    )

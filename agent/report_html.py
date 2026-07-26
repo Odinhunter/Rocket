@@ -174,10 +174,13 @@ p{margin:0;color:var(--muted);}
 .cwrest{margin-top:12px;}
 .cwcol--good{border-top:3px solid var(--good);}
 .cwcol--bad{border-top:3px solid var(--leak);}
-.cwhead{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;padding-bottom:11px;margin-bottom:12px;border-bottom:1px solid var(--line);}
+.cwhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;padding-bottom:11px;margin-bottom:12px;border-bottom:1px solid var(--line);}
 .cwhead b{margin-left:auto;color:var(--ink);font-size:13px;font-family:var(--font-sans);font-variant-numeric:tabular-nums;}
 .cwdot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
 .cwempty{font-size:13px;color:var(--faint);font-style:italic;}
+.cwnote{font-size:12.5px;color:var(--muted);margin:-4px 0 12px;max-width:62ch;}
+.cwother{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);}
+.cwother .cw{opacity:.85;}
 .cloud{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 14px;line-height:1.4;}
 .cw{letter-spacing:-.01em;cursor:default;transition:opacity .12s ease;}
 .cw:hover{opacity:.6;}
@@ -471,83 +474,130 @@ def _cloud_size(people: int, lo: int, hi: int) -> float:
     return _CLOUD_MIN_PX + t * (_CLOUD_MAX_PX - _CLOUD_MIN_PX)
 
 
-def _cloud_words(terms, lo: int, hi: int, css: str) -> str:
+def _cloud_words(terms, audience: str, lo: float, hi: float, coloured: bool) -> str:
     """Alphabetical, never sorted by size and never randomised.
 
-    Alphabetical order is uncorrelated with count, so the sizes distribute
-    naturally the way a tag cloud does — without the two things that would
-    break this as a client deliverable: sorting by count makes it read as a
-    ranked list rather than a cloud, and random placement would re-shuffle the
-    page on every re-render.
+    Alphabetical order is uncorrelated with count, so sizes distribute the way
+    a tag cloud does — without the two things that would break this as a client
+    deliverable: sorting by count makes it read as a ranked list, and random
+    placement would reshuffle the page on every re-render.
     """
     out = []
     for t in sorted(terms, key=lambda x: x.term.lower()):
-        size = _cloud_size(t.people, lo, hi)
+        share = t.share(audience)
+        size = _cloud_size(share, lo, hi)
         weight = 700 if size > 21 else (620 if size > 17 else 520)
-        split = (f" — {t.within} in your target, {t.outside} outside"
-                 if (t.within or t.outside) else "")
-        tip = f"{t.people} {'person' if t.people == 1 else 'people'} said this{split}"
+        # Uncoloured when this audience was never judged from its own
+        # sentences — borrowing the other audience's colour is the defect.
+        sent = t.sentiment_for(audience) if coloured else ""
+        css = _CLOUD_CSS_BY_SENTIMENT.get(sent, "cw--neutral")
+        n = t.within if audience == "within" else t.outside
         out.append(
             f'<span class="cw {css}" style="font-size:{size:.1f}px;'
-            f'font-weight:{weight}" title="{_e(tip)}">{_e(t.term)}</span>'
+            f'font-weight:{weight}" title="{_e(f"{n} of these people said this")}">'
+            f'{_e(t.term)}</span>'
         )
     return "".join(out)
 
 
+def _cloud_block(lex, audience: str, lo: float, hi: float, title: str,
+                 note: str, empty: str) -> str:
+    """One audience's vocabulary, grouped by sentiment when it was judged."""
+    terms = lex.for_audience(audience)
+    n = lex.audience_n(audience)
+    head = (f'<div class="cwhead">{_e(title)} <b>{n} '
+            f'{"person" if n == 1 else "people"}</b></div>')
+    if not terms:
+        return f'<div class="cwrest">{head}<p class="cwempty">{_e(empty)}</p></div>'
+
+    coloured = lex.judged(audience)
+    if not coloured:
+        # Sized and grouped, but grey: a colour that cannot be attributed to
+        # this audience is worse than no colour.
+        body = (f'<div class="cloud">'
+                f'{_cloud_words(terms, audience, lo, hi, False)}</div>')
+        body += ('<p class="cwempty" style="margin-top:11px;">Not colour-coded: '
+                 'these words have not been judged against this group&#x27;s own '
+                 'sentences.</p>')
+        return f'<div class="cwrest">{head}{body}</div>'
+
+    cols = []
+    for sent, label, empty_label in (
+        ("good", "Working for you", "Nothing registered as working for the brand."),
+        ("bad", "Working against you", "Nothing registered as working against it."),
+    ):
+        group = [t for t in terms if t.sentiment_for(audience) == sent]
+        inner = (f'<div class="cloud">'
+                 f'{_cloud_words(group, audience, lo, hi, True)}</div>'
+                 if group else f'<p class="cwempty">{_e(empty_label)}</p>')
+        cols.append(f'<div class="cwcol cwcol--{sent}">'
+                    f'<div class="cwhead"><span class="cwdot cw--{sent}"></span>'
+                    f'{_e(label)}<b>{len(group)}</b></div>{inner}</div>')
+
+    rest = [t for t in terms if t.sentiment_for(audience) not in ("good", "bad")]
+    rest_html = ""
+    if rest:
+        rest_html = (f'<div class="cwrest"><div class="cwhead">'
+                     f'<span class="cwdot cw--neutral"></span>Descriptive, or the '
+                     f"ad's own words repeated back<b>{len(rest)}</b></div>"
+                     f'<div class="cloud">'
+                     f'{_cloud_words(rest, audience, lo, hi, True)}</div></div>')
+
+    note_html = f'<p class="cwnote">{_e(note)}</p>' if note else ""
+    return f'{head}{note_html}<div class="cwgrid">{"".join(cols)}</div>{rest_html}'
+
+
 def _word_cloud(m: ReadModel) -> str:
-    """The words people used, grouped by whether they help or hurt the brand.
+    """The words people used — SPLIT BY AUDIENCE, then grouped by sentiment.
 
-    GROUPED rather than one mixed cloud, for three reasons that all outrank
-    the look of a single blob:
+    The audience split is the load-bearing one and it was missing at first.
+    Pooled, MuscleBlaze's "working against you" cloud was 78% out-of-target
+    speakers, and 19 of its 29 terms had ZERO in-target speakers: "grey tub"
+    (0 in / 52 out), "not for me" (0/28), "gym bro" (0/14). Those are people
+    the ad was never aimed at, correctly bouncing off it. That is targeting
+    working, NOT the creative failing, and presenting it as the latter is a
+    category error that made a narrow ad look broken.
 
-      * Colour alone cannot carry good-vs-bad. Red/green is precisely the pair
-        that fails for the most common colour blindness, so position has to
-        carry the meaning too and colour merely reinforce it.
-      * The relative MASS of the two groups is the fastest read on the page —
-        a full red column beside an empty green one is the finding, visible
-        before a single word is read.
-      * It answers the question a brand manager actually arrives with ("what
-        is working, what isn't") instead of making them decode a colour.
+    Sizing is each term's share OF ITS OWN AUDIENCE, not a raw count: 6 of 18
+    target people is a third of them, while 6 of 81 outsiders is noise, and a
+    shared denominator makes those two look identical.
 
-    The size scale is computed across ALL terms, not per group, so a word in
-    the green column and a word in the red column are directly comparable.
+    Grouped rather than one mixed cloud because red/green is the colour pair
+    that fails for the most common colour blindness, so position has to carry
+    good-vs-bad and colour only reinforce it.
 
-    Suppressed on INCONCLUSIVE with every other counted surface: the words are
-    real speech, but an INCONCLUSIVE read means the panel composition itself is
-    not trusted, and a cloud captioned "what your consumers said" over the
-    wrong pool is the confident-but-wrong output that guardrail exists to stop.
+    Suppressed on INCONCLUSIVE with every other counted surface.
     """
     lex = m.lexicon
     if lex.is_empty or m.is_inconclusive or m.headline is None:
         return ""
 
-    counts = [t.people for t in lex.terms]
-    lo, hi = min(counts), max(counts)
-    good, bad = lex.by_sentiment("good"), lex.by_sentiment("bad")
-    neutral = lex.by_sentiment("neutral")
+    shares = [t.share(a) for a in ("within", "outside")
+              for t in lex.for_audience(a)]
+    shares = [s for s in shares if s > 0]
+    if not shares:
+        return ""
+    # Anchor the scale at ZERO, not at the smallest observed share. Normalising
+    # between min and max stretches whatever range happens to be present across
+    # the full 13-25px band, so two words said by ~half their audience each
+    # (50% and 49%) would render 12px apart purely because they were the
+    # extremes of a narrow set. Zero-anchored, equal shares render equal.
+    lo, hi = 0.0, max(shares)
 
-    def column(terms, css: str, title: str, empty: str) -> str:
-        body = (f'<div class="cloud">{_cloud_words(terms, lo, hi, css)}</div>'
-                if terms else f'<p class="cwempty">{_e(empty)}</p>')
-        return f"""<div class="cwcol cwcol--{css[4:]}">
-      <div class="cwhead"><span class="cwdot {css}"></span>{_e(title)}
-        <b>{len(terms)}</b></div>{body}
-    </div>"""
-
-    cols = (column(good, "cw--good", "Working for you",
-                   "Nothing registered as working for the brand.")
-            + column(bad, "cw--bad", "Working against you",
-                     "Nothing registered as working against it."))
-
-    rest = ""
-    if neutral:
-        rest = f"""<div class="cwrest">
-      <div class="cwhead"><span class="cwdot cw--neutral"></span>Descriptive, or the ad's own words repeated back <b>{len(neutral)}</b></div>
-      <div class="cloud">{_cloud_words(neutral, lo, hi, "cw--neutral")}</div>
-    </div>"""
+    target = _cloud_block(
+        lex, "within", lo, hi, "What your target said", "",
+        "Your target barely used any shared vocabulary — too few of them said "
+        "the same thing twice to draw a pattern from.")
+    others = _cloud_block(
+        lex, "outside", lo, hi, "What everyone else said",
+        "These people were not the audience this creative aims at. Them saying "
+        "it is not for them is targeting working, not the ad failing — read it "
+        "for who ELSE the creative reaches, not as a score against it.",
+        "Nobody outside your target used any shared vocabulary.")
 
     return f"""<section><h2>What they said about it — in their own words</h2>
-  <div class="cwgrid">{cols}</div>{rest}
+  {target}
+  <div class="cwother">{others}</div>
   <p class="sub" style="margin-top:14px;font-size:12.5px;">{_e(m.lexicon_caveat)}</p>
 </section>"""
 
