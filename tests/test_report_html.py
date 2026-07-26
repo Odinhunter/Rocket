@@ -494,10 +494,11 @@ def test_diagnosis_overview_counts_the_problems_before_the_detail() -> None:
 _PANEL_H = "Who else responded — every consumer type"
 
 
-def _panel_html(within, dists, **kw):
+def _panel_html(within, dists, *, lexicon=None, **kw):
     rep = _report(_decision(within_dispositions=within, **kw))
     rep.pain_map = _one_pain()
-    return _html(rep, l3={"segment_behavioral_distributions": dists})
+    extra = {"lexicon": lexicon} if lexicon is not None else {}
+    return _html(rep, l3={"segment_behavioral_distributions": dists}, **extra)
 
 
 _PANEL_DISTS = {
@@ -555,6 +556,119 @@ def test_panel_table_sits_in_the_result_beat_after_the_numbers() -> None:
     assert html.index(_PANEL_H) < html.index(_DIAG_H), \
         "the panel table belongs to the result beat, above the diagnosis"
     print("  panel table sits in the result beat, after the numbers ✓")
+
+
+_CLOUD_H = "What they said about it — in their own words"
+
+
+def _lex(good=(), bad=(), neutral=()):
+    from agent.lexicon import Lexicon, Term
+    terms = ([Term(term=t, sentiment="good", within=n, outside=0)
+              for t, n in good]
+             + [Term(term=t, sentiment="bad", within=n, outside=0) for t, n in bad]
+             + [Term(term=t, sentiment="neutral", within=n, outside=0)
+                for t, n in neutral])
+    return Lexicon(terms=terms, corpus_n=99, panel_n=99)
+
+
+_LEX = _lex(good=[("clean packaging", 13), ("no maltodextrin", 6)],
+            bad=[("chalky", 20), ("gym bro", 4)],
+            neutral=[("27g", 30)])
+
+
+def test_word_cloud_groups_by_sentiment_not_colour_alone() -> None:
+    """Red/green is the colour pair that fails for the most common colour
+    blindness, so POSITION must carry good-vs-bad and colour only reinforce
+    it. Each group is a labelled region with its own count."""
+    html = _html(lexicon=_LEX)
+    assert _CLOUD_H in html
+    # Static template copy, not model-authored, so the apostrophe is literal.
+    for heading in ("Working for you", "Working against you",
+                    "the ad's own words repeated back"):
+        assert heading in html, f"missing sentiment group: {heading}"
+    # Words land in their own group's container, in that group's colour.
+    good_at, bad_at = html.index("Working for you"), html.index("Working against you")
+    assert good_at < html.index("clean packaging") < bad_at, \
+        "a good term rendered outside the good column"
+    assert bad_at < html.index("chalky"), "a bad term rendered above its column"
+    print("  word cloud groups by sentiment; position carries the meaning ✓")
+
+
+def test_word_cloud_size_scale_is_global_so_columns_compare() -> None:
+    """A word in the green column and one in the red column must be directly
+    comparable — scaling per group would make a 4-person word in a small group
+    look like a 30-person word in a big one."""
+    import re
+    from agent.report_html import _cloud_size
+    html = _html(lexicon=_LEX)
+    sizes = {}
+    for m in re.finditer(r'font-size:([\d.]+)px;font-weight:\d+"[^>]*>([^<]+)<', html):
+        sizes[m.group(2)] = float(m.group(1))
+    assert sizes["27g"] > sizes["chalky"] > sizes["clean packaging"] > sizes["gym bro"], \
+        f"sizes must track people counts across ALL groups: {sizes}"
+    # 30 people is the max in the fixture and must hit the ceiling.
+    assert sizes["27g"] == _cloud_size(30, 4, 30)
+    print("  cloud size scale is global across groups ✓")
+
+
+def test_word_cloud_is_alphabetical_and_byte_stable_across_renders() -> None:
+    """No randomness and no size-sorting: a client deliverable must render
+    identically every time, and sorting by count makes it read as a ranked
+    list rather than a cloud.
+
+    The fixture is built so alphabetical and count-descending DISAGREE —
+    "apple" has the fewest people and sorts first alphabetically, "zebra
+    crossing" has the most and would lead if sorted by count. With a fixture
+    where the two orders coincide, this assertion proves nothing.
+    """
+    lex = _lex(bad=[("zzz late", 20), ("aaa early", 4)])
+    a, b = _html(lexicon=lex), _html(lexicon=lex)
+    assert a == b, "the page must be byte-identical across renders"
+    # Scope to the cloud section. Searching the whole page is how this test was
+    # vacuous once already: "apple" matched `-apple-system` in the CSS font
+    # stack, so the index was the stylesheet and never the cloud at all.
+    section = a[a.index(_CLOUD_H):]
+    assert section.index("aaa early") < section.index("zzz late"), \
+        "terms within a group must be alphabetical, not ordered by count"
+    print("  cloud is alphabetical (not count-sorted) and byte-stable ✓")
+
+
+def test_word_cloud_states_the_zero_good_case_as_a_finding() -> None:
+    """A genuinely weak ad returns no positive vocabulary (MuscleBlaze: 0 of
+    37). That must read as a result, not as a rendering gap."""
+    html = _html(lexicon=_lex(bad=[("chalky", 20)], neutral=[("27g", 5)]))
+    assert "Working for you" in html, "the empty group must still be shown"
+    assert "Nothing registered as working for the brand" in html
+    print("  zero-good case reads as a finding, not a gap ✓")
+
+
+def test_word_cloud_carries_its_caveat_and_is_escaped() -> None:
+    """A coloured word at display size reads as a finding; the caveat is what
+    keeps 'a model judged this negative' from becoming 'consumers hated it'."""
+    from agent.read_model import LEXICON_CAVEAT
+    html = _html(lexicon=_lex(bad=[("<script>x</script>", 4), ("chalky", 9)]))
+    assert html_escape(LEXICON_CAVEAT) in html or LEXICON_CAVEAT in html
+    assert "<script>x</script>" not in html, "model-authored terms must be escaped"
+    assert "&lt;script&gt;" in html
+    print("  cloud carries its caveat; model-authored terms escaped ✓")
+
+
+def test_word_cloud_suppressed_on_inconclusive_and_absent_when_empty() -> None:
+    """Same contract as every other counted surface."""
+    rep = _report(_decision(decision="INCONCLUSIVE", target_action_rate=None,
+                            within_dispositions=[], rationale="no read"))
+    rep.pain_map = _one_pain()
+    assert _CLOUD_H not in _html(rep, lexicon=_LEX), \
+        "INCONCLUSIVE must not render the word cloud"
+    assert _CLOUD_H not in _html(), "no lexicon -> no heading over an empty panel"
+    print("  cloud suppressed on INCONCLUSIVE, absent when empty ✓")
+
+
+def test_word_cloud_closes_the_result_beat() -> None:
+    html = _panel_html(["enthusiast_macros_lifter"], _PANEL_DISTS, lexicon=_LEX)
+    assert html.index(_PANEL_H) < html.index(_CLOUD_H) < html.index(_DIAG_H), \
+        "the cloud follows who responded and precedes the diagnosis"
+    print("  word cloud closes the result beat ✓")
 
 
 def test_reach_row_makes_the_denominator_legible() -> None:

@@ -168,6 +168,26 @@ p{margin:0;color:var(--muted);}
 @media (prefers-color-scheme:dark){.fixnum{color:var(--accent);}}
 .traces{margin-top:9px;font-family:var(--font-mono);font-size:11px;color:var(--faint);letter-spacing:.04em;}
 .chip{display:inline-block;margin-left:9px;padding:2px 8px;border-radius:999px;background:var(--leak-tint);color:var(--leak);font-family:var(--font-mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;}
+.cwgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media (max-width:620px){.cwgrid{grid-template-columns:1fr;}}
+.cwcol,.cwrest{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:15px 16px 17px;box-shadow:var(--shadow);}
+.cwrest{margin-top:12px;}
+.cwcol--good{border-top:3px solid var(--good);}
+.cwcol--bad{border-top:3px solid var(--leak);}
+.cwhead{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;padding-bottom:11px;margin-bottom:12px;border-bottom:1px solid var(--line);}
+.cwhead b{margin-left:auto;color:var(--ink);font-size:13px;font-family:var(--font-sans);font-variant-numeric:tabular-nums;}
+.cwdot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
+.cwempty{font-size:13px;color:var(--faint);font-style:italic;}
+.cloud{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 14px;line-height:1.4;}
+.cw{letter-spacing:-.01em;cursor:default;transition:opacity .12s ease;}
+.cw:hover{opacity:.6;}
+.cw--good{color:var(--good);}
+.cw--bad{color:var(--leak);}
+.cw--neutral{color:var(--faint);}
+.cwdot.cw--good{background:var(--good);}
+.cwdot.cw--bad{background:var(--leak);}
+.cwdot.cw--neutral{background:var(--faint);}
+@media (prefers-reduced-motion:reduce){.cw{transition:none;}}
 .ptab{width:100%;border-collapse:collapse;font-size:14px;min-width:560px;}
 .ptab th{text-align:left;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:0 12px 8px 0;white-space:nowrap;}
 .ptab td{padding:11px 12px 11px 0;border-top:1px solid var(--line);color:var(--ink);vertical-align:top;}
@@ -429,6 +449,107 @@ def _panel_table(m: ReadModel) -> str:
       <tbody>{''.join(rows)}</tbody>
     </table>
   </div>{note}</section>"""
+
+
+# Word sizing. Counts span a ~26x range on real runs (2 to 52 people), so a
+# LINEAR map is unusable — 2 people at 13px would put 52 people at 338px. sqrt
+# compresses that to a readable band while keeping the ordering intact. The
+# ceiling is 25px, not larger: the longest real terms are multi-word phrases
+# ("completely different category"), and above ~25px those overflow a half-
+# width column at the page's 820px measure.
+_CLOUD_MIN_PX, _CLOUD_MAX_PX = 13.0, 25.0
+
+_CLOUD_CSS_BY_SENTIMENT = {
+    "good": "cw--good", "bad": "cw--bad", "neutral": "cw--neutral",
+}
+
+
+def _cloud_size(people: int, lo: int, hi: int) -> float:
+    if hi <= lo:
+        return (_CLOUD_MIN_PX + _CLOUD_MAX_PX) / 2
+    t = ((people ** 0.5) - (lo ** 0.5)) / ((hi ** 0.5) - (lo ** 0.5))
+    return _CLOUD_MIN_PX + t * (_CLOUD_MAX_PX - _CLOUD_MIN_PX)
+
+
+def _cloud_words(terms, lo: int, hi: int, css: str) -> str:
+    """Alphabetical, never sorted by size and never randomised.
+
+    Alphabetical order is uncorrelated with count, so the sizes distribute
+    naturally the way a tag cloud does — without the two things that would
+    break this as a client deliverable: sorting by count makes it read as a
+    ranked list rather than a cloud, and random placement would re-shuffle the
+    page on every re-render.
+    """
+    out = []
+    for t in sorted(terms, key=lambda x: x.term.lower()):
+        size = _cloud_size(t.people, lo, hi)
+        weight = 700 if size > 21 else (620 if size > 17 else 520)
+        split = (f" — {t.within} in your target, {t.outside} outside"
+                 if (t.within or t.outside) else "")
+        tip = f"{t.people} {'person' if t.people == 1 else 'people'} said this{split}"
+        out.append(
+            f'<span class="cw {css}" style="font-size:{size:.1f}px;'
+            f'font-weight:{weight}" title="{_e(tip)}">{_e(t.term)}</span>'
+        )
+    return "".join(out)
+
+
+def _word_cloud(m: ReadModel) -> str:
+    """The words people used, grouped by whether they help or hurt the brand.
+
+    GROUPED rather than one mixed cloud, for three reasons that all outrank
+    the look of a single blob:
+
+      * Colour alone cannot carry good-vs-bad. Red/green is precisely the pair
+        that fails for the most common colour blindness, so position has to
+        carry the meaning too and colour merely reinforce it.
+      * The relative MASS of the two groups is the fastest read on the page —
+        a full red column beside an empty green one is the finding, visible
+        before a single word is read.
+      * It answers the question a brand manager actually arrives with ("what
+        is working, what isn't") instead of making them decode a colour.
+
+    The size scale is computed across ALL terms, not per group, so a word in
+    the green column and a word in the red column are directly comparable.
+
+    Suppressed on INCONCLUSIVE with every other counted surface: the words are
+    real speech, but an INCONCLUSIVE read means the panel composition itself is
+    not trusted, and a cloud captioned "what your consumers said" over the
+    wrong pool is the confident-but-wrong output that guardrail exists to stop.
+    """
+    lex = m.lexicon
+    if lex.is_empty or m.is_inconclusive or m.headline is None:
+        return ""
+
+    counts = [t.people for t in lex.terms]
+    lo, hi = min(counts), max(counts)
+    good, bad = lex.by_sentiment("good"), lex.by_sentiment("bad")
+    neutral = lex.by_sentiment("neutral")
+
+    def column(terms, css: str, title: str, empty: str) -> str:
+        body = (f'<div class="cloud">{_cloud_words(terms, lo, hi, css)}</div>'
+                if terms else f'<p class="cwempty">{_e(empty)}</p>')
+        return f"""<div class="cwcol cwcol--{css[4:]}">
+      <div class="cwhead"><span class="cwdot {css}"></span>{_e(title)}
+        <b>{len(terms)}</b></div>{body}
+    </div>"""
+
+    cols = (column(good, "cw--good", "Working for you",
+                   "Nothing registered as working for the brand.")
+            + column(bad, "cw--bad", "Working against you",
+                     "Nothing registered as working against it."))
+
+    rest = ""
+    if neutral:
+        rest = f"""<div class="cwrest">
+      <div class="cwhead"><span class="cwdot cw--neutral"></span>Descriptive, or the ad's own words repeated back <b>{len(neutral)}</b></div>
+      <div class="cloud">{_cloud_words(neutral, lo, hi, "cw--neutral")}</div>
+    </div>"""
+
+    return f"""<section><h2>What they said about it — in their own words</h2>
+  <div class="cwgrid">{cols}</div>{rest}
+  <p class="sub" style="margin-top:14px;font-size:12.5px;">{_e(m.lexicon_caveat)}</p>
+</section>"""
 
 
 def _strengths(m: ReadModel) -> str:
@@ -723,6 +844,10 @@ def render_html(
         # this is everyone. It follows them because it reframes them — you
         # need to have read "2 of 18" before "and here is the other 81".
         _panel_table(model),
+        # Closes the result beat: the numbers say how many, the table says who,
+        # this says in what words. Aggregate vocabulary here; the individual
+        # verbatims stay in the extras, so the summary precedes the examples.
+        _word_cloud(model),
         # --- the diagnosis ----------------------------------------------
         _diagnosis_overview(model),
         # --- the problems -----------------------------------------------
