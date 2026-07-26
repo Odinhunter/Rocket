@@ -17,7 +17,9 @@ import base64
 import html
 from pathlib import Path
 
-from agent.read_model import ReadModel, humanize
+from agent.read_model import (
+    FUNNEL_STAGE_ORDER, VERDICT_CAVEAT, ReadModel, humanize,
+)
 
 _MIME = {
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
@@ -25,8 +27,21 @@ _MIME = {
 }
 
 # Pains are ordered by the funnel stage they leak at, so the page reads in the
-# order the buyer actually moves.
-_STAGE_ORDER = ("attention", "comprehension", "consideration", "conversion")
+# order the buyer actually moves. Shared with the diagnosis overview, which
+# counts the same stages — see read_model.FUNNEL_STAGE_ORDER.
+_STAGE_ORDER = FUNNEL_STAGE_ORDER
+
+# Glance segment colours, keyed by action. Escalating engagement: ignored →
+# noticed → acted. Anything unrecognised falls back to accent-ink, so a new
+# action still renders rather than disappearing.
+_GLANCE_CSS = {
+    "scroll_past": "var(--neutral)",
+    "seek_info": "var(--accent)",
+    "linger": "var(--accent)",
+    "save": "var(--accent-ink)",
+    "share": "var(--accent-ink)",
+    "tap_cta": "var(--good)",
+}
 
 
 def _e(text: object) -> str:
@@ -114,6 +129,8 @@ p{margin:0;color:var(--muted);}
 
 .warn{margin-top:14px;border:1px solid var(--line);border-left:3px solid var(--leak);background:var(--leak-tint);border-radius:11px;padding:13px 15px;font-size:14px;color:var(--ink);}
 .warn b{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--leak);display:block;margin-bottom:4px;}
+.warn--stop{border-left-width:5px;}
+.warn--stop .sub{margin:3px 0 0;}
 
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 @media (max-width:620px){.tiles{grid-template-columns:1fr;}}
@@ -151,6 +168,19 @@ p{margin:0;color:var(--muted);}
 @media (prefers-color-scheme:dark){.fixnum{color:var(--accent);}}
 .traces{margin-top:9px;font-family:var(--font-mono);font-size:11px;color:var(--faint);letter-spacing:.04em;}
 .chip{display:inline-block;margin-left:9px;padding:2px 8px;border-radius:999px;background:var(--leak-tint);color:var(--leak);font-family:var(--font-mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;}
+.ptab{width:100%;border-collapse:collapse;font-size:14px;min-width:560px;}
+.ptab th{text-align:left;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:0 12px 8px 0;white-space:nowrap;}
+.ptab td{padding:11px 12px 11px 0;border-top:1px solid var(--line);color:var(--ink);vertical-align:top;}
+.ptab td.n{font-variant-numeric:tabular-nums;white-space:nowrap;}
+.ptab .ct{font-weight:650;}
+.ptab .sm{font-size:12.5px;color:var(--muted);}
+.tgt{display:inline-block;margin-top:4px;font-family:var(--font-mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);border:1px solid var(--line);border-radius:999px;padding:2px 8px;}
+.tgt--in{background:var(--good-tint);border-color:var(--good);color:var(--good);font-weight:700;}
+.minibar{display:flex;height:9px;width:110px;border-radius:5px;overflow:hidden;gap:1px;background:var(--surface-2);}
+.minibar span{display:block;height:100%;border-radius:2px;}
+.stagerow{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px;}
+.st{display:inline-block;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--faint);font-size:13px;}
+.st--leak{background:var(--leak-tint);border-color:var(--leak);color:var(--leak);font-weight:650;}
 .reachrow{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;}
 .reach{display:inline-block;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--faint);font-size:13px;text-decoration:line-through;}
 .reach--in{background:var(--good-tint);border-color:var(--good);color:var(--good);font-weight:650;text-decoration:none;}
@@ -198,27 +228,28 @@ def _header(m: ReadModel, embed_image: bool, base_dir: Path) -> str:
 </div>"""
 
 
-def _decision_block(m: ReadModel) -> str:
-    pills = [f'<span class="pill">trust: {_e(m.trust.lower())}</span>']
-    pills.append(
-        f'<span class="pill">engine read: {_e(m.report.verdict.lower())} · '
-        f'{m.report.confidence}</span>'
-    )
-    out = [f"""<div class="decision">
-  <div class="decision__row">
-    <span class="verdict">{_e(m.decision_name)}</span>{''.join(pills)}
-  </div>
-  <p class="lead">{_e(m.tagline)}</p>
-  <p class="sub">{_e(m.trust_note)}</p>"""]
+def _warnings(m: ReadModel) -> str:
+    """Every surface that qualifies how much of this page to believe.
 
+    Pinned to the TOP, above the result band — not because the page should
+    open on caveats (it shouldn't, and on most runs this block is empty so it
+    doesn't), but because three of these four qualify THE NUMBERS, not the
+    diagnosis: the coherence check qualifies the buy tile, the launch-scope
+    note qualifies the headline metric, and panel degradation qualifies every
+    denominator on the page. Placed below the result band they would each
+    arrive after the number they exist to qualify, which is not a caveat.
+
+    On an INCONCLUSIVE read this block is doing the most work on the page: it
+    is the only thing standing between a prospect and a confident-looking
+    report the engine itself does not trust.
+    """
+    out: list[str] = []
+    # INCONCLUSIVE — say so before a single pain is read.
     if m.is_inconclusive or m.headline is None:
-        for line in m.inconclusive:
-            out.append(f'<p class="sub">{_e(line.strip())}</p>')
-    out.append("</div>")
-
+        lines = "".join(f'<p class="sub">{_e(l.strip())}</p>' for l in m.inconclusive)
+        out.append(f'<div class="warn warn--stop"><b>{_e(m.tagline)}</b>{lines}</div>')
     # v2.1 audience match — the creative reads as aimed at someone other than
-    # the audience being bought. Sits with the decision, because it qualifies
-    # every number below it.
+    # the audience being bought. It qualifies every number and pain below it.
     if m.audience_mismatch:
         out.append(f'<div class="warn"><b>Audience mismatch</b>'
                    f'{_e(m.audience_mismatch)}</div>')
@@ -232,6 +263,38 @@ def _decision_block(m: ReadModel) -> str:
                    f'{_e(m.coherence_warning.split(":", 1)[-1].strip())}</div>')
     if m.panel_degraded:
         out.append(f'<div class="warn"><b>Sample note</b>{_e(m.panel_degraded)}</div>')
+    return "".join(out)
+
+
+def _verdict_block(m: ReadModel) -> str:
+    """The decision bucket — the claim the report makes, and the first thing
+    on the page after any warning.
+
+    It LEADS the result beat, by the user's explicit call (asked twice). That
+    puts the least reliable element on the page — docs/v3_discriminant_check.md:
+    it scored a deliberately-bad control the same as real ads — where a reader
+    who goes no further will have read only it. VERDICT_CAVEAT rendering
+    INSIDE this block is therefore load-bearing, not decoration: it is the
+    whole of what keeps a lead-with-the-bucket page honest. Don't move it to a
+    footnote, and don't drop it in a restyle.
+    """
+    pills = [f'<span class="pill">trust: {_e(m.trust.lower())}</span>']
+    pills.append(
+        f'<span class="pill">engine read: {_e(m.report.verdict.lower())} · '
+        f'{m.report.confidence}</span>'
+    )
+    # On INCONCLUSIVE, _warnings has already run this tagline AND the reasons
+    # under it at the top of the page. Repeating the tagline here would print
+    # "…see why below" with nothing below it — the why moved upward — and say
+    # it twice. So the bucket shows only its trust note in that state.
+    lead = "" if m.is_inconclusive else f'\n  <p class="lead">{_e(m.tagline)}</p>'
+    out = [f"""<div class="decision">
+  <div class="decision__row">
+    <span class="verdict">{_e(m.decision_name)}</span>{''.join(pills)}
+  </div>{lead}
+  <p class="sub">{_e(m.trust_note)}</p>
+  <p class="sub">{_e(VERDICT_CAVEAT)}</p>"""]
+    out.append("</div>")
     return "".join(out)
 
 
@@ -257,35 +320,32 @@ def _numbers(m: ReadModel) -> str:
       separately, never counted as a sale.</div>
     </div>""")
     if m.glance.n:
-        engaged = m.glance.rate("linger") + m.glance.rate("tap_through")
-        tapped = (f"{_pct(m.glance.rate('tap_through'))} tapped through."
-                  if m.glance.tap_through else "none tapped through.")
+        engaged = (m.glance.engaged / m.glance.n) if m.glance.n else 0.0
+        acted = m.glance.count("tap_cta") + m.glance.count("save") + m.glance.count("share")
+        followed = (f"{acted} of {m.glance.n} went further — tapped, saved or shared."
+                    if acted else "none tapped, saved or shared.")
         tiles.append(f"""<div class="tile">
       <div class="k">Stopped to look</div>
       <div class="v">{_pct(engaged)}</div>
-      <div class="d">Caught the eye in the feed; {tapped}</div>
+      <div class="d">Caught the eye in the feed; {followed}</div>
     </div>""")
 
     out = [f'<section><h2>The numbers that matter — your actual buyers</h2>'
            f'<div class="tiles">{"".join(tiles)}</div>']
 
     if m.glance.n:
+        # Driven by what the run actually recorded. A hardcoded three-segment
+        # list is what previously rendered a permanent "tapped through 0%" and
+        # silently dropped savers from the denominator.
         segs, legend = [], []
-        for key, css, label in (
-            ("scroll_past", "var(--neutral)", "Scrolled past"),
-            ("linger", "var(--accent)", "Stopped to look"),
-            ("tap_through", "var(--good)", "Tapped through"),
-        ):
-            r = m.glance.rate(key)
+        for key, label, count, r in m.glance.segments():
+            css = _GLANCE_CSS.get(key, "var(--accent-ink)")
             if r:
                 segs.append(f'<span style="width:{r*100:.4f}%;background:{css}"></span>')
-            legend.append(f'<span><i style="background:{css}"></i>{label} — {_pct(r)}</span>')
-        aria = ", ".join(
-            f"{_pct(m.glance.rate(k))} {lbl}"
-            for k, lbl in (("scroll_past", "scrolled past"),
-                           ("linger", "stopped to look"),
-                           ("tap_through", "tapped through"))
-        )
+            legend.append(f'<span><i style="background:{css}"></i>{_e(label)} — '
+                          f'{_pct(r)} <b>({count})</b></span>')
+        aria = ", ".join(f"{_pct(r)} {label.lower()}"
+                         for _, label, _, r in m.glance.segments())
         out.append(f"""<div class="panelbox">
       <div class="k">The 2-second glance — what the thumb did ({m.glance.n} in-target)</div>
       <div class="bar" role="img" aria-label="{_e(aria)}">{''.join(segs)}</div>
@@ -320,6 +380,55 @@ def _numbers(m: ReadModel) -> str:
                    f'{_e(m.narrow_frame_line)}</p>')
     out.append("</section>")
     return "".join(out)
+
+
+def _panel_table(m: ReadModel) -> str:
+    """Every consumer type in the panel, in and out of target.
+
+    The rest of the page is measured on the in-target slice, which can answer
+    "did the people we bought respond" but cannot answer "who else did" — and
+    in real runs those come apart: a type read as in-target can do nothing
+    while an out-of-target type acts. Suppressed on INCONCLUSIVE with the rest
+    of the numbers; an untrustworthy read must not show response rates here
+    either, by any route.
+    """
+    p = m.panel
+    if p.is_empty or m.is_inconclusive or m.headline is None:
+        return ""
+
+    rows = []
+    for t in p.types:
+        bar = "".join(
+            f'<span style="width:{r*100:.4f}%;background:'
+            f'{_GLANCE_CSS.get(k, "var(--accent-ink)")}"></span>'
+            for k, _, _, r in t.glance.segments() if r
+        )
+        steps = " · ".join(f"{lab} <b>{n}</b>" for _, lab, n in t.step_rows()
+                           if _ != "nothing") or "—"
+        tag = ('<span class="tgt tgt--in">your target</span>' if t.within_target
+               else '<span class="tgt">not targeted</span>')
+        rows.append(f"""<tr>
+      <td><div class="ct">{_e(t.label)}</div>{tag}</td>
+      <td class="n">{t.n}</td>
+      <td><span class="minibar">{bar}</span></td>
+      <td class="n"><b>{_pct(t.engaged_rate)}</b><br><span class="sm">{t.engaged} of {t.n}</span></td>
+      <td class="sm">{steps}</td>
+    </tr>""")
+
+    note = ""
+    if p.decoupling_note:
+        note = (f'<div class="warn"><b>Right ad, wrong person?</b>'
+                f'{_e(p.decoupling_note)}</div>')
+
+    return f"""<section><h2>Who else responded — every consumer type</h2>
+  <p class="lead" style="margin-bottom:12px;">{_e(p.summary)}</p>
+  <div class="panelbox" style="margin-top:0;overflow-x:auto;">
+    <table class="ptab">
+      <thead><tr><th>Consumer type</th><th>Saw it</th><th>What the thumb did</th>
+      <th>Responded</th><th>What they'd do next</th></tr></thead>
+      <tbody>{''.join(rows)}</tbody>
+    </table>
+  </div>{note}</section>"""
 
 
 def _strengths(m: ReadModel) -> str:
@@ -364,6 +473,51 @@ def _split_lead(text: str) -> tuple[str, str]:
     return lead, rest
 
 
+def _diagnosis_overview(m: ReadModel) -> str:
+    """The shape of the diagnosis, ahead of the problems themselves.
+
+    Its own beat because the pattern across the problems — how many land on
+    the audience being bought, how many are structural, where in the funnel
+    they cluster — is invisible while reading them one card at a time, and it
+    is the part that decides what to do. Deliberately a derived text strip and
+    not a chart: this states what the cards below already say, and a chart
+    would claim precision the counts don't have.
+    """
+    ov = m.diagnosis
+    if ov.is_empty:
+        return ""
+
+    out = [f'<section><h2>Why they\'re not buying — the diagnosis</h2>'
+           f'<div class="panelbox" style="margin-top:0;">'
+           f'<p class="lead">{_e(ov.summary)}</p>']
+
+    # All four stages, with the leaking ones marked — the stages that DIDN'T
+    # leak are as informative as the ones that did, and are invisible if only
+    # the leaks are listed.
+    leaking = set(ov.stages)
+    chips = "".join(
+        f'<span class="st{" st--leak" if s in leaking else ""}">{_e(s)}</span>'
+        for s in list(_STAGE_ORDER) + [s for s in ov.stages if s not in _STAGE_ORDER]
+    )
+    out.append(f'<div class="stagerow">{chips}</div>')
+
+    if ov.widest_breadth:
+        types = ("one buyer type" if ov.widest_breadth == 1
+                 else f"{ov.widest_breadth} different buyer types")
+        out.append(f'<p class="sub" style="margin-top:12px;font-size:13px;">'
+                   f'The most widely-felt problem was raised by {types}.</p>')
+
+    if ov.load_bearing_id:
+        stage = f" ({_e(ov.load_bearing_stage)})" if ov.load_bearing_stage else ""
+        out.append(f'<p class="sub" style="margin-top:8px;font-size:13px;">'
+                   f'Start with <b>{_e(ov.load_bearing_id)}</b>{stage} — it is the '
+                   f'one driving the verdict, and it is marked in the detail below.'
+                   f'</p>')
+
+    out.append("</div></section>")
+    return "".join(out)
+
+
 def _pains(m: ReadModel) -> str:
     pains = list(m.report.pain_map)
     if not pains:
@@ -397,7 +551,9 @@ def _pains(m: ReadModel) -> str:
             + _quotes_html(p.evidence_quotes)
             + "</div>"
         )
-    return (f'<section><h2>Why they\'re not buying — the diagnosis</h2>'
+    # "The diagnosis" now heads the overview section above; these cards are
+    # its detail, so the heading says so rather than repeating the claim.
+    return (f'<section><h2>The problems in detail</h2>'
             f'<div class="cards">{"".join(cards)}</div></section>')
 
 
@@ -528,15 +684,59 @@ def render_html(
     """
     base_dir = base_dir or Path.cwd()
     title = f"Creative Read — {model.asset_label}" if model.asset_label else "Creative Read"
+    # Order is deliberate, is the USER'S specified narrative, and differs from
+    # batch_run._print_report (the operator terminal view), which is left
+    # as-is — presentation order is legitimately per-surface; the shared
+    # vocabulary in read_model.py is what must never drift.
+    #
+    # The story a brand manager reads, in five beats:
+    #     result → diagnosis → problems → solutions → extras
+    #
+    # Two placements inside that are load-bearing and were reasoned about;
+    # don't re-flip either without reading the note attached to it:
+    #
+    #   * _warnings stays pinned ABOVE the result. Three of the four surfaces
+    #     it renders qualify the NUMBERS (coherence → the buy tile, launch
+    #     scope → the headline metric, panel degradation → every denominator),
+    #     so below the result band each would arrive after the number it
+    #     qualifies. It is empty on most runs, so the page still opens on the
+    #     result — which was the actual complaint about the old order.
+    #   * _verdict_block OPENS the result beat, and its caveat is therefore
+    #     load-bearing. The bucket is the least reliable element on the page
+    #     (docs/v3_discriminant_check.md: it scored a deliberately-bad control
+    #     the same as real ads), and leading with it means a reader who goes
+    #     no further has read only that. VERDICT_CAVEAT rendering INSIDE the
+    #     block is what keeps that honest — it is not decoration, and it must
+    #     not be moved out to a footnote or dropped in a restyle.
     body = "".join([
         '<div class="page">',
         _header(model, embed_image, base_dir),
-        _decision_block(model),
+        _warnings(model),
+        # --- the result -------------------------------------------------
+        # Verdict FIRST, then the numbers that substantiate it. This is the
+        # user's explicit call, asked twice: the bucket is the claim the
+        # report makes, and a brand manager opening it should not have to
+        # scroll to find out what it says.
+        _verdict_block(model),
         _numbers(model),
-        _bets(model),
-        _strengths(model),
+        # Still the result beat: the numbers above are the in-target slice,
+        # this is everyone. It follows them because it reframes them — you
+        # need to have read "2 of 18" before "and here is the other 81".
+        _panel_table(model),
+        # --- the diagnosis ----------------------------------------------
+        _diagnosis_overview(model),
+        # --- the problems -----------------------------------------------
         _pains(model),
+        # --- the solutions ----------------------------------------------
+        # _bets before _fixes: the ranked lever list is the summary, _fixes is
+        # the detail behind it. They are both prescription and must stay
+        # adjacent — _bets' heading is decision-keyed copy written as a
+        # call-to-action ("TO GET A TRUSTWORTHY READ:" on INCONCLUSIVE), so
+        # separating them reads as two competing fixes sections.
+        _bets(model),
         _fixes(model),
+        # --- the extras -------------------------------------------------
+        _strengths(model),
         _context(model),
         _voice(model),
         _notes(model),

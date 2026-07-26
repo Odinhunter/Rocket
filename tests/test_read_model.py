@@ -17,6 +17,7 @@ from pathlib import Path
 
 from agent.read_model import (
     Glance,
+    build_diagnosis_overview,
     build_read_model,
     headline_metric_line,
     inconclusive_lines,
@@ -24,7 +25,7 @@ from agent.read_model import (
     trust_line,
     within_target_glance,
 )
-from agent.schema import Decision, Report, TargetMatch, TopChange
+from agent.schema import Decision, Pain, Report, TargetMatch, TopChange
 
 
 def _decision(**kw) -> Decision:
@@ -98,10 +99,10 @@ def test_glance_matches_disposition_exactly() -> None:
 
     # bare disposition granularity (no '::') resolves too
     g2 = within_target_glance(
-        {"enthusiast_macros_lifter": {"counts": {"scroll_past": 2, "tap_through": 1}}},
+        {"enthusiast_macros_lifter": {"counts": {"scroll_past": 2, "tap_cta": 1}}},
         ["enthusiast_macros_lifter"],
     )
-    assert g2.n == 3 and g2.tap_through == 1
+    assert g2.n == 3 and g2.tap_cta == 1
 
     # no within-target dispositions -> empty, NOT a 0% bar
     assert within_target_glance(segs, []).n == 0
@@ -109,7 +110,232 @@ def test_glance_matches_disposition_exactly() -> None:
     print("  glance: exact '::' split, no prefix bleed, empty-set safe ✓")
 
 
+def test_glance_counts_every_action_never_shortens_the_denominator() -> None:
+    """The original Glance summed a hand-listed three: scroll_past, linger and
+    `tap_through` — which is NOT in the action enum (it is `tap_cta`), so that
+    segment was structurally always 0, while `save` and `share` were dropped
+    from n entirely. A saved ad is the strongest signal in the set and it was
+    erasing the respondent, shortening every denominator on the page."""
+    g = within_target_glance(
+        {"d::moderate": {"counts": {
+            "scroll_past": 11, "linger": 10, "save": 3, "share": 1, "tap_cta": 2}}},
+        ["d"],
+    )
+    assert g.n == 27, f"every respondent must count: {g.to_dict()}"
+    assert g.save == 3 and g.share == 1 and g.tap_cta == 2
+    assert g.engaged == 16, "engaged = everyone who did not scroll past"
+    # rates are over the true total, not a filtered subtotal
+    assert abs(g.rate("save") - 3 / 27) < 1e-9
+
+    # `tap_cta` is the real enum value; the dead `tap_through` name is gone
+    assert not hasattr(g, "tap_through")
+
+    # an action nobody anticipated still counts toward n rather than vanishing
+    g2 = within_target_glance(
+        {"d": {"counts": {"scroll_past": 5, "some_future_action": 2}}}, ["d"])
+    assert g2.n == 7, "an unrecognised action must not drop the respondent"
+    assert any(k == "some_future_action" for k, _, _, _ in g2.segments()), \
+        "unknown actions must still render, not disappear"
+
+    # legacy v2.x runs carry `seek_info` — historical reads must still total
+    g3 = within_target_glance(
+        {"d": {"counts": {"scroll_past": 8, "seek_info": 4}}}, ["d"])
+    assert g3.n == 12 and g3.count("seek_info") == 4
+
+    # segments come back in escalating-engagement order, zero-counts omitted
+    keys = [k for k, _, _, _ in g.segments()]
+    assert keys == ["scroll_past", "linger", "save", "share", "tap_cta"], keys
+    print("  glance counts every action; no respondent leaves the denominator ✓")
+
+
 # ---- report source resolution -----------------------------------------
+
+
+def _pain(pid: str, stage: str, sev: str, within: bool, cited: int = 0) -> Pain:
+    return Pain(id=pid, pain=f"{pid} pain.", funnel_stage=stage, severity=sev,
+                within_target=within, cited_by=[f"d{i}" for i in range(cited)])
+
+
+def _dists() -> dict:
+    """Two chaos bands per type, so the roll-up is actually exercised."""
+    return {
+        "enthusiast_macros_lifter::moderate": {
+            "counts": {"scroll_past": 5, "linger": 3},
+            "next_step_counts": {"nothing": 6, "buy_at_restock": 2}},
+        "enthusiast_macros_lifter::deliberate": {
+            "counts": {"scroll_past": 10},
+            "next_step_counts": {"nothing": 10}},
+        "skeptic_lapsed_protein::impulsive": {
+            "counts": {"scroll_past": 2, "linger": 2},
+            "next_step_counts": {"nothing": 3, "research_first": 1}},
+        "skeptic_lapsed_protein::moderate": {
+            "counts": {"scroll_past": 4, "save": 1},
+            "next_step_counts": {"nothing": 4, "mention_to_someone": 1}},
+        "switcher_results_chaser::moderate": {
+            "counts": {"scroll_past": 9},
+            "next_step_counts": {"nothing": 9}},
+    }
+
+
+def test_panel_response_rolls_chaos_bands_up_per_consumer_type() -> None:
+    from agent.read_model import build_panel_response
+    p = build_panel_response(_dists(), ["enthusiast_macros_lifter"])
+    assert [t.disposition for t in p.types][0] == "enthusiast_macros_lifter", \
+        "the target type leads its group"
+    by = {t.disposition: t for t in p.types}
+    assert len(p.types) == 3, "one row per consumer type, bands collapsed"
+    ent = by["enthusiast_macros_lifter"]
+    assert ent.within_target and ent.n == 18 and ent.engaged == 3
+    assert ent.buyers == 2 and ent.step("nothing") == 16
+    skep = by["skeptic_lapsed_protein"]
+    assert not skep.within_target, "out-of-target types must still be present"
+    assert skep.n == 9 and skep.engaged == 3, "linger AND save both count"
+    assert skep.acted == 2, "research + mention count as acting; nothing does not"
+    assert p.panel_n == 36, "the panel total is everyone, not the target slice"
+    assert p.in_tally == (18, 3) and p.out_tally == (18, 3)
+    print("  panel response rolls bands up, keeps out-of-target types ✓")
+
+
+def test_panel_response_sorts_responders_first_within_each_group() -> None:
+    """Out-of-target types are ordered by response rate so the ones that
+    actually did something lead — the whole point of showing them."""
+    from agent.read_model import build_panel_response
+    p = build_panel_response(_dists(), ["enthusiast_macros_lifter"])
+    out = [t.disposition for t in p.out_types]
+    assert out == ["skeptic_lapsed_protein", "switcher_results_chaser"], \
+        "the out-of-target type that responded must lead the ones that didn't"
+    assert all(t.within_target for t in p.types[:1]), "target group comes first"
+    print("  responders lead their group; target group first ✓")
+
+
+def test_decoupling_note_fires_only_when_outsiders_beat_the_target() -> None:
+    """The finding this table exists for: in-target and actually-responding
+    come apart. The note must fire on that shape and stay silent otherwise —
+    a warning that always fires is not a warning."""
+    from agent.read_model import build_panel_response
+    d = _dists()
+    # Equal rates (3/18 vs 3/18) -> silent.
+    assert build_panel_response(d, ["enthusiast_macros_lifter"]).decoupling_note is None
+
+    # Target does nothing, outsiders respond -> fires.
+    d2 = dict(d)
+    d2["enthusiast_macros_lifter::moderate"] = {
+        "counts": {"scroll_past": 8}, "next_step_counts": {"nothing": 8}}
+    note = build_panel_response(d2, ["enthusiast_macros_lifter"]).decoupling_note
+    assert note and "NOT buying responded more" in note
+    assert "17%" in note and "0%" in note, "the note must carry both real rates"
+
+    # No target set at all -> silent (nothing to compare against).
+    assert build_panel_response(d, []).decoupling_note is None
+    # Outsiders present but inert -> silent.
+    d3 = {k: v for k, v in d.items() if not k.startswith("skeptic")}
+    assert build_panel_response(d3, ["enthusiast_macros_lifter"]).decoupling_note is None
+    print("  decoupling note fires only on the real shape ✓")
+
+
+def test_panel_response_summary_states_the_denominator() -> None:
+    from agent.read_model import build_panel_response
+    p = build_panel_response(_dists(), ["enthusiast_macros_lifter"])
+    assert "All 36 people in the panel" in p.summary
+    assert "not just the 18 you're buying" in p.summary
+    empty = build_panel_response({}, [])
+    assert empty.is_empty and empty.summary == "" and empty.panel_n == 0
+    no_target = build_panel_response(_dists(), [])
+    assert "No audience type was read as the target" in no_target.summary
+    print("  panel summary states the denominator; empty stays silent ✓")
+
+
+def test_l3_is_read_even_with_no_within_target_set() -> None:
+    """Regression: the loader used to read l3_summary.json only when a
+    within-target set existed, which made every out-of-target respondent
+    unreachable — exactly the data the panel table exists to show."""
+    d = _decision(within_dispositions=[], decision="ITERATE",
+                  target_action_rate=0.1)
+    with tempfile.TemporaryDirectory() as td:
+        rd = _run_dir(_report(d), tmp=Path(td),
+                      l3={"segment_behavioral_distributions": _dists()})
+        m = build_read_model(rd)
+    assert not m.within_dispositions
+    assert m.panel.panel_n == 36, "panel data must load without a target set"
+    assert m.glance.n == 0, "the in-target glance is still empty, correctly"
+    print("  L3 loads without a within-target set ✓")
+
+
+def test_funnel_stage_order_covers_every_stage_the_schema_allows() -> None:
+    """Anti-drift pin. A stage the schema accepts but this tuple omits does
+    NOT raise — it silently sorts into the unknown bucket and drops out of the
+    diagnosis overview's stage row, so the page implies the funnel has fewer
+    stages than it does. That is what happened to `recall`. Adding a stage to
+    the schema must fail here until it is placed in buyer order.
+    """
+    from agent.read_model import FUNNEL_STAGE_ORDER
+    from agent.schema import _VALID_FUNNEL_STAGES
+    assert set(FUNNEL_STAGE_ORDER) == set(_VALID_FUNNEL_STAGES), (
+        "FUNNEL_STAGE_ORDER is out of sync with the schema: "
+        f"missing {sorted(set(_VALID_FUNNEL_STAGES) - set(FUNNEL_STAGE_ORDER))}, "
+        f"extra {sorted(set(FUNNEL_STAGE_ORDER) - set(_VALID_FUNNEL_STAGES))}"
+    )
+    assert len(FUNNEL_STAGE_ORDER) == len(set(FUNNEL_STAGE_ORDER)), "duplicate stage"
+    print("  funnel stage order covers the schema exactly ✓")
+
+
+def test_diagnosis_overview_counts_without_asserting_anything_new() -> None:
+    """Every field is a count off pain_map — the overview may summarise the
+    problem cards, never add to them."""
+    rep = _report()
+    rep.pain_map = [
+        _pain("P1", "attention", "execution", True, cited=3),
+        _pain("P2", "attention", "execution", True, cited=1),
+        _pain("P3", "conversion", "structural", False),
+    ]
+    ov = build_diagnosis_overview(rep)
+    assert (ov.total, ov.within, ov.outside) == (3, 2, 1)
+    assert (ov.execution, ov.structural) == (2, 1)
+    assert ov.widest_breadth == 3
+    # Stages are de-duplicated and returned in funnel order, not input order.
+    assert ov.stages == ["attention", "conversion"]
+    assert (ov.load_bearing_id, ov.load_bearing_stage) == ("P1", "attention")
+    print("  diagnosis overview counts pains, stages, breadth, load-bearing ✓")
+
+
+def test_diagnosis_overview_keeps_an_unknown_funnel_stage() -> None:
+    """An unrecognised stage is a reporting gap, not a licence to under-report
+    how many stages leak — the same failure shape as the glance dropping
+    savers from its denominator. It sorts last rather than vanishing."""
+    rep = _report()
+    rep.pain_map = [
+        _pain("P1", "conversion", "execution", True),
+        _pain("P2", "post_purchase", "execution", True),
+    ]
+    ov = build_diagnosis_overview(rep)
+    assert ov.stages == ["conversion", "post_purchase"], \
+        "an unknown stage must be kept and sorted last, never dropped"
+    assert "2 stages" in ov.summary
+    print("  unknown funnel stage kept and counted, sorted last ✓")
+
+
+def test_diagnosis_overview_summary_reads_correctly_at_the_edges() -> None:
+    """Copy is client-facing: singulars, and the all-outside case, which is
+    the one that changes what the brand manager should do."""
+    rep = _report()
+    rep.pain_map = [_pain("P1", "attention", "structural", False)]
+    ov = build_diagnosis_overview(rep)
+    s = ov.summary
+    assert "1 problem, leaking at 1 stage of the funnel." in s
+    assert "None of them land on the audience you're buying" in s
+    assert "1 is structural" in s and "fixes that one" in s
+
+    rep.pain_map = [_pain("P1", "attention", "execution", True),
+                    _pain("P2", "conversion", "execution", True)]
+    ov = build_diagnosis_overview(rep)
+    assert "2 problems, leaking at 2 stages" in ov.summary
+    assert "All 2 hit the audience you're buying." in ov.summary
+    assert "structural" not in ov.summary, "no structural pains, no structural clause"
+
+    rep.pain_map = []
+    ov = build_diagnosis_overview(rep)
+    assert ov.is_empty and ov.summary == "", "an empty diagnosis says nothing"
+    print("  overview copy handles singular, all-outside, all-within, empty ✓")
 
 
 def test_report_source_run_json_replay_and_loud_failure() -> None:

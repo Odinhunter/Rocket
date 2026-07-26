@@ -11,6 +11,7 @@ Offline: synthetic reports, no API, no runs/ dependency.
 from __future__ import annotations
 
 import re
+from html import escape as html_escape
 
 from agent.read_model import ReadModel
 from agent.report_html import _split_lead, render_html
@@ -275,6 +276,285 @@ def test_load_bearing_pain_is_marked_and_ordered_first() -> None:
         "within-target load-bearing pain must lead the diagnosis"
     assert "outside target" in html
     print("  load-bearing pain marked + ordered first; outside-target labelled ✓")
+
+
+# ---- page order — the five-beat story ----------------------------------
+#
+# The client page tells one story, in the order the brand manager reads it:
+#
+#     result -> diagnosis -> problems -> solutions -> extras
+#
+# Two placements inside that carry honesty weight and are pinned here:
+#   * the caveats render ABOVE the result — three of the four qualify the
+#     NUMBERS (coherence, launch scope, panel degradation), so below the
+#     result band they would each arrive after the number they qualify;
+#   * the verdict bucket CLOSES the result beat rather than heading it. It is
+#     the element that scored a deliberately-bad control the same as real ads
+#     (docs/v3_discriminant_check.md), so it summarises the measured mix
+#     rather than standing in for it, and it carries its own caveat.
+#
+# These are cross-section order assertions; before them the suite had none,
+# so nothing verified the layout at all.
+
+
+_DIAG_H = "Why they're not buying — the diagnosis"
+_PAINS_H = "The problems in detail"
+_FIXES_H = "The fixes in detail"
+_NUMBERS_H = "The numbers that matter"
+_VERDICT_MARK = '<div class="decision">'
+
+
+def _one_pain() -> list:
+    return [Pain(id="P1", pain="The load-bearing one. Second sentence.",
+                 funnel_stage="conversion", severity="execution",
+                 within_target=True)]
+
+
+def test_page_tells_the_five_beat_story_in_order() -> None:
+    """result -> diagnosis -> problems -> solutions -> extras."""
+    rep = _report(bet_ranking=["lever one"])
+    rep.pain_map = _one_pain()
+    html = _html(rep)
+    for heading in (_DIAG_H, _PAINS_H, _FIXES_H, _NUMBERS_H):
+        assert heading in html, f"missing section: {heading}"
+    beats = [
+        ("result (verdict)", html.index(_VERDICT_MARK)),
+        ("result (numbers)", html.index(_NUMBERS_H)),
+        ("diagnosis", html.index(_DIAG_H)),
+        ("problems", html.index(_PAINS_H)),
+        ("solutions", html.index(_FIXES_H)),
+        ("extras", html.index("Simulated consumer voice")),
+    ]
+    for (name_a, at_a), (name_b, at_b) in zip(beats, beats[1:]):
+        assert at_a < at_b, f"{name_b} must follow {name_a}, not precede it"
+    print("  result -> diagnosis -> problems -> solutions -> extras ✓")
+
+
+def test_verdict_leads_the_page_and_never_without_its_caveat() -> None:
+    """The verdict opens the report (the user's call). That makes the caveat
+    inside it the ONLY thing qualifying the page's headline claim for a reader
+    who goes no further — the bucket scored a deliberately-bad control the
+    same as real ads. So the caveat must render inside the block, above the
+    numbers, on every read: it is what pays for leading with the bucket.
+    """
+    from agent.read_model import VERDICT_CAVEAT
+    rep = _report()
+    rep.pain_map = _one_pain()
+    html = _html(rep)
+    assert html.index(_VERDICT_MARK) < html.index(_NUMBERS_H), \
+        "the verdict must lead the result beat"
+    assert html.index(_VERDICT_MARK) < html.index(_DIAG_H), \
+        "the verdict belongs to the result beat, above the diagnosis"
+    # The caveat contains an apostrophe, so match the ESCAPED form the page
+    # actually emits — matching the raw constant would silently never be found.
+    caveat_at = html.index(html_escape(VERDICT_CAVEAT))
+    assert html.index(_VERDICT_MARK) < caveat_at < html.index(_NUMBERS_H), \
+        "the known-bad-control caveat must sit inside the verdict block itself"
+
+
+def test_verdict_caveat_survives_every_decision_state() -> None:
+    """A guardrail that is conditional on state is a guardrail that gets
+    missed. The bucket now leads the page in every state, so its caveat rides
+    with it in every state — including INCONCLUSIVE, where the block renders
+    without its tagline."""
+    from agent.read_model import VERDICT_CAVEAT
+    escaped = html_escape(VERDICT_CAVEAT)
+    for decision in ("ITERATE", "SCALE", "RETARGET", "REBUILD", "INCONCLUSIVE"):
+        rate = None if decision == "INCONCLUSIVE" else 0.11
+        rep = _report(_decision(decision=decision, target_action_rate=rate,
+                                within_dispositions=[] if rate is None
+                                else ["enthusiast_macros_lifter"]))
+        rep.pain_map = _one_pain()
+        html = _html(rep)
+        assert escaped in html, f"verdict caveat missing on {decision}"
+        assert html.index(_VERDICT_MARK) < html.index(escaped), \
+            f"caveat escaped its block on {decision}"
+    print("  verdict leads the page and never renders without its caveat ✓")
+
+
+def test_ranked_levers_stay_adjacent_to_the_fixes_they_summarise() -> None:
+    """_bets is the ranked lever list, _fixes is the detail behind it — both
+    are prescription and must stay together. _bets' heading is decision-keyed
+    call-to-action copy ("TO GET A TRUSTWORTHY READ:" on INCONCLUSIVE), so
+    separating them reads as two competing fixes sections.
+    """
+    rep = _report(bet_ranking=["lever one", "lever two"])
+    rep.pain_map = _one_pain()
+    html = _html(rep)
+    bets_at = html.index("highest-leverage first")
+    assert html.index(_PAINS_H) < bets_at < html.index(_FIXES_H), \
+        "ranked levers must sit between the problems and the detailed fixes"
+    print("  ranked levers stay adjacent to the fixes they summarise ✓")
+
+
+def test_every_caveat_precedes_the_result_it_qualifies() -> None:
+    """A caveat read after the number is not a caveat. Three of these four
+    qualify the NUMBERS, not the diagnosis — the coherence check qualifies the
+    buy tile, launch scope the headline metric, panel degradation every
+    denominator — so asserting only that they precede the pain cards would
+    pass while each still arrived after the figure it exists to qualify.
+    """
+    from agent.schema import AudienceMatch
+    rep = _report()
+    rep.audience_match = AudienceMatch(
+        verdict="mismatched", declared_summary="men 18-24",
+        inferred_summary="women 35-54",
+        message="The creative's apparent target does not match the declared audience.")
+    rep.pain_map = _one_pain()
+    html = _html(rep, panel_health={"degraded": True, "succeeded": 96, "expected": 100},
+                 scope_note="brand-building is BETA", coherence_warning="A7: mismatch")
+    numbers_at, pains_at = html.index(_NUMBERS_H), html.index(_PAINS_H)
+    verdict_at = html.index(_VERDICT_MARK)
+    for label in ("Audience mismatch", "How much to trust the headline",
+                  "Coherence check", "Sample note"):
+        assert label in html, f"warning missing entirely: {label}"
+        assert html.index(label) < verdict_at, \
+            f"{label!r} rendered after the verdict it qualifies"
+        assert html.index(label) < numbers_at, \
+            f"{label!r} rendered after the numbers it qualifies"
+        assert html.index(label) < pains_at, \
+            f"{label!r} rendered after the diagnosis it qualifies"
+    print("  all four caveats precede the verdict, numbers AND diagnosis ✓")
+
+
+def test_inconclusive_says_so_before_any_diagnosis() -> None:
+    """The sharpest case for the reorder: when the engine does not trust its
+    own read, 'lead with the diagnosis' is actively wrong. The untrustworthy
+    notice must come first, and no action rate may appear at all."""
+    d = _decision(decision="INCONCLUSIVE", target_action_rate=None,
+                  within_dispositions=[], rationale="no within-target read")
+    rep = _report(d)
+    rep.pain_map = [
+        Pain(id="P1", pain="A pain the engine does not stand behind. Second.",
+             funnel_stage="conversion", severity="execution", within_target=True),
+    ]
+    html = _html(rep)
+    notice = "isn&#x27;t trustworthy yet"
+    assert notice in html, "INCONCLUSIVE notice missing"
+    assert html.index(notice) < html.index(_PAINS_H), \
+        "INCONCLUSIVE must be stated before the diagnosis is read"
+    assert _NUMBERS_H not in html, "INCONCLUSIVE must not render an action rate"
+    # The tagline reads "…see why below", and the why now lives at the TOP of
+    # the page. It must appear exactly once — repeating it in the bucket would
+    # point at nothing. (html.index alone can't catch this: it returns the
+    # first hit and says nothing about a second.)
+    assert html.count(notice) == 1, \
+        "INCONCLUSIVE tagline rendered twice — the second points 'below' at nothing"
+    tail = html[html.index(_VERDICT_MARK):]
+    assert notice not in tail[:tail.index("</div>") + 6], \
+        "the bucket repeats the 'see why below' tagline with no reasons under it"
+    print("  INCONCLUSIVE notice precedes the diagnosis, renders once, no numbers ✓")
+
+
+def test_empty_diagnosis_drops_both_of_its_beats_cleanly() -> None:
+    """No pains means BOTH the diagnosis overview and the problem cards
+    vanish — the overview is derived from the same pain_map, so an empty one
+    must not leave a heading over an empty panel. The story closes up from
+    result straight to solutions rather than leaving a shell."""
+    rep = _report()
+    rep.pain_map = []
+    html = _html(rep)
+    assert _DIAG_H not in html, "diagnosis overview left a heading with no problems"
+    assert _PAINS_H not in html, "problem section left a shell"
+    assert _FIXES_H in html, "the solutions beat must survive an empty diagnosis"
+    assert html.index(_VERDICT_MARK) < html.index(_NUMBERS_H) < html.index(_FIXES_H), \
+        "with no diagnosis the order is still result -> solutions"
+    print("  empty diagnosis drops both beats cleanly, story still ordered ✓")
+
+
+def test_diagnosis_overview_counts_the_problems_before_the_detail() -> None:
+    """The overview is the beat that makes the pattern visible: how many
+    problems, how many land on the audience being bought, how many are
+    structural. It must render those counts, and point at the one to fix."""
+    rep = _report()
+    rep.pain_map = [
+        Pain(id="P1", pain="Generic stock opening. Second sentence.",
+             funnel_stage="attention", severity="execution", within_target=True,
+             cited_by=["enthusiast_macros_lifter", "aspirant_clean_label"]),
+        Pain(id="P2", pain="Price framing misreads. Second sentence.",
+             funnel_stage="comprehension", severity="execution", within_target=True),
+        Pain(id="P3", pain="No reason to switch brands. Second sentence.",
+             funnel_stage="consideration", severity="structural", within_target=False),
+    ]
+    html = _html(rep)
+    assert "3 problems, leaking at 3 stages of the funnel." in html
+    assert "2 hit the audience you&#x27;re buying; 1 land" in html
+    assert "1 is structural" in html, "the structural count must be stated"
+    assert "raised by 2 different buyer types" in html, "breadth must render"
+    # load_bearing_pain_id is P1 on the shared fixture decision.
+    assert "Start with <b>P1</b>" in html, "the one to fix first must be named"
+    # Every funnel stage renders; only the leaking ones are marked.
+    assert html.count('class="st ') + html.count('class="st st--leak"') >= 4
+    assert 'class="st st--leak">attention' in html
+    assert 'class="st">conversion' in html, \
+        "a stage with no problems must render unmarked, not vanish"
+    print("  diagnosis overview counts, marks leaking stages, names the lead ✓")
+
+
+_PANEL_H = "Who else responded — every consumer type"
+
+
+def _panel_html(within, dists, **kw):
+    rep = _report(_decision(within_dispositions=within, **kw))
+    rep.pain_map = _one_pain()
+    return _html(rep, l3={"segment_behavioral_distributions": dists})
+
+
+_PANEL_DISTS = {
+    "enthusiast_macros_lifter::moderate": {
+        "counts": {"scroll_past": 14, "linger": 4},
+        "next_step_counts": {"nothing": 12, "buy_at_restock": 2, "research_first": 4}},
+    "skeptic_lapsed_protein::moderate": {
+        "counts": {"scroll_past": 12, "linger": 2, "save": 1},
+        "next_step_counts": {"nothing": 12, "mention_to_someone": 3}},
+}
+
+
+def test_panel_table_shows_out_of_target_types_the_headline_hides() -> None:
+    """The table exists because the in-target slice cannot answer 'who else
+    responded'. Out-of-target rows, their counts and their next steps must all
+    reach the page."""
+    html = _panel_html(["enthusiast_macros_lifter"], _PANEL_DISTS)
+    assert _PANEL_H in html
+    assert "enthusiast macros lifter" in html and "skeptic lapsed protein" in html
+    assert "your target" in html and "not targeted" in html, "in/out must be marked"
+    assert "would mention it to someone" in html, \
+        "an out-of-target next step must reach the page — it is word of mouth"
+    assert "All 33 people in the panel" in html, "the real denominator"
+    print("  panel table renders out-of-target types + their next steps ✓")
+
+
+def test_panel_table_is_suppressed_on_an_inconclusive_read() -> None:
+    """An untrustworthy read must not show response rates by ANY route. The
+    table is a second door onto the same numbers the headline hides."""
+    html = _panel_html([], _PANEL_DISTS, decision="INCONCLUSIVE",
+                       target_action_rate=None, rationale="no within-target read")
+    assert _PANEL_H not in html, "INCONCLUSIVE must not render the panel table"
+    assert 'class="ptab"' not in html, "no response-rate table by any route"
+    print("  panel table suppressed on INCONCLUSIVE ✓")
+
+
+def test_panel_table_vanishes_cleanly_with_no_l3() -> None:
+    """Same empty-case contract as the diagnosis overview: no heading over an
+    empty panel."""
+    rep = _report()
+    rep.pain_map = _one_pain()
+    html = _html(rep)                     # no l3 at all
+    assert _PANEL_H not in html and 'class="ptab"' not in html
+    assert _NUMBERS_H in html, "the rest of the result beat still renders"
+    print("  panel table vanishes cleanly when there is no L3 ✓")
+
+
+def test_panel_table_sits_in_the_result_beat_after_the_numbers() -> None:
+    """It reframes the headline, so it must follow it — you need to have read
+    '2 of 18' before 'and here is the other 81' — and still precede the
+    diagnosis."""
+    html = _panel_html(["enthusiast_macros_lifter"], _PANEL_DISTS)
+    assert html.index(_VERDICT_MARK) < html.index(_NUMBERS_H) < html.index(_PANEL_H), \
+        "the panel table must follow the numbers it reframes"
+    assert html.index(_PANEL_H) < html.index(_DIAG_H), \
+        "the panel table belongs to the result beat, above the diagnosis"
+    print("  panel table sits in the result beat, after the numbers ✓")
 
 
 def test_reach_row_makes_the_denominator_legible() -> None:
