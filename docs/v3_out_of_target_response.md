@@ -128,4 +128,32 @@ marked in- or out-of-target. All the data is on disk (`l3_summary.json`
 `segment_behavioral_distributions`); none of it needs a new run. It is a `ReadModel` change,
 in the same file the FastAPI wrapper is waiting on.
 
-**Not started — the user asked to understand, not to build.**
+**BUILT 2026-07-27/28** — the panel table (`ReadModel.panel`, v3 #13) and, after the same
+category error reappeared in the word cloud, the audience-split lexicon (v3 #16).
+
+## 8. The same error, found twice — and what it cost the second time
+
+The word cloud was built **pooled across all 100 people**, and the user caught it on sight:
+*"there is nothing working because most of the people out of 100 are out of target."*
+
+Measured: MuscleBlaze's "working against you" cloud was **78% out-of-target person-mentions,
+and 19 of its 29 terms had ZERO in-target speakers** — "grey tub" (0 in / 52 out), "not for
+me" (0/28), "gym bro" (0/14). Those are people the ad was never aimed at, correctly bouncing.
+**Targeting working, rendered as the creative failing.**
+
+**Re-running it per audience changed the finding, not just the layout** ($0.145 for both ads):
+
+| | pooled (wrong) | split by audience (correct) |
+|---|---|---|
+| MuscleBlaze, positives | **0 of 37 terms** | **3 among its target** — `27g` at **78% of the 18**, plus the Informed Protein cert |
+| The Whole Truth, positives | 16, but 7 with no in-target speakers | **12 among its target** — `made without` 58%, `no maltodextrin` 25% |
+
+The pooled cloud said MuscleBlaze had *nothing* working. Its actual target read the 27g claim
+positively at 78%. That is the opposite conclusion, and it was an artefact of counting 81
+strangers.
+
+**The lesson generalises past the cloud: any surface that aggregates across the panel must
+split in/out of target, because on a narrow ad the out-of-target majority swamps the signal.**
+The `l3_summary`-derived surfaces (panel table, glance) got this right; the lexicon did not,
+because it was built from raw transcripts where the target flag had to be carried in
+deliberately. **Check any future aggregate against this.**
