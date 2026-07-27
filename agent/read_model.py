@@ -36,7 +36,6 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from agent.lexicon import Lexicon
 from agent.purpose import resolve_purpose
 from agent.schema import Report
 
@@ -113,24 +112,6 @@ VERDICT_CAVEAT = "Didn't separate a known-bad control — tiebreaker, not gate."
 # recall is not somewhere a creative can leak.
 FUNNEL_STAGE_ORDER = (
     "attention", "comprehension", "consideration", "conversion", "recall",
-)
-
-# The word cloud is a high-confidence-LOOKING surface: coloured words at
-# display size read as a finding. What it actually is: a word that appeared in
-# reactions, counted exactly, with a model's judgement of whether it helps the
-# brand. "Red" is not "consumers hated this" — those are different claims and
-# the page must not let one stand in for the other.
-LEXICON_CAVEAT = (
-    "These are words people actually used — counted by how many PEOPLE said "
-    "each one, not how often, and sized against their own group: a word from "
-    "half your target and a word from half the people outside it look the "
-    "same size because they mean the same thing about different groups. "
-    "Words from outside your target are shown separately and are NOT a score "
-    "against the ad — people who were never the audience saying it isn't for "
-    "them is your targeting working. The colour is a model's judgement of "
-    "whether a word helps or hurts, made from the sentences that group itself "
-    "said, not a measure of how strongly anyone felt. Grey covers words that "
-    "are descriptive, genuinely mixed, or the ad's own claims repeated back."
 )
 
 # v3 E3 — the one prominent, honest disclaimer. Every quote in a read is
@@ -679,13 +660,8 @@ class ReadModel:
     # every consumer type in the panel, in AND out of target (from L3)
     panel: PanelResponse = field(default_factory=PanelResponse)
 
-    # the words people used, counted + judged (from lexicon.json when present;
-    # the lexicon pass is optional, so an absent file is normal, not an error)
-    lexicon: Lexicon = field(default_factory=Lexicon)
-
     # honesty surfaces
     disclaimer: str = DISCLAIMER
-    lexicon_caveat: str = LEXICON_CAVEAT
     funnel_note: str | None = FUNNEL_OFF_NOTE
     panel_degraded: str | None = None
     # v2.1 two-axis audience match. declared_* / inferred_* are context; the
@@ -866,12 +842,5 @@ def build_read_model(run_dir: str | Path) -> ReadModel:
         if model.within_dispositions:
             model.glance = within_target_glance(dists, model.within_dispositions)
         model.panel = build_panel_response(dists, model.within_dispositions)
-
-    # The lexicon is an optional post-pass — most runs on disk predate it.
-    # Absent is normal and must stay silent; malformed is NOT, and is left to
-    # raise rather than rendering a half-built cloud.
-    lex_path = run_dir / "lexicon.json"
-    if lex_path.exists():
-        model.lexicon = Lexicon.from_dict(json.loads(lex_path.read_text()))
 
     return model

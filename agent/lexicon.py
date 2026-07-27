@@ -1,6 +1,27 @@
 """lexicon — the words people actually used about the creative, and whether
 each one is working for the brand or against it.
 
+⚠ TABLED 2026-07-28, at the user's call: not important enough to ship in the
+current version, to be improved and added later. This module is COMPLETE and
+still tested (tests/test_lexicon.py, offline) — it is simply not wired into
+the client report any more, and `ReadModel` no longer carries a lexicon field.
+
+  to run it now      .venv/bin/python scripts/lexicon_run.py <run_dir>
+                     (PAID, ~$0.07/run: 1 propose + 2 classify calls; writes
+                     lexicon.json into the run directory)
+  to re-ship the     the report render lived in agent/report_html.py and
+  report render      agent/read_model.py up to commit 31215a8 --
+                     `git show 31215a8:agent/report_html.py` has _word_cloud,
+                     _cloud_block, _cloud_words, _cloud_size and the CSS;
+                     `git show 31215a8:tests/test_report_html.py` has its 8
+                     tests, including the audience-split guard.
+
+  known gaps to fix before re-shipping (from the live runs):
+    * terms skew toward the ad's own claim vocabulary ("27g", "clinically
+      tested"), which lands correctly but bulks out the neutral group
+    * it is a manual post-pass; nothing runs it as part of a run
+    * sentiment has never been checked against a human judgement
+
 A read-only post-pass over `transcripts.json`. It adds NOTHING to any agent
 prompt and does not touch the assess/prescribe layer: v2.4 proved that adding
 a question to a validated prompt moves the metrics it was meant to observe

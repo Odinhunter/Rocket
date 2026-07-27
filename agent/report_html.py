@@ -168,29 +168,6 @@ p{margin:0;color:var(--muted);}
 @media (prefers-color-scheme:dark){.fixnum{color:var(--accent);}}
 .traces{margin-top:9px;font-family:var(--font-mono);font-size:11px;color:var(--faint);letter-spacing:.04em;}
 .chip{display:inline-block;margin-left:9px;padding:2px 8px;border-radius:999px;background:var(--leak-tint);color:var(--leak);font-family:var(--font-mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;}
-.cwgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-@media (max-width:620px){.cwgrid{grid-template-columns:1fr;}}
-.cwcol,.cwrest{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:15px 16px 17px;box-shadow:var(--shadow);}
-.cwrest{margin-top:12px;}
-.cwcol--good{border-top:3px solid var(--good);}
-.cwcol--bad{border-top:3px solid var(--leak);}
-.cwhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;padding-bottom:11px;margin-bottom:12px;border-bottom:1px solid var(--line);}
-.cwhead b{margin-left:auto;color:var(--ink);font-size:13px;font-family:var(--font-sans);font-variant-numeric:tabular-nums;}
-.cwdot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
-.cwempty{font-size:13px;color:var(--faint);font-style:italic;}
-.cwnote{font-size:12.5px;color:var(--muted);margin:-4px 0 12px;max-width:62ch;}
-.cwother{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);}
-.cwother .cw{opacity:.85;}
-.cloud{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 14px;line-height:1.4;}
-.cw{letter-spacing:-.01em;cursor:default;transition:opacity .12s ease;}
-.cw:hover{opacity:.6;}
-.cw--good{color:var(--good);}
-.cw--bad{color:var(--leak);}
-.cw--neutral{color:var(--faint);}
-.cwdot.cw--good{background:var(--good);}
-.cwdot.cw--bad{background:var(--leak);}
-.cwdot.cw--neutral{background:var(--faint);}
-@media (prefers-reduced-motion:reduce){.cw{transition:none;}}
 .ptab{width:100%;border-collapse:collapse;font-size:14px;min-width:560px;}
 .ptab th{text-align:left;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:0 12px 8px 0;white-space:nowrap;}
 .ptab td{padding:11px 12px 11px 0;border-top:1px solid var(--line);color:var(--ink);vertical-align:top;}
@@ -452,154 +429,6 @@ def _panel_table(m: ReadModel) -> str:
       <tbody>{''.join(rows)}</tbody>
     </table>
   </div>{note}</section>"""
-
-
-# Word sizing. Counts span a ~26x range on real runs (2 to 52 people), so a
-# LINEAR map is unusable — 2 people at 13px would put 52 people at 338px. sqrt
-# compresses that to a readable band while keeping the ordering intact. The
-# ceiling is 25px, not larger: the longest real terms are multi-word phrases
-# ("completely different category"), and above ~25px those overflow a half-
-# width column at the page's 820px measure.
-_CLOUD_MIN_PX, _CLOUD_MAX_PX = 13.0, 25.0
-
-_CLOUD_CSS_BY_SENTIMENT = {
-    "good": "cw--good", "bad": "cw--bad", "neutral": "cw--neutral",
-}
-
-
-def _cloud_size(people: int, lo: int, hi: int) -> float:
-    if hi <= lo:
-        return (_CLOUD_MIN_PX + _CLOUD_MAX_PX) / 2
-    t = ((people ** 0.5) - (lo ** 0.5)) / ((hi ** 0.5) - (lo ** 0.5))
-    return _CLOUD_MIN_PX + t * (_CLOUD_MAX_PX - _CLOUD_MIN_PX)
-
-
-def _cloud_words(terms, audience: str, lo: float, hi: float, coloured: bool) -> str:
-    """Alphabetical, never sorted by size and never randomised.
-
-    Alphabetical order is uncorrelated with count, so sizes distribute the way
-    a tag cloud does — without the two things that would break this as a client
-    deliverable: sorting by count makes it read as a ranked list, and random
-    placement would reshuffle the page on every re-render.
-    """
-    out = []
-    for t in sorted(terms, key=lambda x: x.term.lower()):
-        share = t.share(audience)
-        size = _cloud_size(share, lo, hi)
-        weight = 700 if size > 21 else (620 if size > 17 else 520)
-        # Uncoloured when this audience was never judged from its own
-        # sentences — borrowing the other audience's colour is the defect.
-        sent = t.sentiment_for(audience) if coloured else ""
-        css = _CLOUD_CSS_BY_SENTIMENT.get(sent, "cw--neutral")
-        n = t.within if audience == "within" else t.outside
-        out.append(
-            f'<span class="cw {css}" style="font-size:{size:.1f}px;'
-            f'font-weight:{weight}" title="{_e(f"{n} of these people said this")}">'
-            f'{_e(t.term)}</span>'
-        )
-    return "".join(out)
-
-
-def _cloud_block(lex, audience: str, lo: float, hi: float, title: str,
-                 note: str, empty: str) -> str:
-    """One audience's vocabulary, grouped by sentiment when it was judged."""
-    terms = lex.for_audience(audience)
-    n = lex.audience_n(audience)
-    head = (f'<div class="cwhead">{_e(title)} <b>{n} '
-            f'{"person" if n == 1 else "people"}</b></div>')
-    if not terms:
-        return f'<div class="cwrest">{head}<p class="cwempty">{_e(empty)}</p></div>'
-
-    coloured = lex.judged(audience)
-    if not coloured:
-        # Sized and grouped, but grey: a colour that cannot be attributed to
-        # this audience is worse than no colour.
-        body = (f'<div class="cloud">'
-                f'{_cloud_words(terms, audience, lo, hi, False)}</div>')
-        body += ('<p class="cwempty" style="margin-top:11px;">Not colour-coded: '
-                 'these words have not been judged against this group&#x27;s own '
-                 'sentences.</p>')
-        return f'<div class="cwrest">{head}{body}</div>'
-
-    cols = []
-    for sent, label, empty_label in (
-        ("good", "Working for you", "Nothing registered as working for the brand."),
-        ("bad", "Working against you", "Nothing registered as working against it."),
-    ):
-        group = [t for t in terms if t.sentiment_for(audience) == sent]
-        inner = (f'<div class="cloud">'
-                 f'{_cloud_words(group, audience, lo, hi, True)}</div>'
-                 if group else f'<p class="cwempty">{_e(empty_label)}</p>')
-        cols.append(f'<div class="cwcol cwcol--{sent}">'
-                    f'<div class="cwhead"><span class="cwdot cw--{sent}"></span>'
-                    f'{_e(label)}<b>{len(group)}</b></div>{inner}</div>')
-
-    rest = [t for t in terms if t.sentiment_for(audience) not in ("good", "bad")]
-    rest_html = ""
-    if rest:
-        rest_html = (f'<div class="cwrest"><div class="cwhead">'
-                     f'<span class="cwdot cw--neutral"></span>Descriptive, or the '
-                     f"ad's own words repeated back<b>{len(rest)}</b></div>"
-                     f'<div class="cloud">'
-                     f'{_cloud_words(rest, audience, lo, hi, True)}</div></div>')
-
-    note_html = f'<p class="cwnote">{_e(note)}</p>' if note else ""
-    return f'{head}{note_html}<div class="cwgrid">{"".join(cols)}</div>{rest_html}'
-
-
-def _word_cloud(m: ReadModel) -> str:
-    """The words people used — SPLIT BY AUDIENCE, then grouped by sentiment.
-
-    The audience split is the load-bearing one and it was missing at first.
-    Pooled, MuscleBlaze's "working against you" cloud was 78% out-of-target
-    speakers, and 19 of its 29 terms had ZERO in-target speakers: "grey tub"
-    (0 in / 52 out), "not for me" (0/28), "gym bro" (0/14). Those are people
-    the ad was never aimed at, correctly bouncing off it. That is targeting
-    working, NOT the creative failing, and presenting it as the latter is a
-    category error that made a narrow ad look broken.
-
-    Sizing is each term's share OF ITS OWN AUDIENCE, not a raw count: 6 of 18
-    target people is a third of them, while 6 of 81 outsiders is noise, and a
-    shared denominator makes those two look identical.
-
-    Grouped rather than one mixed cloud because red/green is the colour pair
-    that fails for the most common colour blindness, so position has to carry
-    good-vs-bad and colour only reinforce it.
-
-    Suppressed on INCONCLUSIVE with every other counted surface.
-    """
-    lex = m.lexicon
-    if lex.is_empty or m.is_inconclusive or m.headline is None:
-        return ""
-
-    shares = [t.share(a) for a in ("within", "outside")
-              for t in lex.for_audience(a)]
-    shares = [s for s in shares if s > 0]
-    if not shares:
-        return ""
-    # Anchor the scale at ZERO, not at the smallest observed share. Normalising
-    # between min and max stretches whatever range happens to be present across
-    # the full 13-25px band, so two words said by ~half their audience each
-    # (50% and 49%) would render 12px apart purely because they were the
-    # extremes of a narrow set. Zero-anchored, equal shares render equal.
-    lo, hi = 0.0, max(shares)
-
-    target = _cloud_block(
-        lex, "within", lo, hi, "What your target said", "",
-        "Your target barely used any shared vocabulary — too few of them said "
-        "the same thing twice to draw a pattern from.")
-    others = _cloud_block(
-        lex, "outside", lo, hi, "What everyone else said",
-        "These people were not the audience this creative aims at. Them saying "
-        "it is not for them is targeting working, not the ad failing — read it "
-        "for who ELSE the creative reaches, not as a score against it.",
-        "Nobody outside your target used any shared vocabulary.")
-
-    return f"""<section><h2>What they said about it — in their own words</h2>
-  {target}
-  <div class="cwother">{others}</div>
-  <p class="sub" style="margin-top:14px;font-size:12.5px;">{_e(m.lexicon_caveat)}</p>
-</section>"""
 
 
 def _strengths(m: ReadModel) -> str:
@@ -894,10 +723,6 @@ def render_html(
         # this is everyone. It follows them because it reframes them — you
         # need to have read "2 of 18" before "and here is the other 81".
         _panel_table(model),
-        # Closes the result beat: the numbers say how many, the table says who,
-        # this says in what words. Aggregate vocabulary here; the individual
-        # verbatims stay in the extras, so the summary precedes the examples.
-        _word_cloud(model),
         # --- the diagnosis ----------------------------------------------
         _diagnosis_overview(model),
         # --- the problems -----------------------------------------------
