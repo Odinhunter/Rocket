@@ -138,13 +138,97 @@ be empty and must vanish cleanly, not leave a shell.
   reasons. Section *order* is legitimately per-surface; *vocabulary* is not.
 - **Self-contained output** — no external fonts, scripts or images; creative inlined as a
   data URI. Light and dark.
-- **New panels need data-layer work, not just CSS.** Partly closed on 2026-07-27:
-  `ReadModel.diagnosis` (`build_diagnosis_overview`) now exposes **problem counts,
+- **New panels need data-layer work, not just CSS. This is now CLOSED for both §2 items.**
+  `ReadModel.diagnosis` (`build_diagnosis_overview`) exposes **problem counts,
   in/out-of-target split, structural-vs-execution split, funnel-stage distribution, the
-  load-bearing problem id, and widest breadth** (`max(len(cited_by))`) — everything §2 item
-  2 asks for, and the raw material for a stage chart. **Still not exposed: per-consumer-type
-  response** (§2 item 1, audience breadth — the single most discriminating number, still
-  only a chip row) and per-problem breadth as a series rather than a max. Those remain a
-  change to the same file the FastAPI wrapper is waiting on.
+  load-bearing problem id, and widest breadth** (`max(len(cited_by))`) — §2 item 2, and the
+  raw material for a stage chart. **`ReadModel.panel` (`build_panel_response`, shipped
+  2026-07-28) closes §2 item 1** — every consumer type, in AND out of target, with action
+  mix, response rate and next steps, plus a `decoupling_note` that fires when outsiders
+  out-respond the target. Audience breadth is no longer a chip row; it is a full table's
+  worth of structured data. Still not exposed: per-problem breadth as a *series* rather
+  than a max.
 - One client-facing wording bug to fix whenever the redesign lands: the glance legend can
   render **"unclassified"**, which is engine vocabulary. Use the action name or "other".
+
+---
+
+## 6. The build path — stack, tools, and the process that stops the overshoot
+
+**Added 2026-08-01, at the user's explicit request for direction.** This supersedes the
+"don't write another design prompt" rule in §1: the user has asked to be told what to use
+and how it should look, because they build rather than design. §1's *lesson* still holds —
+what failed was the method, not the effort.
+
+### 6.1 The architecture fork — decide this FIRST
+
+The current page is HTML assembled from Python strings (`agent/report_html.py`). That is
+why it looks the way it does: there is no component library, no chart library, and CSS
+inside a Python string literal is a hostile medium for iterating on a visual design.
+
+| | A — keep server-rendered Python | B — JSON API + Next.js front end |
+|---|---|---|
+| Look | bounded by hand-written CSS | shadcn/ui baseline is production-grade on day one |
+| Charts | hand-built SVG | Recharts |
+| AI design tools | cannot target it | v0 and Claude both emit exactly this stack |
+| Output | one self-contained file (emailable) | a served app; a file export becomes work |
+| Guardrail risk | low — one renderer | **high — this is how `sample_report.html` silently dropped two guardrails** |
+
+**Recommended: B, with one discipline that removes its only real risk.**
+
+> **Guardrails travel as DATA, not as front-end copy.** `ReadModel` already holds every
+> caveat, trust line, scope note and disclaimer as a *string* (that is the whole point of
+> the module). The API serialises those strings; the front end renders what it is handed
+> and composes none of its own. A React component that writes its own caveat text is the
+> `sample_report.html` failure rebuilt in TypeScript.
+
+The FastAPI server already builds `ReadModel` on every request, so the API is a
+serialiser away. Keep `agent/report_html.py` alive as the self-contained export path.
+
+### 6.2 Tools — what to use, and what not to
+
+- **v0.dev** — generate the React/Tailwind/shadcn components from a prompt plus reference
+  screenshots. This is the one that turns Pinterest references into code.
+- **shadcn/ui + Tailwind + Recharts** — the foundation. shadcn is why it will look
+  professional without a designer. The repo already has `vercel:shadcn` and `vercel:nextjs`
+  skills available.
+- **Claude Code (this CLI)** — wiring the generated components to real data, and iterating
+  in-repo once the skeleton exists.
+- **Figma — skip for now.** It produces a picture, not a product, and the gap between the
+  two is the work. Reach for it only to hand a real designer a starting point.
+- **Higgsfield — wrong tool.** It generates images and video (ad creative, visuals). It has
+  no part in building a dashboard UI. Worth using *later* for marketing the product; not
+  for this.
+
+### 6.3 The process — one objective test, and components before pages
+
+§1 records three rounds where each prompt over-corrected the last complaint. A fourth
+prompt will do it again. What breaks the loop is a pass/fail test that is not taste:
+
+> **Render the SAME design for two ads at once — a real one and the deliberately-bad
+> AI-buzzword control — and put them side by side. If the two pages look substantially
+> alike, the design has failed, however beautiful it is.**
+
+That is §2 made operational: percentages render near-identically for a great ad and a
+terrible one, so any design leaning on them is a design that cannot tell them apart. The
+four things that genuinely change shape are **audience breadth** (`ReadModel.panel`), the
+**problem map** (stage × severity × in/out target), **fix → problem traceability**, and
+**cycle position**. Build the hero elements out of those.
+
+Then: **review one component at a time, not whole pages.** Verdict block, then diagnosis
+map, then problem card, then panel table. Round 2 failed because ten panels arrived at
+equal weight and nothing was primary — a per-component review makes "what is the hero
+here" answerable, which a whole-page review never does.
+
+### 6.4 What it should feel like
+
+Not an analytics dashboard. There is no time series, nothing trends, nothing compares to
+last period, and a KPI tile row was three-fifths repetition last time. The right reference
+class is a **diagnostic instrument** — a lab result, a structural survey, a credit report:
+one primary object per screen, everything else visibly subordinate to it, and the reader
+never in doubt about what the page is claiming or how much to believe it.
+
+Structure that is already settled and should not be relitigated: the five-beat order
+(**result → diagnosis → problems → solutions → extras**), the verdict inside the opening
+result beat wearing `VERDICT_CAVEAT`, warnings above the result, and levers adjacent to
+the fixes they summarise. The open layer is grid, charts, type and density.
