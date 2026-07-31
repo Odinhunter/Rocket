@@ -189,6 +189,24 @@ serialiser away. Keep `agent/report_html.py` alive as the self-contained export 
 
 - **v0.dev** — generate the React/Tailwind/shadcn components from a prompt plus reference
   screenshots. This is the one that turns Pinterest references into code.
+
+  **⚠ Scope it deliberately, and know why it is here.** The user asked, correctly, whether
+  v0 is weak at backend code — it is, and it never touches ours: the engine, the scoring
+  and the guardrails already exist and stay in Python. But the adjacent risk is real and
+  is the one to guard: **v0 invents its own mock data to make a component look good.** It
+  will assume a tidy fixed three problems (ours vary 6–9, fixes 0–3, any section can be
+  empty), and it will cheerfully write its own caveat text as placeholder copy — which is
+  the `sample_report.html` failure exactly. **Feed it real output from a real run**, and
+  treat every honesty string as engine data, never front-end copy.
+
+  **The reason to use it at all is not code quality — it removes ME from the taste loop.**
+  All three failed rounds (§1) were translation failures: the user knew what they wanted,
+  a written prompt tried to describe it, the result overshot. v0 lets them judge pictures
+  directly instead of describing a feeling to be re-rendered. **Recommended scope: two or
+  three tone-setting components (verdict block, problem map), then drop it and build the
+  rest in-repo against real data.** Skipping it entirely is also defensible — shadcn alone
+  carries most of the professional baseline, and building in-repo is slower to explore
+  looks but faster to something correct.
 - **shadcn/ui + Tailwind + Recharts** — the foundation. shadcn is why it will look
   professional without a designer. The repo already has `vercel:shadcn` and `vercel:nextjs`
   skills available.
