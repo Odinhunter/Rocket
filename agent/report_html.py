@@ -202,6 +202,12 @@ ol.bets li::marker{font-family:var(--font-mono);color:var(--accent-ink);font-wei
 .foot{margin-top:26px;font-family:var(--font-mono);font-size:11.5px;color:var(--faint);border-top:1px solid var(--line);padding-top:14px;display:flex;flex-wrap:wrap;gap:5px 18px;}
 """
 
+# The stylesheet, exported so the operator server's own pages (intake,
+# prediction capture, the blinded reveal) render in the same design system
+# instead of growing a second one that drifts away from the report a client
+# actually reads. Style only — no report content or guardrail lives here.
+PAGE_CSS = _CSS
+
 
 def _header(m: ReadModel, embed_image: bool, base_dir: Path) -> str:
     thumb = ""

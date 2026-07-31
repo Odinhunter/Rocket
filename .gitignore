@@ -10,3 +10,9 @@ learnings.md
 HANDOFF.md
 REVIEW.md
 runs/
+# Brand-manager session records: a named contact's unpublished ad outcomes and
+# their CTR/ROAS. Confidential commercial data belonging to someone else — it
+# never enters version control.
+sessions/
+# Creatives uploaded through the operator server — a client's unreleased ad.
+uploads/
