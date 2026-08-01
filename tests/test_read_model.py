@@ -532,3 +532,125 @@ def test_inconclusive_copy_branches_on_the_flag() -> None:
                 methodology_flags=["target_unsignaled"])))
     assert "doesn't clearly signal who it's for" in unsignaled
     print("  INCONCLUSIVE copy branches on the methodology flag ✓")
+
+
+# ---- the dashboard's additions -----------------------------------------
+
+
+def _l3(counts: dict[str, dict]) -> dict:
+    return {"segment_behavioral_distributions": counts}
+
+
+def test_next_steps_in_target_never_pools_the_outside_majority() -> None:
+    """The rule that has cost this project a rebuild twice: any aggregate
+    across the panel must split in/out of target. On a narrow ad the outside
+    majority swamps the signal — pooled, this run reads 'did nothing: 95 of
+    100' for a creative that landed exactly as aimed on its 19."""
+    l3 = _l3({
+        "enthusiast_macros_lifter::moderate": {
+            "counts": {"scroll_past": 14, "linger": 4, "save": 1},
+            "next_step_counts": {"nothing": 14, "research_first": 5},
+        },
+        "aspirant_clean_label::moderate": {
+            "counts": {"scroll_past": 81},
+            "next_step_counts": {"nothing": 81},
+        },
+    })
+    with tempfile.TemporaryDirectory() as td:
+        m = build_read_model(_run_dir(_report(), tmp=Path(td), l3=l3))
+
+    rows = m.panel.next_steps_in_target()
+    by_key = {k: (n, denom) for k, _, n, denom in rows}
+    assert by_key["research_first"] == (5, 19), by_key
+    assert by_key["nothing"] == (14, 19), by_key
+    assert sum(n for _, _, n, _ in rows) == 19, "in-target rows must total the target"
+    assert all(denom == 19 for *_, denom in rows), "denominator must be the target"
+    # the outside 81 are reachable, but only by asking for them
+    assert m.outside_n == 81 and m.target_n == 19
+    print("  in-target next steps never pool the outside majority ✓")
+
+
+def test_target_and_outside_counts_come_from_the_panel_not_thin_air() -> None:
+    """With no l3_summary.json there is no panel, and the zone counts must be
+    zero rather than falling back to the declared panel size — a label reading
+    'WITHIN TARGET — 0 OF 100' is honest; one reading 100 is invented."""
+    with tempfile.TemporaryDirectory() as td:
+        m = build_read_model(_run_dir(_report(), tmp=Path(td)))
+    assert m.target_n == 0 and m.outside_n == 0
+    assert m.panel_size == 100, "the declared size is still known, just not claimed"
+    assert m.panel.next_steps_in_target() == []
+    print("  no L3 -> zone counts are 0, never the declared panel size ✓")
+
+
+def test_audience_alignment_is_stated_not_left_as_silence() -> None:
+    """`audience_mismatch` fires only on a gross gap. The check PASSING is a
+    claim too, and a blank space where a warning would have been is not one."""
+    from agent.schema import AudienceMatch
+
+    aligned = _report(audience_match=AudienceMatch(
+        verdict="aligned", declared_summary="all genders aged 25-44",
+        inferred_summary="people aged 25-34",
+        message="The creative's apparent target is consistent with the buy."))
+    mismatched = _report(audience_match=AudienceMatch(
+        verdict="mismatched", declared_summary="men 18-24",
+        inferred_summary="women 35-54", axes=["gender", "age"],
+        message="Reads as aimed at women 35-54, declared men 18-24."))
+
+    with tempfile.TemporaryDirectory() as td:
+        a = build_read_model(_run_dir(aligned, tmp=Path(td)))
+    with tempfile.TemporaryDirectory() as td:
+        b = build_read_model(_run_dir(mismatched, tmp=Path(td)))
+
+    assert a.audience_aligned and "consistent" in a.audience_aligned
+    assert a.audience_mismatch is None
+    assert b.audience_mismatch and "women 35-54" in b.audience_mismatch
+    assert b.audience_aligned is None, "a mismatch must never also read aligned"
+
+    # an aligned verdict the model left unworded still gets a sentence, built
+    # from the two summaries rather than rendering an empty chip
+    silent = _report(audience_match=AudienceMatch(
+        verdict="aligned", declared_summary="adults 25-44",
+        inferred_summary="people aged 25-34", message=""))
+    with tempfile.TemporaryDirectory() as td:
+        c = build_read_model(_run_dir(silent, tmp=Path(td)))
+    assert c.audience_aligned and "adults 25-44" in c.audience_aligned
+    print("  audience alignment is stated in both directions ✓")
+
+
+def test_every_methodology_flag_has_plain_words_and_none_can_vanish() -> None:
+    """The flag tokens are engine vocabulary; a client reads sentences. This
+    map is hand-maintained against the schema — exactly the shape that goes
+    stale silently — so pin it, and make an unmapped flag fall back to its
+    token rather than disappearing."""
+    from agent.read_model import METHODOLOGY_FLAG_TEXT, flag_text
+    from agent.schema import _VALID_METHODOLOGY_FLAGS
+
+    missing = _VALID_METHODOLOGY_FLAGS - set(METHODOLOGY_FLAG_TEXT)
+    assert not missing, f"methodology flags with no plain-words entry: {missing}"
+    for flag, text in METHODOLOGY_FLAG_TEXT.items():
+        assert text != flag and " " in text, f"{flag} is not plain words"
+    assert flag_text("a_flag_from_the_future") == "a_flag_from_the_future"
+
+    with tempfile.TemporaryDirectory() as td:
+        m = build_read_model(_run_dir(_report(), tmp=Path(td)))
+    assert m.flag_lines == [METHODOLOGY_FLAG_TEXT["single_within_target"]]
+    print("  every methodology flag has plain words; unknown ones survive ✓")
+
+
+def test_client_pain_text_strips_engine_scoping_vocabulary() -> None:
+    """Out-of-target pains open with the assess pass's own scoping note, which
+    is engine jargon duplicating the within/outside flag the page already
+    carries as data."""
+    from agent.read_model import client_pain_text
+
+    raw = ("OUTSIDE-TARGET CONTEXT (not verdict-load-bearing): among lapsed "
+           "protein buyers the ad reactivates a filed negative memory.")
+    out = client_pain_text(raw)
+    assert "OUTSIDE-TARGET" not in out and "verdict-load-bearing" not in out
+    assert out.startswith("Among lapsed protein buyers"), out
+    assert out.endswith("negative memory.")
+    # a within-target pain is untouched, including its leading capital
+    plain = "The creative presents the isolate as a line-extension."
+    assert client_pain_text(plain) == plain
+    assert client_pain_text("") == ""
+    print("  engine scoping vocabulary never reaches client copy ✓")

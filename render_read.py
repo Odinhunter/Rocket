@@ -16,8 +16,8 @@ import argparse
 import sys
 from pathlib import Path
 
+from agent.dashboard_html import render_html
 from agent.read_model import build_read_model
-from agent.report_html import render_html
 
 
 def _latest_run(base: Path) -> Path | None:

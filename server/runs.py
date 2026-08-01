@@ -18,8 +18,8 @@ import json
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from agent.dashboard_html import render_html
 from agent.read_model import ReadModel, build_read_model
-from agent.report_html import render_html
 
 
 @dataclass(frozen=True)
@@ -151,6 +151,10 @@ def blind_read_model(model: ReadModel, slot: str) -> ReadModel:
     back inside its warning text. It stays, because a guardrail outranks the
     blinding — dropping the one surface that says "this ad is aimed at someone
     other than who you bought" to protect a test would be the wrong trade.
+
+    `audience_aligned` gets no such pass. It quotes the declared audience the
+    same way, and it is NOT a guardrail — it is the same check passing. So it
+    is stripped with the rest of the identity.
     """
     return replace(
         model,
@@ -160,6 +164,7 @@ def blind_read_model(model: ReadModel, slot: str) -> ReadModel:
         run_id=f"read-{slot}",
         declared_targeting="",
         declared_audience="",
+        audience_aligned=None,
     )
 
 

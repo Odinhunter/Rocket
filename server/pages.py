@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import html
 
-from agent.report_html import PAGE_CSS
+from agent.dashboard_html import PAGE_CSS
 from server.runs import RunRef
 from server.sessions import SLOTS, Session
 
@@ -31,8 +31,8 @@ input[type=text],textarea,select{width:100%;margin-top:7px;padding:10px 12px;fon
   border-radius:9px;}
 textarea{min-height:76px;resize:vertical;}
 button{margin-top:22px;padding:11px 20px;font:inherit;font-weight:650;font-size:15px;
-  color:#fff;background:var(--accent-ink);border:0;border-radius:9px;cursor:pointer;}
-:root[data-theme="dark"] button{background:var(--accent);color:#1b1205;}
+  color:var(--on-accent);background:var(--accent);border:0;border-radius:9px;
+  cursor:pointer;}
 .steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;font-family:var(--font-mono);
   font-size:11px;letter-spacing:.06em;text-transform:uppercase;}
 .steps span{border:1px solid var(--line);border-radius:999px;padding:4px 11px;color:var(--faint);}

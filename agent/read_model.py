@@ -138,9 +138,74 @@ FUNNEL_WITHHELD_NOTE = (
     "estimate, not a forecast. It is in the run's l35_projection.json."
 )
 
+# Methodology flags in the words a brand manager reads. The flags themselves
+# are engine tokens (schema._VALID_METHODOLOGY_FLAGS) and printing them raw is
+# the same class of leak as the OUTSIDE-TARGET prefix below: correct, and
+# meaningless to the person paying for the read.
+#
+# A flag with no entry here renders as its raw token rather than vanishing — an
+# unrecognised flag is a reporting gap, not a licence to drop a caveat, and
+# this map is exactly the kind of hand-maintained list that goes stale when the
+# schema gains a member. tests/test_read_model.py pins it against the schema.
+METHODOLOGY_FLAG_TEXT = {
+    "single_within_target":
+        "Only one consumer type fell within the declared target — evidence is "
+        "thin.",
+    "no_within_target_evidence":
+        "No consumer type read as a clean match for this creative, and it is "
+        "not a clean mismatch either — the read rests on weak ground.",
+    "pool_archetype_mismatch":
+        "Nobody in this audience fits the ad. The read rests on the wrong "
+        "people.",
+    "target_unsignaled":
+        "The ad doesn't clearly signal who it's for — every audience type read "
+        "as a maybe.",
+    "homogenization_high":
+        "Too many slices of the audience reacted almost identically — some of "
+        "this may be echo rather than measurement.",
+    "single_context_only":
+        "Only one browsing context was tested, so how it lands elsewhere in "
+        "the feed is unknown.",
+    "provisional_disposition_present":
+        "One of the audience types in this read was drafted during the run and "
+        "has not been reviewed.",
+    "declared_audience_disjoint":
+        "The audience declared for this buy does not overlap the people the "
+        "creative reads as aimed at.",
+    "intent_action_incoherent":
+        "Stated intent and in-feed behaviour disagree on this run — treat the "
+        "intent numbers with caution.",
+}
+
+# The assess pass prefixes an out-of-target pain with its own scoping note. The
+# page already carries within/outside as a first-class visual state, so the
+# prefix is a duplicate — and it is engine vocabulary, verbatim, at the top of
+# a sentence a client reads. Same bug class as the "unclassified" glance legend.
+_ENGINE_PAIN_PREFIX = "OUTSIDE-TARGET CONTEXT (not verdict-load-bearing):"
+
 
 def humanize(label: str) -> str:
     return label.replace("_", " ")
+
+
+def flag_text(flag: str) -> str:
+    """A methodology flag in plain words, or the raw token when unmapped."""
+    return METHODOLOGY_FLAG_TEXT.get(flag, flag)
+
+
+def client_pain_text(text: str) -> str:
+    """A pain as a client should read it — engine scoping vocabulary removed.
+
+    Strips the assess pass's OUTSIDE-TARGET prefix and restores the sentence
+    capital it swallowed (the text after the colon starts lowercase, because
+    the model wrote it as a continuation). Any other text is returned
+    unchanged.
+    """
+    text = (text or "").strip()
+    if not text.lower().startswith(_ENGINE_PAIN_PREFIX.lower()):
+        return text
+    rest = text[len(_ENGINE_PAIN_PREFIX):].lstrip()
+    return (rest[:1].upper() + rest[1:]) if rest else text
 
 
 def purpose_scope_note(purpose: str) -> str | None:
@@ -455,6 +520,32 @@ class PanelResponse:
                 f"you're buying. Every number above is measured on those "
                 f"{in_n}; this is everyone who saw it.")
 
+    def next_steps_in_target(self) -> list[tuple[str, str, int, int]]:
+        """(key, label, count, denominator) for what the TARGET said they'd do
+        next — strongest first, in-target types only.
+
+        In-target only, and named so, deliberately. This is a panel-wide
+        aggregate, and pooling one across the whole panel is the mistake that
+        has cost this project a rebuild twice: on a narrow ad the out-of-target
+        majority swamps the signal (19 in target against 81 outside), so a
+        pooled "did nothing: 95 of 100" would read as a catastrophe on a
+        creative that worked exactly as aimed. See docs/v3_out_of_target_
+        response.md. Anything wanting the outside slice must ask for it.
+        """
+        totals: dict[str, int] = {}
+        for t in self.in_types:
+            for step, k in t.next_steps.items():
+                if k:
+                    totals[step] = totals.get(step, 0) + int(k)
+        denom = self.in_tally[0]
+        order = {k: i for i, k in enumerate(NEXT_STEP_ORDER)}
+        return [
+            (k, NEXT_STEP_LABEL.get(k, humanize(k)), v, denom)
+            for k, v in sorted(totals.items(),
+                               key=lambda kv: (order.get(kv[0], len(order)), kv[0]))
+            if v
+        ]
+
     @property
     def decoupling_note(self) -> str | None:
         """Fires when the people NOT being bought responded at a higher rate
@@ -670,6 +761,12 @@ class ReadModel:
     # targeting is real and often off, and a confident headline printed over a
     # silent mismatch is exactly the failure this exists to prevent.
     audience_mismatch: str | None = None
+    # The other half of the two-axis verdict. `audience_mismatch` is the
+    # guardrail and fires only on a gross gap; this is the same check passing,
+    # and it is worth stating rather than leaving as silence — "we checked who
+    # this ad reads as aimed at, and it matches your buy" is a claim, and a
+    # blank space where a mismatch warning would have been is not.
+    audience_aligned: str | None = None
     declared_audience: str = ""
     inferred_audience: str = ""
 
@@ -677,6 +774,27 @@ class ReadModel:
     def within_label(self) -> str:
         return (humanize(", ".join(self.within_dispositions))
                 if self.within_dispositions else "your target")
+
+    @property
+    def target_n(self) -> int:
+        """People in the panel read as the target.
+
+        Sourced from the panel tally rather than glance.n. The two agree by
+        construction today — both filter the same L3 distributions by the same
+        within-target set — but they answer different questions: the glance is
+        "what did the thumb do", the tally is "how many people are we talking
+        about". The zone labels on the problem map ask the second one.
+        """
+        return self.panel.in_tally[0]
+
+    @property
+    def outside_n(self) -> int:
+        return self.panel.out_tally[0]
+
+    @property
+    def flag_lines(self) -> list[str]:
+        """Methodology flags in plain words, for a surface a client reads."""
+        return [flag_text(f) for f in self.report.methodology_flags]
 
 
 def _load_report(run_dir: Path) -> tuple[Report, dict, str]:
@@ -756,6 +874,16 @@ def build_read_model(run_dir: str | Path) -> ReadModel:
         model.inferred_audience = am.inferred_summary or ""
         if am.verdict == "mismatched":
             model.audience_mismatch = am.message
+        elif am.verdict == "aligned":
+            # Synthesised when the model left `message` empty rather than
+            # rendering an alignment chip with nothing next to it.
+            model.audience_aligned = am.message or (
+                f"The creative's apparent target ({am.inferred_summary}) is "
+                f"consistent with the declared audience ({am.declared_summary})."
+                if am.inferred_summary and am.declared_summary else
+                "The creative's apparent target is consistent with the "
+                "declared audience."
+            )
 
     # Panel degradation is honesty-relevant on a client artifact: a read built
     # on a partially-landed panel must not look like a clean deterministic one.

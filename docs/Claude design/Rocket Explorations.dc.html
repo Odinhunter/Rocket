@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#edebe6;font-family:'Instrument Sans',system-ui,sans-serif;color:#17181a}
+a{color:#0f8a6d}a:hover{color:#0b6b55}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 'Instrument Sans',system-ui,sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'Instrument Sans',system-ui,sans-serif;color:rgba(0,0,0,.55)}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 'Instrument Sans',system-ui,sans-serif;color:rgba(0,0,0,.5)}
+</style>
+</helmet>
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Locked: <a class="dv-oid" href="#1a">1a</a> + map <a class="dv-oid" href="#1e">1e</a> · remaining report components</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a"><div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Run header</div>
+<div class="dv-card" style="width:980px">
+<div style="padding:20px 24px;display:flex;gap:18px;align-items:flex-start">
+  <div style="width:120px;height:120px;flex:none;border-radius:10px;border:1px solid #e7e5e0;background:repeating-linear-gradient(135deg,#f6f5f2 0px,#f6f5f2 10px,#efeeea 10px,#efeeea 11px);display:flex;align-items:center;justify-content:center;cursor:zoom-in"><span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;color:#9a9da3;text-align:center;line-height:1.5">ad creative<br>click to enlarge</span></div>
+  <div style="flex:1;min-width:0">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:17px;font-weight:600;letter-spacing:-.01em">MuscleBlaze Biozyme Performance Whey</span>
+      <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#5c5f66;background:#f1f0ec;border-radius:999px;padding:3px 9px">DIRECT-SELL</span>
+    </div>
+    <div style="margin-top:5px;font-size:12.5px;color:#6b6f76">Health &amp; wellness nutrition · 20 Jul 2026 · Panel — 100 simulated consumers</div>
+    <div style="margin-top:12px;font-size:12px;color:#55585e"><span style="font-weight:600;color:#8a8d94;font-size:10px;letter-spacing:.07em">DECLARED TARGETING&nbsp;&nbsp;</span>adults 25-44, metro tier-1, ₹7-40 LPA, protein-curious</div>
+    <div style="margin-top:7px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+      <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#0b6b55;background:#e8f2ee;border-radius:999px;padding:3px 9px;white-space:nowrap">AUDIENCE ALIGNED</span>
+      <span style="font-size:12px;color:#6b6f76;line-height:1.5">The creative's apparent target (people aged 25-34) is consistent with the declared audience (all genders aged 25-44).</span>
+    </div>
+  </div>
+  <div style="flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+    <span style="background:#0f8a6d;color:#fff;font-size:12.5px;font-weight:600;padding:8px 16px;border-radius:8px;cursor:pointer">Export</span>
+    <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#b0b3b9">20260721_021850_seed71_muscleblaze_biozyme</span>
+  </div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="2b"><div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Warnings strip — this run (1) and the 5-warning stress case</div>
+<div class="dv-card" style="width:980px">
+<div style="padding:18px 24px 22px">
+  <div style="font-size:9.5px;font-weight:700;letter-spacing:.08em;color:#b0b3b9">STATE 1 — THIS RUN</div>
+  <div style="margin-top:8px;background:#fdf6e9;border:1px solid #f0e0bd;border-radius:10px">
+    <div style="display:flex;gap:12px;padding:11px 16px;align-items:baseline"><span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;color:#92400e;width:130px">METHOD</span><span style="font-size:12.5px;line-height:1.55;color:#3c3e43">Only one consumer type fell within the declared target — evidence is thin.</span></div>
+  </div>
+  <div style="margin-top:20px;font-size:9.5px;font-weight:700;letter-spacing:.08em;color:#b0b3b9">STATE 2 — FIVE AT ONCE (CLIENT-AD STRESS CASE)</div>
+  <div style="margin-top:8px;background:#fdf6e9;border:1px solid #f0e0bd;border-radius:10px">
+    <div style="display:flex;gap:12px;padding:11px 16px;align-items:baseline"><span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;color:#92400e;width:130px">AUDIENCE MISMATCH</span><span style="font-size:12.5px;line-height:1.55;color:#3c3e43">The creative reads as targeting women aged 18-24, but the declared audience is men aged 35-54 (mismatch on gender, age). Likely a wrong-creative upload or a fundamentally misaimed campaign.</span></div>
+    <div style="height:1px;background:#f0e0bd"></div>
+    <div style="display:flex;gap:12px;padding:11px 16px;align-items:baseline"><span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;color:#92400e;width:130px">PANEL</span><span style="font-size:12.5px;line-height:1.55;color:#3c3e43">94 of 100 simulated respondents completed; a few dropped out mid-run. The read stands, but it rests on a slightly smaller sample than planned.</span></div>
+    <div style="height:1px;background:#f0e0bd"></div>
+    <div style="display:flex;gap:12px;padding:11px 16px;align-items:baseline"><span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;color:#92400e;width:130px">COHERENCE</span><span style="font-size:12.5px;line-height:1.55;color:#3c3e43">Coherence check: buy-now intent was stated, but every one of those people scrolled past without even stopping on the ad — treat the buy number with caution.</span></div>
+    <div style="height:1px;background:#f0e0bd"></div>
+    <div style="display:flex;gap:12px;padding:11px 16px;align-items:baseline"><span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;color:#92400e;width:130px">SCOPE</span><span style="font-size:12.5px;line-height:1.55;color:#3c3e43">BETA — brand-building scoring is provisional (resonance half only; brand-attribution is a known, flagged limitation). Trust the pains and the voice; treat the headline metric as directional.</span></div>
+    <div style="height:1px;background:#f0e0bd"></div>
+    <div style="display:flex;gap:12px;padding:11px 16px;align-items:baseline"><span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;color:#92400e;width:130px">METHOD</span><span style="font-size:12.5px;line-height:1.55;color:#3c3e43">Only one consumer type fell within the declared target — evidence is thin.</span></div>
+  </div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="2c"><div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Problem cards — click a card to expand (P4 load-bearing, P1)</div>
+<div class="dv-card" style="width:980px">
+<div style="padding:20px 24px;display:flex;flex-direction:column;gap:10px">
+  <div style="border:1.5px solid #17181a;background:#fffdf7;border-radius:11px;padding:14px 18px;cursor:pointer" onClick="{{toggleP4}}">
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 7px">P4</span>
+      <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#5c5f66;border:1px solid #ddd9d1;border-radius:999px;padding:2px 8px">ATTENTION</span>
+      <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#92400e;background:#fdeeca;border-radius:999px;padding:2px 8px">EXECUTION</span>
+      <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#0b6b55;background:#e8f2ee;border-radius:999px;padding:2px 8px">WITHIN TARGET</span>
+      <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#fff;background:#17181a;border-radius:999px;padding:2px 8px">LOAD-BEARING</span>
+      <span style="margin-left:auto;font-size:10.5px;color:#8a8d94">1 type</span>
+      <span style="font-size:11px;color:#0f8a6d;font-weight:600;white-space:nowrap">{{ p4Icon }}</span>
+    </div>
+    <div style="margin-top:8px;font-size:13.5px;line-height:1.5;color:#26282c;max-width:850px;text-wrap:pretty">The one proof asset that does earn a stop — the Informed Protein seal — fires a half-second flicker but is never built into a claim the target can act on.</div>
+    <sc-if value="{{ p4Open }}" hint-placeholder-val="{{ false }}">
+      <div style="height:1px;background:#efe6d2;margin:14px 0"></div>
+      <div style="font-size:12.5px;line-height:1.6;color:#55585e;max-width:850px">Within-target lifters recognize and trust the seal, yet it lands as a passive checkmark rather than an argument, so it fails to convert recognition into a differentiating reason-to-buy. The strongest lever the ad holds is under-leveraged.</div>
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:baseline"><span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.07em;color:#8a8d94">PREVALENCE</span><span style="font-size:12px;line-height:1.55;color:#55585e">recurring across within-target; the badge consistently 'caught the eye for half a second' then dissipated</span></div>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="background:#faf9f6;border:1px solid #eceae3;border-radius:9px;padding:10px 14px"><div style="font-size:12.5px;line-height:1.55;color:#3c3e43">"the seal caught my eye for half a second but I'm mid-tub on the Performance Whey and not in restock mode at all, so it kind of just washed over"</div><div style="margin-top:5px;font-size:11px;color:#8a8d94">— enthusiast macros lifter · commute scroll · simulated</div></div>
+        <div style="background:#faf9f6;border:1px solid #eceae3;border-radius:9px;padding:10px 14px"><div style="font-size:12.5px;line-height:1.55;color:#3c3e43">"the informed protein cert badge registered for like half a second but i already have a full tub so none of it really landed"</div><div style="margin-top:5px;font-size:11px;color:#8a8d94">— enthusiast macros lifter · late night wind down · simulated</div></div>
+      </div>
+    </sc-if>
+  </div>
+  <div style="border:1px solid #f0e3c8;background:#fffdf7;border-radius:11px;padding:14px 18px;cursor:pointer" onClick="{{toggleP1}}">
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 7px">P1</span>
+      <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#5c5f66;border:1px solid #ddd9d1;border-radius:999px;padding:2px 8px">CONSIDERATION</span>
+      <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#92400e;background:#fdeeca;border-radius:999px;padding:2px 8px">EXECUTION</span>
+      <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#0b6b55;background:#e8f2ee;border-radius:999px;padding:2px 8px">WITHIN TARGET</span>
+      <span style="margin-left:auto;font-size:10.5px;color:#8a8d94">1 type</span>
+      <span style="font-size:11px;color:#0f8a6d;font-weight:600;white-space:nowrap">{{ p1Icon }}</span>
+    </div>
+    <div style="margin-top:8px;font-size:13.5px;line-height:1.5;color:#26282c;max-width:850px;text-wrap:pretty">The creative presents the isolate as a familiar line-extension of a brand the target already trusts and largely already uses — so within-target recognition is instant but the ad never dramatizes a switching TRIGGER.</div>
+    <sc-if value="{{ p1Open }}" hint-placeholder-val="{{ false }}">
+      <div style="height:1px;background:#efe6d2;margin:14px 0"></div>
+      <div style="font-size:12.5px;line-height:1.6;color:#55585e;max-width:850px">Every lifter parses it as 'the iso version of what I run,' correctly slots it as adjacent-not-me, and defaults to reordering their existing Performance Whey. The ad wins comprehension but loses the consideration beat because it argues no reason-to-upgrade; earned brand equity converts to inertia, not incremental purchase.</div>
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:baseline"><span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.07em;color:#8a8d94">PREVALENCE</span><span style="font-size:12px;line-height:1.55;color:#55585e">near-universal among within-target enthusiast macros lifters across all contexts</span></div>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="background:#faf9f6;border:1px solid #eceae3;border-radius:9px;padding:10px 14px"><div style="font-size:12.5px;line-height:1.55;color:#3c3e43">"already running low on my usual Biozyme Performance, not about to swap to an isolate I haven't looked into just because it's the same brand"</div><div style="margin-top:5px;font-size:11px;color:#8a8d94">— enthusiast macros lifter · weekend afternoon browse · simulated</div></div>
+        <div style="background:#faf9f6;border:1px solid #eceae3;border-radius:9px;padding:10px 14px"><div style="font-size:12.5px;line-height:1.55;color:#3c3e43">"the iso zero doesn't solve any problem i currently have"</div><div style="margin-top:5px;font-size:11px;color:#8a8d94">— enthusiast macros lifter · late night wind down · simulated</div></div>
+        <div style="background:#faf9f6;border:1px solid #eceae3;border-radius:9px;padding:10px 14px"><div style="font-size:12.5px;line-height:1.55;color:#3c3e43">"isolate is a different use case I haven't decided I need"</div><div style="margin-top:5px;font-size:11px;color:#8a8d94">— enthusiast macros lifter · commute scroll · simulated</div></div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="2d"><div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>Fixes — ranked levers, then changes wired to problems</div>
+<div class="dv-card" style="width:980px">
+<div style="padding:20px 24px 24px">
+  <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#26282c">THE FIX(ES) (highest-leverage first):</div>
+  <div style="margin-top:14px;display:flex;flex-direction:column;gap:9px">
+    <div style="display:flex;gap:12px;align-items:baseline"><span style="flex:none;width:20px;height:20px;border-radius:50%;background:#e8f2ee;color:#0b6b55;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;transform:translateY(3px)">1</span><span style="font-size:13px;line-height:1.55;color:#26282c;text-wrap:pretty">Rewrite the hook to state the upgrade reason AND the price-per-serving vs their current Performance Whey on-surface — this resolves the two biggest consideration leaks at once.</span></div>
+    <div style="display:flex;gap:12px;align-items:baseline"><span style="flex:none;width:20px;height:20px;border-radius:50%;background:#e8f2ee;color:#0b6b55;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;transform:translateY(3px)">2</span><span style="font-size:13px;line-height:1.55;color:#26282c;text-wrap:pretty">Convert the Informed Protein seal from a passive flicker into an active spoken claim fused to the isolate spec, so the ad builds new memory and a reason-to-buy instead of borrowing prior brand recall.</span></div>
+    <div style="display:flex;gap:12px;align-items:baseline"><span style="flex:none;width:20px;height:20px;border-radius:50%;background:#e8f2ee;color:#0b6b55;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;transform:translateY(3px)">3</span><span style="font-size:13px;line-height:1.55;color:#26282c;text-wrap:pretty">Concentrate and sequence spend on weekend-browse and pre-purchase-research windows with a restock-timed retarget of save/linger audiences.</span></div>
+    <div style="display:flex;gap:12px;align-items:baseline"><span style="flex:none;width:20px;height:20px;border-radius:50%;background:#f1f0ec;color:#8a8d94;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;transform:translateY(3px)">4</span><span style="font-size:13px;line-height:1.55;color:#55585e;text-wrap:pretty">Do NOT chase the lapsed, clean-label or snacker segments — their rejection is a structural trust/identity scar no in-scope creative lever can move.</span></div>
+  </div>
+  <div style="height:1px;background:#eceae5;margin:18px 0"></div>
+  <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">DETAILED CHANGES</div>
+  <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+    <div style="border:1px solid #e7e5e0;border-radius:10px;padding:13px 16px">
+      <div style="font-size:13px;line-height:1.55;color:#26282c;text-wrap:pretty">Rebuild the headline around an explicit upgrade-and-cost argument: lead with the switch trigger ('Isolate, 27g vs the 25g in your Performance Whey — same Informed seal, ~₹X per serving') so the spec delta and the price-per-serving both live ON the creative surface.</div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:6px"><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#0b6b55;background:#e8f2ee;border-radius:999px;padding:2px 8px">CREATIVE</span><span style="margin-left:8px;font-size:9px;font-weight:700;letter-spacing:.07em;color:#b0b3b9">SOLVES</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P1</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P2</span></div>
+    </div>
+    <div style="border:1px solid #e7e5e0;border-radius:10px;padding:13px 16px">
+      <div style="font-size:13px;line-height:1.55;color:#26282c;text-wrap:pretty">Promote the Informed Protein seal from a passive half-second flicker into a spoken, on-screen claim — pair it with the 27g isolate spec as the stated reason-to-upgrade.</div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:6px"><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#0b6b55;background:#e8f2ee;border-radius:999px;padding:2px 8px">CREATIVE</span><span style="margin-left:8px;font-size:9px;font-weight:700;letter-spacing:.07em;color:#b0b3b9">SOLVES</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P4</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P3</span></div>
+    </div>
+    <div style="border:1px solid #e7e5e0;border-radius:10px;padding:13px 16px">
+      <div style="font-size:13px;line-height:1.55;color:#26282c;text-wrap:pretty">Concentrate media spend on weekend-browse and pre-purchase-research windows, and layer a restock-timed retargeting sequence (save/linger audiences re-served 2–4 weeks later).</div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:6px"><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#4b4e55;background:#eceef1;border-radius:999px;padding:2px 8px">MEDIA BUY</span><span style="margin-left:8px;font-size:9px;font-weight:700;letter-spacing:.07em;color:#b0b3b9">SOLVES</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P3</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P1</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P2</span></div>
+    </div>
+  </div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="2e"><div class="dv-olabel"><a class="dv-oid" href="#2e">2e</a>Panel table</div>
+<div class="dv-card" style="width:980px">
+<div style="padding:20px 24px 22px">
+  <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">PANEL — 100 SIMULATED CONSUMERS</div>
+  <div style="margin-top:12px;display:grid;grid-template-columns:1fr 60px 110px 90px 80px 220px;font-variant-numeric:tabular-nums">
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:#8a8d94;padding:6px 10px">CONSUMER TYPE</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:#8a8d94;padding:6px 10px;text-align:right">N</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:#8a8d94;padding:6px 10px;text-align:right">SCROLLED PAST</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:#8a8d94;padding:6px 10px;text-align:right">STOPPED</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:#8a8d94;padding:6px 10px;text-align:right">SAVED</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:#8a8d94;padding:6px 10px">NEXT STEP</div>
+
+    <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;background:#f0f7f4;border-radius:8px;border-top:1px solid #efede8">
+      <div style="font-size:13px;font-weight:600;padding:10px;display:flex;align-items:center;gap:8px">enthusiast macros lifter<span style="font-size:8.5px;font-weight:700;letter-spacing:.06em;color:#fff;background:#0f8a6d;border-radius:999px;padding:2px 7px">TARGET</span></div>
+      <div style="font-size:13px;font-weight:600;padding:10px;text-align:right">19</div>
+      <div style="font-size:13px;padding:10px;text-align:right">14</div>
+      <div style="font-size:13px;padding:10px;text-align:right">4</div>
+      <div style="font-size:13px;padding:10px;text-align:right">1</div>
+      <div style="font-size:12.5px;padding:10px;color:#26282c">5 would look it up first</div>
+    </div>
+    <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;border-top:1px solid #efede8">
+      <div style="font-size:13px;color:#55585e;padding:10px">aspirant clean label</div>
+      <div style="font-size:13px;color:#55585e;padding:10px;text-align:right">24</div>
+      <div style="font-size:13px;color:#55585e;padding:10px;text-align:right">24</div>
+      <div style="font-size:13px;color:#b0b3b9;padding:10px;text-align:right">0</div>
+      <div style="font-size:13px;color:#b0b3b9;padding:10px;text-align:right">0</div>
+      <div style="font-size:12.5px;color:#b0b3b9;padding:10px">none</div>
+    </div>
+    <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;border-top:1px solid #efede8">
+      <div style="font-size:13px;color:#55585e;padding:10px">pragmatist protein snacker</div>
+      <div style="font-size:13px;color:#55585e;padding:10px;text-align:right">23</div>
+      <div style="font-size:13px;color:#55585e;padding:10px;text-align:right">23</div>
+      <div style="font-size:13px;color:#b0b3b9;padding:10px;text-align:right">0</div>
+      <div style="font-size:13px;color:#b0b3b9;padding:10px;text-align:right">0</div>
+      <div style="font-size:12.5px;color:#b0b3b9;padding:10px">none</div>
+    </div>
+    <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;border-top:1px solid #efede8">
+      <div style="font-size:13px;color:#55585e;padding:10px">switcher results chaser</div>
+      <div style="font-size:13px;color:#55585e;padding:10px;text-align:right">19</div>
+      <div style="font-size:13px;color:#55585e;padding:10px;text-align:right">19</div>
+      <div style="font-size:13px;color:#b0b3b9;padding:10px;text-align:right">0</div>
+      <div style="font-size:13px;color:#b0b3b9;padding:10px;text-align:right">0</div>
+      <div style="font-size:12.5px;color:#55585e;padding:10px">1 would mention it to someone</div>
+    </div>
+    <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;border-top:1px solid #efede8">
+      <div style="font-size:13px;color:#55585e;padding:10px">skeptic lapsed protein</div>
+      <div style="font-size:13px;color:#55585e;padding:10px;text-align:right">15</div>
+      <div style="font-size:13px;color:#55585e;padding:10px;text-align:right">15</div>
+      <div style="font-size:13px;color:#b0b3b9;padding:10px;text-align:right">0</div>
+      <div style="font-size:13px;color:#b0b3b9;padding:10px;text-align:right">0</div>
+      <div style="font-size:12.5px;color:#b0b3b9;padding:10px">none</div>
+    </div>
+  </div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="2f"><div class="dv-olabel"><a class="dv-oid" href="#2f">2f</a>Extras — what worked · disclaimer · methodology</div>
+<div class="dv-card" style="width:980px">
+<div style="padding:20px 24px 24px">
+  <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">WHAT WORKED</div>
+  <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+    <div style="background:#f5faf8;border:1px solid #dcebe4;border-radius:10px;padding:13px 15px"><div style="font-size:12.5px;line-height:1.55;color:#26282c;text-wrap:pretty">The brand is instantly recognized and trusted by the target, buying immediate comprehension at zero attention cost.</div><div style="margin-top:9px;font-size:11.5px;line-height:1.5;color:#6b6f76">"Oh it's Biozyme, I know this brand"</div></div>
+    <div style="background:#f5faf8;border:1px solid #dcebe4;border-radius:10px;padding:13px 15px"><div style="font-size:12.5px;line-height:1.55;color:#26282c;text-wrap:pretty">The 27g-per-scoop spec is legible and, when the buyer engages, flags an upgrade over their current 25g.</div><div style="margin-top:9px;font-size:11.5px;line-height:1.5;color:#6b6f76">"that's 2g more than my current tub and the seal is legitimate, so that's not nothing"</div></div>
+    <div style="background:#f5faf8;border:1px solid #dcebe4;border-radius:10px;padding:13px 15px"><div style="font-size:12.5px;line-height:1.55;color:#26282c;text-wrap:pretty">When timing aligns with restock, trusted brand + Informed seal + higher spec earns a save and a genuine intent to return.</div><div style="margin-top:9px;font-size:11.5px;line-height:1.5;color:#6b6f76">"isolate with 27g and the same Informed certification I already trust — worth pulling up when this tub runs out"</div></div>
+  </div>
+  <div style="margin-top:16px;border:1.5px solid #26282c;border-radius:10px;padding:13px 16px;font-size:12.5px;line-height:1.6;color:#26282c;font-weight:500">Model-inferred read: every reaction and quote here is generated by a simulated persona, not collected from a real consumer. Read it as a pre-flight diagnostic, not a survey.</div>
+  <div style="height:1px;background:#eceae5;margin:18px 0"></div>
+  <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">METHODOLOGY</div>
+  <div style="margin-top:10px;display:grid;grid-template-columns:150px 1fr;gap:7px 14px;font-size:12px;line-height:1.55;color:#55585e">
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:#b0b3b9;padding-top:2px">PANEL</div><div>100 simulated consumers</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:#b0b3b9;padding-top:2px">CONTEXTS</div><div>weekend afternoon browse · pre-purchase research · commute scroll · late night wind down</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:#b0b3b9;padding-top:2px">DECLARED TARGETING</div><div>adults 25-44, metro tier-1, ₹7-40 LPA, protein-curious</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:#b0b3b9;padding-top:2px">FLAGS</div><div>Only one consumer type fell within the declared target — evidence is thin.</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:#b0b3b9;padding-top:2px">PROJECTED FUNNEL</div><div>Projected funnel: off — heuristic_v1, not fitted to in-market outcomes. It is computed and logged for future calibration either way.</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:#b0b3b9;padding-top:2px">RUN ID</div><div style="font-family:ui-monospace,Menlo,monospace;font-size:11px">20260721_021850_seed71_muscleblaze_biozyme</div>
+  </div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="2g"><div class="dv-olabel"><a class="dv-oid" href="#2g">2g</a>INCONCLUSIVE — replaces the result block; every number gone</div>
+<div class="dv-card" style="width:720px">
+<div style="padding:22px 26px 26px">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="background:#475569;color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;padding:6px 13px;border-radius:8px">INCONCLUSIVE</span>
+    <span style="font-size:13.5px;font-weight:500;color:#3c3e43;line-height:1.4">The read isn't trustworthy yet — see why below.</span>
+  </div>
+  <div style="height:1px;background:#eceae5;margin:18px 0"></div>
+  <div style="font-size:20px;font-weight:600;line-height:1.35;letter-spacing:-.01em;text-wrap:pretty">We can't give you a trustworthy read on this creative yet.</div>
+  <div style="margin-top:12px;font-size:13.5px;line-height:1.6;color:#55585e">Why: the read isn't trustworthy on this pool.</div>
+  <div style="margin-top:4px;font-size:13.5px;line-height:1.6;color:#55585e">To get a real read: check that the audience you declared matches who the ad is for.</div>
+</div>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "expand quotes by default on the load-bearing card" · "warnings tags off, plain paragraphs" · "assemble the full page in the app shell" · "dark theme pass"</p>
+</section>
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Result block + problem map — ITERATE run, light theme</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Result block — stacked · teal chrome</div>
+<div class="dv-card" style="width:720px">
+<div style="padding:22px 26px 26px;display:flex;flex-direction:column;gap:0">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="background:#b45309;color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;padding:6px 13px;border-radius:8px">ITERATE</span>
+    <span style="font-size:13.5px;font-weight:500;color:#3c3e43;flex:1;line-height:1.4">Target responds; a specific in-scope fix is leaking conversion. Fix it, re-run, then scale.</span>
+    <span style="border:1.5px dashed #b8bbc1;color:#4b4e55;font-size:10.5px;font-weight:700;letter-spacing:.07em;padding:5px 10px;border-radius:999px;white-space:nowrap">TRUST: DIRECTIONAL</span>
+  </div>
+  <div style="margin-top:10px;font-size:12px;line-height:1.5;color:#6b6f76">Didn't separate a known-bad control — tiebreaker, not gate.</div>
+  <div style="font-size:12px;line-height:1.5;color:#6b6f76">Trust: DIRECTIONAL — thin evidence (one narrow audience engaged); treat as a lead, not a verdict.</div>
+  <div style="height:1px;background:#eceae5;margin:18px 0"></div>
+  <div style="font-size:23px;font-weight:600;line-height:1.3;letter-spacing:-.01em;font-variant-numeric:tabular-nums">0% of your target (enthusiast macros lifter) would buy — 0 of 19.</div>
+  <div style="margin-top:8px;font-size:13px;line-height:1.55;color:#55585e">Separately, 26% would look it up first (5 of 19) — research, not a purchase.</div>
+  <div style="font-size:13px;line-height:1.55;color:#55585e">It reaches no one else (everyone else scrolls — expected; tighten targeting).</div>
+  <div style="height:1px;background:#eceae5;margin:18px 0"></div>
+  <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">GLANCE RESPONSE — TARGET: ENTHUSIAST MACROS LIFTER · N=19</div>
+  <div style="display:flex;height:26px;border-radius:7px;overflow:hidden;margin-top:10px">
+    <div style="flex:14;background:#e9e7e1"></div>
+    <div style="flex:4;background:#82c3b1"></div>
+    <div style="flex:1;background:#0f8a6d"></div>
+  </div>
+  <div style="display:flex;gap:18px;margin-top:8px;font-size:12px;color:#55585e;font-variant-numeric:tabular-nums">
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:#e9e7e1"></span>Scrolled past — 14</span>
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:#82c3b1"></span>Stopped to look — 4</span>
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:#0f8a6d"></span>Saved it — 1</span>
+  </div>
+  <div style="margin-top:16px;font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">EVERYONE ELSE · N=81</div>
+  <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;margin-top:8px"><div style="flex:1;background:#efede8"></div></div>
+  <div style="margin-top:6px;font-size:12px;color:#8a8d94;font-variant-numeric:tabular-nums">Scrolled past — 81 of 81</div>
+  <div style="height:1px;background:#eceae5;margin:18px 0"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">
+    <div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">NEXT STEP — IN TARGET</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;font-size:13px"><span style="color:#3c3e43">Would look it up first</span><span style="font-weight:600;font-variant-numeric:tabular-nums">5 of 19</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;font-size:13px"><span style="color:#3c3e43">Did nothing</span><span style="font-weight:600;color:#8a8d94;font-variant-numeric:tabular-nums">14 of 19</span></div>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">PURCHASE CYCLE — WOULD BUY</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><span style="font-size:13px;color:#3c3e43;width:92px">Running low</span><span style="display:flex;gap:3px"><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span></span><span style="margin-left:auto;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums">0 of 5</span></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:7px"><span style="font-size:13px;color:#3c3e43;width:92px">Mid-cycle</span><span style="display:flex;gap:3px"><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span></span><span style="margin-left:auto;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums">0 of 9</span></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:7px"><span style="font-size:13px;color:#3c3e43;width:92px">Just bought</span><span style="display:flex;gap:3px"><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #c3c6cb"></span></span><span style="margin-left:auto;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums">0 of 5</span></div>
+    </div>
+  </div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Result block — decision rail · indigo chrome</div>
+<div class="dv-card" style="width:760px">
+<div style="display:grid;grid-template-columns:230px 1fr">
+  <div style="background:#faf9f7;border-right:1px solid #eceae5;padding:24px 22px;display:flex;flex-direction:column;gap:12px">
+    <div><span style="background:#b45309;color:#fff;font-size:13px;font-weight:700;letter-spacing:.08em;padding:7px 14px;border-radius:8px;display:inline-block">ITERATE</span></div>
+    <div style="font-size:13px;font-weight:500;line-height:1.5;color:#3c3e43">Target responds; a specific in-scope fix is leaking conversion. Fix it, re-run, then scale.</div>
+    <div style="font-size:11.5px;line-height:1.5;color:#6b6f76;border-top:1px solid #eceae5;padding-top:12px">Didn't separate a known-bad control — tiebreaker, not gate.</div>
+    <div style="margin-top:auto">
+      <div><span style="border:1.5px dashed #b8bbc1;color:#4b4e55;font-size:10px;font-weight:700;letter-spacing:.07em;padding:4px 9px;border-radius:999px;display:inline-block">TRUST: DIRECTIONAL</span></div>
+      <div style="margin-top:8px;font-size:11.5px;line-height:1.5;color:#6b6f76">Trust: DIRECTIONAL — thin evidence (one narrow audience engaged); treat as a lead, not a verdict.</div>
+    </div>
+  </div>
+  <div style="padding:24px 26px">
+    <div style="font-size:22px;font-weight:600;line-height:1.32;letter-spacing:-.01em;font-variant-numeric:tabular-nums">0% of your target (enthusiast macros lifter) would buy — 0 of 19.</div>
+    <div style="margin-top:8px;font-size:12.5px;line-height:1.55;color:#55585e">Separately, 26% would look it up first (5 of 19) — research, not a purchase.</div>
+    <div style="font-size:12.5px;line-height:1.55;color:#55585e">It reaches no one else (everyone else scrolls — expected; tighten targeting).</div>
+    <div style="margin-top:18px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">GLANCE RESPONSE — IN TARGET</span><span style="font-size:11px;color:#8a8d94;font-variant-numeric:tabular-nums">n=19</span></div>
+    <div style="display:flex;height:24px;border-radius:6px;overflow:hidden;margin-top:8px">
+      <div style="flex:14;background:#e9e8e3"></div>
+      <div style="flex:4;background:#a3aee6"></div>
+      <div style="flex:1;background:#4a5bc4"></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:8px;font-size:11.5px;color:#55585e;font-variant-numeric:tabular-nums">
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:3px;background:#e9e8e3"></span>Scrolled past — 14</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:3px;background:#a3aee6"></span>Stopped to look — 4</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:3px;background:#4a5bc4"></span>Saved it — 1</span>
+    </div>
+    <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">EVERYONE ELSE</span><span style="font-size:11px;color:#8a8d94;font-variant-numeric:tabular-nums">n=81</span></div>
+    <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:7px"><div style="flex:1;background:#efede8"></div></div>
+    <div style="margin-top:5px;font-size:11.5px;color:#8a8d94;font-variant-numeric:tabular-nums">Scrolled past — 81 of 81</div>
+    <div style="height:1px;background:#eceae5;margin:16px 0"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">NEXT STEP — IN TARGET</div>
+        <div style="display:flex;justify-content:space-between;margin-top:9px;font-size:12.5px"><span style="color:#3c3e43">Would look it up first</span><span style="font-weight:600;font-variant-numeric:tabular-nums">5 of 19</span></div>
+        <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:12.5px"><span style="color:#3c3e43">Did nothing</span><span style="font-weight:600;color:#8a8d94;font-variant-numeric:tabular-nums">14 of 19</span></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">PURCHASE CYCLE — WOULD BUY</div>
+        <div style="display:flex;justify-content:space-between;margin-top:9px;font-size:12.5px"><span style="color:#3c3e43">Running low</span><span style="font-weight:600;font-variant-numeric:tabular-nums">0 of 5</span></div>
+        <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:12.5px"><span style="color:#3c3e43">Mid-cycle</span><span style="font-weight:600;font-variant-numeric:tabular-nums">0 of 9</span></div>
+        <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:12.5px"><span style="color:#3c3e43">Just bought</span><span style="font-weight:600;font-variant-numeric:tabular-nums">0 of 5</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Problem map A — funnel rows × target zones</div>
+<div class="dv-card" style="width:900px">
+<div style="padding:22px 26px 24px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <span style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">PROBLEM MAP</span>
+    <span style="font-size:12px;color:#55585e;font-variant-numeric:tabular-nums">6 problems — 4 within target · 2 outside · 4 execution · 2 structural</span>
+  </div>
+  <div style="display:grid;grid-template-columns:140px 1fr 280px;margin-top:14px">
+    <div></div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#4b4e55;padding:8px 14px">WITHIN TARGET — 19 OF 100</div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#8a8d94;padding:8px 14px;background:#f7f6f2;border-radius:8px 8px 0 0">OUTSIDE TARGET — 81 OF 100</div>
+
+    <div style="border-top:1px solid #efede8;padding:14px 0"><div style="font-size:10px;color:#b0b3b9;font-weight:600">01</div><div style="font-size:13px;font-weight:600;margin-top:2px">Attention</div><div style="font-size:11px;color:#8a8d94;margin-top:2px">3 problems</div></div>
+    <div style="border-top:1px solid #efede8;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+      <div style="border:1.5px solid #17181a;background:#fffdf7;border-radius:9px;padding:10px 12px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P4</span><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#92400e;background:#fdeeca;border-radius:999px;padding:2px 8px">EXECUTION</span><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#fff;background:#17181a;border-radius:999px;padding:2px 8px">LOAD-BEARING</span><span style="margin-left:auto;font-size:10px;color:#8a8d94">1 type</span></div>
+        <div style="margin-top:6px;font-size:12px;line-height:1.45;color:#3c3e43;max-height:2.9em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The one proof asset that does earn a stop — the Informed Protein seal — fires a half-second flicker but is never built into a claim the target can act on.</div>
+      </div>
+    </div>
+    <div style="border-top:1px solid #efede8;background:#f7f6f2;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+      <div style="border:1px solid #dedfe4;background:repeating-linear-gradient(135deg,#f3f3f5 0px,#f3f3f5 6px,#ececef 6px,#ececef 7px);border-radius:9px;padding:9px 11px">
+        <div style="display:flex;align-items:center;gap:6px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#7c7f86;background:#fff;border-radius:5px;padding:2px 6px">P5</span><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#3f4653;background:#dfe2e8;border-radius:999px;padding:2px 8px">STRUCTURAL</span><span style="margin-left:auto;font-size:10px;color:#9a9da3">1 type</span></div>
+        <div style="margin-top:5px;font-size:11px;line-height:1.45;color:#6b6f76;max-height:2.9em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">Among lapsed protein buyers the ad reactivates a filed negative brand memory before any proof can be read.</div>
+      </div>
+      <div style="border:1px solid #dedfe4;background:repeating-linear-gradient(135deg,#f3f3f5 0px,#f3f3f5 6px,#ececef 6px,#ececef 7px);border-radius:9px;padding:9px 11px">
+        <div style="display:flex;align-items:center;gap:6px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#7c7f86;background:#fff;border-radius:5px;padding:2px 6px">P6</span><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#3f4653;background:#dfe2e8;border-radius:999px;padding:2px 8px">STRUCTURAL</span><span style="margin-left:auto;font-size:10px;color:#9a9da3">2 types</span></div>
+        <div style="margin-top:5px;font-size:11px;line-height:1.45;color:#6b6f76;max-height:2.9em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">For clean-label / plant-forward and snacker audiences the grey-tub, MB-logo, 2kg-format gestalt is read as a category and identity signal ('gym-bro / a different kind of person') that closes the door pre-comprehension.</div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #efede8;padding:12px 0"><div style="font-size:10px;color:#b0b3b9;font-weight:600">02</div><div style="font-size:13px;font-weight:600;margin-top:2px;color:#9a9da3">Comprehension</div></div>
+    <div style="border-top:1px solid #efede8;padding:12px 14px;display:flex;align-items:center"><span style="font-size:11.5px;color:#9aa8a0;font-weight:600">Clear — no problems raised</span></div>
+    <div style="border-top:1px solid #efede8;background:#f7f6f2"></div>
+
+    <div style="border-top:1px solid #efede8;padding:14px 0"><div style="font-size:10px;color:#b0b3b9;font-weight:600">03</div><div style="font-size:13px;font-weight:600;margin-top:2px">Consideration</div><div style="font-size:11px;color:#8a8d94;margin-top:2px">2 problems</div></div>
+    <div style="border-top:1px solid #efede8;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+      <div style="border:1px solid #f0e3c8;background:#fffdf7;border-radius:9px;padding:10px 12px">
+        <div style="display:flex;align-items:center;gap:6px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P1</span><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#92400e;background:#fdeeca;border-radius:999px;padding:2px 8px">EXECUTION</span><span style="margin-left:auto;font-size:10px;color:#8a8d94">1 type</span></div>
+        <div style="margin-top:6px;font-size:12px;line-height:1.45;color:#3c3e43;max-height:2.9em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The creative presents the isolate as a familiar line-extension of a brand the target already trusts and largely already uses — so within-target recognition is instant but the ad never dramatizes a switching TRIGGER.</div>
+      </div>
+      <div style="border:1px solid #f0e3c8;background:#fffdf7;border-radius:9px;padding:10px 12px">
+        <div style="display:flex;align-items:center;gap:6px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P2</span><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#92400e;background:#fdeeca;border-radius:999px;padding:2px 8px">EXECUTION</span><span style="margin-left:auto;font-size:10px;color:#8a8d94">1 type</span></div>
+        <div style="margin-top:6px;font-size:12px;line-height:1.45;color:#3c3e43;max-height:2.9em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The single most repeated within-target friction is an unanswered price-per-serving question: the target reads 'isolate' and immediately prices in a premium the ad never shows or justifies.</div>
+      </div>
+    </div>
+    <div style="border-top:1px solid #efede8;background:#f7f6f2"></div>
+
+    <div style="border-top:1px solid #efede8;padding:12px 0"><div style="font-size:10px;color:#b0b3b9;font-weight:600">04</div><div style="font-size:13px;font-weight:600;margin-top:2px;color:#9a9da3">Conversion</div></div>
+    <div style="border-top:1px solid #efede8;padding:12px 14px;display:flex;align-items:center"><span style="font-size:11.5px;color:#9aa8a0;font-weight:600">Clear — no problems raised</span></div>
+    <div style="border-top:1px solid #efede8;background:#f7f6f2"></div>
+
+    <div style="border-top:1px solid #efede8;padding:14px 0"><div style="font-size:10px;color:#b0b3b9;font-weight:600">05</div><div style="font-size:13px;font-weight:600;margin-top:2px">Recall</div><div style="font-size:11px;color:#8a8d94;margin-top:2px">1 problem</div></div>
+    <div style="border-top:1px solid #efede8;padding:12px 14px">
+      <div style="border:1px solid #f0e3c8;background:#fffdf7;border-radius:9px;padding:10px 12px">
+        <div style="display:flex;align-items:center;gap:6px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P3</span><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#92400e;background:#fdeeca;border-radius:999px;padding:2px 8px">EXECUTION</span><span style="margin-left:auto;font-size:10px;color:#8a8d94">1 type</span></div>
+        <div style="margin-top:6px;font-size:12px;line-height:1.45;color:#3c3e43;max-height:2.9em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The ad delivers almost zero net-new information to the target, so recall collapses to what the buyer already knew about the brand.</div>
+      </div>
+    </div>
+    <div style="border-top:1px solid #efede8;background:#f7f6f2;border-radius:0 0 8px 8px"></div>
+  </div>
+  <div style="display:flex;gap:18px;margin-top:16px;font-size:11px;color:#6b6f76;align-items:center;flex-wrap:wrap">
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#fdeeca;border:1px solid #f0e3c8"></span>Execution — fixable in the creative</span>
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:repeating-linear-gradient(135deg,#f3f3f5 0px,#f3f3f5 3px,#dfe2e8 3px,#dfe2e8 4px);border:1px solid #dedfe4"></span>Structural — no creative tweak fixes it</span>
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;border:1.5px solid #17181a"></span>Load-bearing</span>
+  </div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="1d"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Problem map B — stage columns × target bands</div>
+<div class="dv-card" style="width:960px">
+<div style="padding:22px 26px 24px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <span style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">PROBLEM MAP</span>
+    <span style="font-size:12px;color:#55585e;font-variant-numeric:tabular-nums">6 problems — 4 within target · 2 outside · 4 execution · 2 structural</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:16px">
+    <div style="text-align:center;padding-bottom:8px"><div style="font-size:12.5px;font-weight:600">Attention</div><div style="font-size:10.5px;color:#8a8d94;margin-top:2px;font-variant-numeric:tabular-nums">3 problems</div></div>
+    <div style="text-align:center;padding-bottom:8px"><div style="font-size:12.5px;font-weight:600;color:#9a9da3">Comprehension</div><div style="font-size:10.5px;color:#9aa8a0;margin-top:2px;font-weight:600">Clear</div></div>
+    <div style="text-align:center;padding-bottom:8px"><div style="font-size:12.5px;font-weight:600">Consideration</div><div style="font-size:10.5px;color:#8a8d94;margin-top:2px;font-variant-numeric:tabular-nums">2 problems</div></div>
+    <div style="text-align:center;padding-bottom:8px"><div style="font-size:12.5px;font-weight:600;color:#9a9da3">Conversion</div><div style="font-size:10.5px;color:#9aa8a0;margin-top:2px;font-weight:600">Clear</div></div>
+    <div style="text-align:center;padding-bottom:8px"><div style="font-size:12.5px;font-weight:600">Recall</div><div style="font-size:10.5px;color:#8a8d94;margin-top:2px;font-variant-numeric:tabular-nums">1 problem</div></div>
+
+    <div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:2px"><span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#4b4e55">WITHIN TARGET — 19 OF 100</span><span style="flex:1;height:1px;background:#eceae5"></span></div>
+    <div style="min-height:130px">
+      <div style="border:1.5px solid #17181a;background:#fffdf7;border-radius:9px;padding:9px 10px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P4</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#92400e;background:#fdeeca;border-radius:999px;padding:2px 7px">EXECUTION</span></div>
+        <div style="margin-top:5px"><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#fff;background:#17181a;border-radius:999px;padding:2px 7px">LOAD-BEARING</span></div>
+        <div style="margin-top:6px;font-size:11px;line-height:1.4;color:#3c3e43;max-height:4.2em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The one proof asset that does earn a stop — the Informed Protein seal — fires a half-second flicker but is never built into a claim the target can act on.</div>
+      </div>
+    </div>
+    <div style="min-height:130px"></div>
+    <div style="min-height:130px;display:flex;flex-direction:column;gap:8px">
+      <div style="border:1px solid #f0e3c8;background:#fffdf7;border-radius:9px;padding:9px 10px">
+        <div style="display:flex;align-items:center;gap:5px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P1</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#92400e;background:#fdeeca;border-radius:999px;padding:2px 7px">EXECUTION</span></div>
+        <div style="margin-top:6px;font-size:11px;line-height:1.4;color:#3c3e43;max-height:4.2em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The creative presents the isolate as a familiar line-extension of a brand the target already trusts and largely already uses — so within-target recognition is instant but the ad never dramatizes a switching TRIGGER.</div>
+      </div>
+      <div style="border:1px solid #f0e3c8;background:#fffdf7;border-radius:9px;padding:9px 10px">
+        <div style="display:flex;align-items:center;gap:5px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P2</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#92400e;background:#fdeeca;border-radius:999px;padding:2px 7px">EXECUTION</span></div>
+        <div style="margin-top:6px;font-size:11px;line-height:1.4;color:#3c3e43;max-height:4.2em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The single most repeated within-target friction is an unanswered price-per-serving question: the target reads 'isolate' and immediately prices in a premium the ad never shows or justifies.</div>
+      </div>
+    </div>
+    <div style="min-height:130px"></div>
+    <div style="min-height:130px">
+      <div style="border:1px solid #f0e3c8;background:#fffdf7;border-radius:9px;padding:9px 10px">
+        <div style="display:flex;align-items:center;gap:5px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P3</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#92400e;background:#fdeeca;border-radius:999px;padding:2px 7px">EXECUTION</span></div>
+        <div style="margin-top:6px;font-size:11px;line-height:1.4;color:#3c3e43;max-height:4.2em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The ad delivers almost zero net-new information to the target, so recall collapses to what the buyer already knew about the brand.</div>
+      </div>
+    </div>
+
+    <div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:6px"><span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#8a8d94">OUTSIDE TARGET — 81 OF 100</span><span style="flex:1;height:1px;background:#eceae5"></span></div>
+    <div style="background:#f7f6f2;border-radius:9px;padding:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="border:1px solid #dedfe4;background:repeating-linear-gradient(135deg,#f3f3f5 0px,#f3f3f5 6px,#ececef 6px,#ececef 7px);border-radius:8px;padding:8px 9px">
+        <div style="display:flex;align-items:center;gap:5px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#7c7f86;background:#fff;border-radius:5px;padding:2px 6px">P5</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#3f4653;background:#dfe2e8;border-radius:999px;padding:2px 7px">STRUCTURAL</span></div>
+        <div style="margin-top:5px;font-size:10.5px;line-height:1.4;color:#6b6f76;max-height:4.2em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">Among lapsed protein buyers the ad reactivates a filed negative brand memory before any proof can be read.</div>
+      </div>
+      <div style="border:1px solid #dedfe4;background:repeating-linear-gradient(135deg,#f3f3f5 0px,#f3f3f5 6px,#ececef 6px,#ececef 7px);border-radius:8px;padding:8px 9px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#7c7f86;background:#fff;border-radius:5px;padding:2px 6px">P6</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#3f4653;background:#dfe2e8;border-radius:999px;padding:2px 7px">STRUCTURAL</span><span style="font-size:9.5px;color:#9a9da3">2 types</span></div>
+        <div style="margin-top:5px;font-size:10.5px;line-height:1.4;color:#6b6f76;max-height:4.2em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">For clean-label / plant-forward and snacker audiences the grey-tub, MB-logo, 2kg-format gestalt is read as a category and identity signal ('gym-bro / a different kind of person') that closes the door pre-comprehension.</div>
+      </div>
+    </div>
+    <div style="background:#f7f6f2;border-radius:9px"></div>
+    <div style="background:#f7f6f2;border-radius:9px"></div>
+    <div style="background:#f7f6f2;border-radius:9px"></div>
+    <div style="background:#f7f6f2;border-radius:9px"></div>
+  </div>
+  <div style="display:flex;gap:18px;margin-top:16px;font-size:11px;color:#6b6f76;align-items:center;flex-wrap:wrap">
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#fdeeca;border:1px solid #f0e3c8"></span>Execution — fixable in the creative</span>
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:repeating-linear-gradient(135deg,#f3f3f5 0px,#f3f3f5 3px,#dfe2e8 3px,#dfe2e8 4px);border:1px solid #dedfe4"></span>Structural — no creative tweak fixes it</span>
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;border:1.5px solid #17181a"></span>Load-bearing</span>
+  </div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="1e"><div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Problem map C — funnel spine, target split left/right</div>
+<div class="dv-card" style="width:880px">
+<div style="padding:22px 26px 24px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <span style="font-size:10px;font-weight:700;letter-spacing:.09em;color:#8a8d94">PROBLEM MAP</span>
+    <span style="font-size:12px;color:#55585e;font-variant-numeric:tabular-nums">6 problems — 4 within target · 2 outside · 4 execution · 2 structural</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 170px 1fr;margin-top:14px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#4b4e55;text-align:right;padding:0 16px 10px 0">WITHIN TARGET — 19 OF 100</div>
+    <div></div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#8a8d94;padding:0 0 10px 16px">OUTSIDE — 81 OF 100</div>
+
+    <div style="display:flex;justify-content:flex-end;align-items:center;padding:10px 0">
+      <div style="border:1.5px solid #17181a;background:#fffdf7;border-radius:9px;padding:9px 11px;max-width:300px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:2px 6px">P4</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#92400e;background:#fdeeca;border-radius:999px;padding:2px 7px">EXECUTION</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#fff;background:#17181a;border-radius:999px;padding:2px 7px">LOAD-BEARING</span></div>
+        <div style="margin-top:5px;font-size:11px;line-height:1.4;color:#3c3e43;max-height:2.8em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The one proof asset that does earn a stop — the Informed Protein seal — fires a half-second flicker but is never built into a claim the target can act on.</div>
+      </div>
+      <div style="width:16px;height:2px;background:#ddd9d1"></div>
+    </div>
+    <div style="background:linear-gradient(#e3e1dc,#e3e1dc) center/2px 100% no-repeat;display:flex;align-items:center;justify-content:center;padding:10px 0">
+      <div style="width:150px;background:#fff;border:1px solid #e0ded8;border-radius:999px;padding:6px 0;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.04)"><div style="font-size:11.5px;font-weight:600">Attention</div><div style="font-size:9.5px;color:#8a8d94;font-variant-numeric:tabular-nums">3 problems</div></div>
+    </div>
+    <div style="display:flex;justify-content:flex-start;align-items:center;padding:10px 0;gap:0">
+      <div style="width:16px;height:2px;background:#ddd9d1"></div>
+      <div style="display:flex;flex-direction:column;gap:6px;max-width:280px">
+        <div style="border:1px solid #dedfe4;background:repeating-linear-gradient(135deg,#f3f3f5 0px,#f3f3f5 6px,#ececef 6px,#ececef 7px);border-radius:8px;padding:7px 9px">
+          <div style="display:flex;align-items:center;gap:5px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#7c7f86;background:#fff;border-radius:5px;padding:1px 5px">P5</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#3f4653;background:#dfe2e8;border-radius:999px;padding:1px 7px">STRUCTURAL</span></div>
+          <div style="margin-top:4px;font-size:10.5px;line-height:1.4;color:#6b6f76;max-height:2.8em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">Among lapsed protein buyers the ad reactivates a filed negative brand memory before any proof can be read.</div>
+        </div>
+        <div style="border:1px solid #dedfe4;background:repeating-linear-gradient(135deg,#f3f3f5 0px,#f3f3f5 6px,#ececef 6px,#ececef 7px);border-radius:8px;padding:7px 9px">
+          <div style="display:flex;align-items:center;gap:5px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#7c7f86;background:#fff;border-radius:5px;padding:1px 5px">P6</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#3f4653;background:#dfe2e8;border-radius:999px;padding:1px 7px">STRUCTURAL</span><span style="font-size:9.5px;color:#9a9da3">2 types</span></div>
+          <div style="margin-top:4px;font-size:10.5px;line-height:1.4;color:#6b6f76;max-height:2.8em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">For clean-label / plant-forward and snacker audiences the grey-tub, MB-logo, 2kg-format gestalt is read as a category and identity signal ('gym-bro / a different kind of person') that closes the door pre-comprehension.</div>
+        </div>
+      </div>
+    </div>
+
+    <div></div>
+    <div style="background:linear-gradient(#e3e1dc,#e3e1dc) center/2px 100% no-repeat;display:flex;align-items:center;justify-content:center;padding:8px 0">
+      <div style="width:132px;background:#fafaf8;border:1px dashed #ddd9d1;border-radius:999px;padding:5px 0;text-align:center"><div style="font-size:11px;font-weight:600;color:#9a9da3">Comprehension</div><div style="font-size:9.5px;color:#9aa8a0;font-weight:600">Clear</div></div>
+    </div>
+    <div></div>
+
+    <div style="display:flex;justify-content:flex-end;align-items:center;padding:10px 0">
+      <div style="display:flex;flex-direction:column;gap:6px;max-width:300px">
+        <div style="border:1px solid #f0e3c8;background:#fffdf7;border-radius:9px;padding:8px 10px">
+          <div style="display:flex;align-items:center;gap:5px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:1px 5px">P1</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#92400e;background:#fdeeca;border-radius:999px;padding:1px 7px">EXECUTION</span></div>
+          <div style="margin-top:4px;font-size:11px;line-height:1.4;color:#3c3e43;max-height:2.8em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The creative presents the isolate as a familiar line-extension of a brand the target already trusts and largely already uses — so within-target recognition is instant but the ad never dramatizes a switching TRIGGER.</div>
+        </div>
+        <div style="border:1px solid #f0e3c8;background:#fffdf7;border-radius:9px;padding:8px 10px">
+          <div style="display:flex;align-items:center;gap:5px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:1px 5px">P2</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#92400e;background:#fdeeca;border-radius:999px;padding:1px 7px">EXECUTION</span></div>
+          <div style="margin-top:4px;font-size:11px;line-height:1.4;color:#3c3e43;max-height:2.8em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The single most repeated within-target friction is an unanswered price-per-serving question: the target reads 'isolate' and immediately prices in a premium the ad never shows or justifies.</div>
+        </div>
+      </div>
+      <div style="width:16px;height:2px;background:#ddd9d1"></div>
+    </div>
+    <div style="background:linear-gradient(#e3e1dc,#e3e1dc) center/2px 100% no-repeat;display:flex;align-items:center;justify-content:center;padding:10px 0">
+      <div style="width:118px;background:#fff;border:1px solid #e0ded8;border-radius:999px;padding:6px 0;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.04)"><div style="font-size:11.5px;font-weight:600">Consideration</div><div style="font-size:9.5px;color:#8a8d94;font-variant-numeric:tabular-nums">2 problems</div></div>
+    </div>
+    <div></div>
+
+    <div></div>
+    <div style="background:linear-gradient(#e3e1dc,#e3e1dc) center/2px 100% no-repeat;display:flex;align-items:center;justify-content:center;padding:8px 0">
+      <div style="width:104px;background:#fafaf8;border:1px dashed #ddd9d1;border-radius:999px;padding:5px 0;text-align:center"><div style="font-size:11px;font-weight:600;color:#9a9da3">Conversion</div><div style="font-size:9.5px;color:#9aa8a0;font-weight:600">Clear</div></div>
+    </div>
+    <div></div>
+
+    <div style="display:flex;justify-content:flex-end;align-items:center;padding:10px 0">
+      <div style="border:1px solid #f0e3c8;background:#fffdf7;border-radius:9px;padding:8px 10px;max-width:300px">
+        <div style="display:flex;align-items:center;gap:5px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#5c5f66;background:#f1f0ec;border-radius:5px;padding:1px 5px">P3</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#92400e;background:#fdeeca;border-radius:999px;padding:1px 7px">EXECUTION</span></div>
+        <div style="margin-top:4px;font-size:11px;line-height:1.4;color:#3c3e43;max-height:2.8em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">The ad delivers almost zero net-new information to the target, so recall collapses to what the buyer already knew about the brand.</div>
+      </div>
+      <div style="width:16px;height:2px;background:#ddd9d1"></div>
+    </div>
+    <div style="background:linear-gradient(#e3e1dc,#e3e1dc) center/2px 100% no-repeat;display:flex;align-items:center;justify-content:center;padding:10px 0">
+      <div style="width:90px;background:#fff;border:1px solid #e0ded8;border-radius:999px;padding:6px 0;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.04)"><div style="font-size:11.5px;font-weight:600">Recall</div><div style="font-size:9.5px;color:#8a8d94;font-variant-numeric:tabular-nums">1 problem</div></div>
+    </div>
+    <div></div>
+  </div>
+  <div style="display:flex;gap:18px;margin-top:14px;font-size:11px;color:#6b6f76;align-items:center;flex-wrap:wrap">
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#fdeeca;border:1px solid #f0e3c8"></span>Execution — fixable in the creative</span>
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:repeating-linear-gradient(135deg,#f3f3f5 0px,#f3f3f5 3px,#dfe2e8 3px,#dfe2e8 4px);border:1px solid #dedfe4"></span>Structural — no creative tweak fixes it</span>
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;border:1.5px solid #17181a"></span>Load-bearing</span>
+  </div>
+</div>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "map <a class="dv-oid" href="#1c">1c</a> with the spine pills from <a class="dv-oid" href="#1e">1e</a>" · "result <a class="dv-oid" href="#1a">1a</a> in indigo" · "truncate leads less" · "show the INCONCLUSIVE result block"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { open: {} };
+  toggle(id) { this.setState(s => ({ open: { ...s.open, [id]: !s.open[id] } })); }
+  renderVals() {
+    const o = this.state.open;
+    return {
+      p4Open: !!o.p4, p1Open: !!o.p1,
+      toggleP4: () => this.toggle('p4'), toggleP1: () => this.toggle('p1'),
+      p4Icon: o.p4 ? 'Hide ▴' : 'Details ▾', p1Icon: o.p1 ? 'Hide ▴' : 'Details ▾'
+    };
+  }
+}
+</script>
+</body>
+</html>

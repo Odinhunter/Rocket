@@ -1,0 +1,781 @@
+"""dashboard_html — the guardrails must reach the PAGE, not just the model.
+
+The port of tests/test_report_html.py onto the user's Claude Design layout. A
+guardrail that lives in ReadModel but never renders is not a guardrail, and a
+redesign is exactly when one goes missing — so every honesty surface the old
+renderer was pinned on is pinned here too, against the new markup.
+
+Four assertions are NEW, because the design as delivered did not carry them:
+
+  * the panel table is suppressed on INCONCLUSIVE (the design rendered it
+    unconditionally — a second door onto the numbers the headline hides);
+  * a problem's lead is a complete sentence and the body does not restate it;
+  * engine scoping vocabulary never reaches client copy;
+  * the panel table's fixed action columns cover every action in the data.
+
+Offline: synthetic reports, no API, no runs/ dependency.
+"""
+
+from __future__ import annotations
+
+import re
+from html import escape as html_escape
+
+from agent.dashboard_html import _split_lead, render_html
+from agent.read_model import ReadModel
+from agent.schema import (
+    ContextFitEntry, Decision, DispositionRef, Pain, Quote, Report,
+    Strength, TargetMatch, TopChange,
+)
+
+
+def _decision(**kw) -> Decision:
+    base = dict(
+        decision="ITERATE", target_action_rate=0.1111, trust="DIRECTIONAL",
+        target_action_num=2, target_action_denom=18,
+        within_dispositions=["enthusiast_macros_lifter"],
+        load_bearing_pain_id="P1", rationale="load-bearing within pain P1 is fixable",
+    )
+    base.update(kw)
+    return Decision(**base)
+
+
+def _report(decision=None, **kw) -> Report:
+    base = dict(
+        verdict="MIXED", confidence=76,
+        target_match=TargetMatch(
+            reached=[DispositionRef(disposition="enthusiast_macros_lifter",
+                                    classification="within")],
+            missed=[DispositionRef(disposition="aspirant_clean_label",
+                                   classification="outside")],
+        ),
+        top_3_changes=[TopChange(change=f"change {i}", why="because",
+                                 derives_from_pains=["P1"], lever_class="creative")
+                       for i in range(3)],
+        strengths_to_preserve=[Strength(strength="They trust the brand.")],
+        context_fit_map={"commute_scroll": ContextFitEntry(
+            verdict="mixed", friction_summary="washes past mid-commute")},
+        verbatim_consumer_voice=[Quote(quote="not for me", disposition="d",
+                                       round=1, context="c")],
+        methodology_flags=["single_within_target"],
+        decision=decision if decision is not None else _decision(),
+    )
+    base.update(kw)
+    return Report(**base)
+
+
+def _model(report: Report | None = None, **kw) -> ReadModel:
+    """Build a ReadModel the same way build_read_model does, without disk."""
+    import json
+    import tempfile
+    from pathlib import Path
+
+    from agent.read_model import build_read_model
+    report = report or _report()
+    purpose = kw.pop("purpose",
+                     report.decision.purpose if report.decision else "direct_sell")
+    td = tempfile.mkdtemp()
+    rd = Path(td) / "r"
+    rd.mkdir()
+    (rd / "run.json").write_text(json.dumps({
+        "run_id": "run_x", "status": "complete",
+        "updated_at": "2026-07-25T00:00:00+00:00",
+        "panel_health": kw.pop("panel_health", None),
+        "config": {
+            "asset": {"image_path": "", "label": kw.pop("label", "Test Creative")},
+            "category": "health_wellness_nutrition", "account_id": "demo",
+            "brand_profile_id": "b", "creative_inputs": {"purpose": purpose},
+            "declared_targeting": kw.pop("declared_targeting", "adults 25-44"),
+            "audience_spec": {"panel_size": 100},
+        },
+        "report": report.to_dict(),
+    }))
+    if "l3" in kw:
+        (rd / "l3_summary.json").write_text(json.dumps(kw.pop("l3")))
+    m = build_read_model(rd)
+    for k, v in kw.items():
+        setattr(m, k, v)
+    return m
+
+
+def _html(report: Report | None = None, **kw) -> str:
+    return render_html(_model(report, **kw), embed_image=False)
+
+
+# Section markers, in the design's fixed order.
+_WARN = 'class="rk-warn"'
+_VERDICT = 'class="rk-dec"'
+_HEADLINE = 'class="rk-headline"'
+_MAP = "PROBLEM MAP"
+_PROBLEMS = "PROBLEMS — "
+_LEVERS = "highest-leverage first"
+_FIXES = "DETAILED CHANGES"
+_WORKED = "WHAT WORKED"
+_PANEL = " SIMULATED CONSUMERS"
+_DISC = 'class="rk-disc"'
+_VOICE = "SIMULATED CONSUMER VOICE"
+_METHOD = ">METHODOLOGY<"
+
+
+def _one_pain() -> list:
+    return [Pain(id="P1", pain="The load-bearing one. Second sentence.",
+                 funnel_stage="conversion", severity="execution",
+                 within_target=True)]
+
+
+# ---- properties of the artifact ---------------------------------------
+
+
+def test_page_is_self_contained() -> None:
+    """No external CSS, font, script or image request — the page must render
+    identically served, opened from disk, or emailed.
+
+    The design linked Google Fonts and drove its interactions from a script;
+    both are gone. `<script` is the one that matters most: every expand on
+    this page is a <details>, and a script tag would mean the report silently
+    stops working the moment it is opened somewhere with a strict CSP.
+    """
+    html = _html()
+    for pattern in (r'src="https?://', r'href="https?://', r'@import', r'<script'):
+        assert not re.search(pattern, html), f"external/dynamic resource: {pattern}"
+    assert "<style>" in html
+    assert "<details" in html, "the page must expand without JavaScript"
+    print("  page is self-contained and zero-JS ✓")
+
+
+def test_the_read_renders_light_for_everyone() -> None:
+    """The report is a client deliverable. It must look the same on the brand
+    manager's laptop as it did on ours, so it does NOT follow the reader's OS
+    appearance — a report that is beige here and near-black there is a
+    variable, not a document. Light is also the design's own primary.
+
+    The dark palette is kept and stays reachable via data-theme="dark"; what
+    is forbidden is switching automatically.
+    """
+    html = _html()
+    assert "prefers-color-scheme" not in html, \
+        "the read follows the reader's OS appearance — it must not"
+    # the light ground colour is unconditional...
+    assert "--bg:#edebe6" in html
+    # ...and the dark one exists only behind an explicit opt-in
+    assert "--bg:#131416" in html, "the dark palette was deleted, not gated"
+
+    # Every dark token must sit inside a rule whose SELECTOR carries the
+    # opt-in. Checked by walking back to the enclosing `{` and reading the
+    # selector — a per-line check passes by accident here, because the dark
+    # palette is a multi-line block and its selector is on an earlier line.
+    css = html.split("<style>")[1].split("</style>")[0]
+    for hit in re.finditer(r"#131416|#1d1f23|#ececea", css):
+        open_brace = css.rfind("{", 0, hit.start())
+        assert open_brace != -1, "dark token outside any rule"
+        start = max(css.rfind("}", 0, open_brace), css.rfind("*/", 0, open_brace))
+        selector = css[start + 1:open_brace]
+        assert 'data-theme="dark"' in selector, \
+            f"a dark token applies without the opt-in: selector {selector.strip()!r}"
+    print("  the read renders light for everyone; dark is opt-in only ✓")
+
+
+def test_model_generated_text_is_escaped() -> None:
+    """Pains and quotes are LLM-authored; they can contain markup."""
+    rep = _report()
+    rep.pain_map = [Pain(
+        id="P1", pain="<script>alert('x')</script> & a \"quoted\" claim. Rest of it.",
+        funnel_stage="conversion", severity="execution", within_target=True,
+        evidence_quotes=[Quote(quote="<b>bold</b>", disposition="d", round=1,
+                               context="c")],
+    )]
+    html = _html(rep)
+    assert "<script>alert" not in html
+    assert "&lt;script&gt;" in html
+    assert "<b>bold</b>" not in html and "&lt;b&gt;bold" in html
+    print("  model-generated text is escaped ✓")
+
+
+def test_split_lead_is_a_whole_sentence_and_never_clips_mid_clause() -> None:
+    """The old renderer clipped the lead at 22 words, which cut 4 of the 6
+    pains on a real run mid-clause ("…and largely already uses — so…") and
+    then repeated the entire text from the start in the body underneath. The
+    lead is now always a complete sentence and the body is strictly what
+    follows it; the map view shortens with CSS instead of scissors."""
+    lead, rest = _split_lead("The seal flickers. It never lands.")
+    assert lead == "The seal flickers." and rest == "It never lands."
+    lead2, rest2 = _split_lead("Costs 1.5x more e.g. per serving here.")
+    assert rest2 == "" and lead2.startswith("Costs 1.5x")
+
+    long_first = (
+        "The creative presents the isolate as a familiar line-extension of a "
+        "brand the target already trusts and largely already uses — so "
+        "within-target recognition is instant but the ad never dramatizes a "
+        "switching trigger. And then a second sentence."
+    )
+    lead3, rest3 = _split_lead(long_first)
+    assert lead3.endswith("switching trigger."), lead3
+    assert "…" not in lead3 and not lead3.endswith("—"), "lead was clipped mid-clause"
+    assert rest3 == "And then a second sentence."
+    assert not rest3.startswith(lead3[:20]), "the body restates the lead"
+    print("  lead is a whole sentence; the body never restates it ✓")
+
+
+# ---- the guardrails, on the page --------------------------------------
+
+
+def test_disclaimer_always_renders() -> None:
+    """E3: one prominent, honest disclaimer on every read."""
+    html = _html()
+    assert "simulated persona" in html and "not a survey" in html
+    assert _DISC in html, "the disclaimer must keep its own bordered block"
+    print("  E3: model-inferred disclaimer on the page ✓")
+
+
+def test_inconclusive_page_shows_no_action_rate() -> None:
+    """The strongest rule: an untrustworthy read shows no confident number."""
+    d = _decision(decision="INCONCLUSIVE", target_action_rate=0.42,
+                  target_action_num=8, target_action_denom=19,
+                  by_cycle_position={"mid_cycle": {"rate": .5, "num": 4, "denom": 8}},
+                  research_rate=0.3, research_num=6, research_denom=19)
+    html = _html(_report(d, methodology_flags=["pool_archetype_mismatch"]))
+    assert "INCONCLUSIVE" in html
+    for forbidden in ("42%", "8 of 19", "would buy", "GLANCE RESPONSE",
+                      "PURCHASE CYCLE", "30%", _HEADLINE):
+        assert forbidden not in html, f"INCONCLUSIVE page leaked {forbidden!r}"
+    assert "isn&#x27;t represented in your disposition library" in html
+    print("  INCONCLUSIVE page shows no rate, headline, glance or cycle ✓")
+
+
+def test_a4_cycle_breakdown_renders_with_its_blend_caveat() -> None:
+    """A4: the per-cycle breakdown accompanies the blended headline, so the
+    headline never hides its cycle-mix assumption — the rows AND the reason
+    they are there."""
+    d = _decision(by_cycle_position={
+        "running_low": {"rate": 0.0, "num": 0, "denom": 5},
+        "mid_cycle": {"rate": 0.222, "num": 2, "denom": 9},
+        "just_bought": {"rate": 0.0, "num": 0, "denom": 4},
+    })
+    html = _html(_report(d))
+    assert "PURCHASE CYCLE" in html
+    assert "Running low" in html and "0 of 5" in html and "2 of 9" in html
+    assert "read the rows, not just the blend" in html
+    print("  A4: per-cycle breakdown renders with the blend caveat ✓")
+
+
+def test_a3_research_is_reported_separately_never_as_a_sale() -> None:
+    html = _html(_report(_decision(
+        research_rate=0.2222, research_num=4, research_denom=18)))
+    assert "would look it up first" in html
+    assert "research, not a purchase" in html
+    # ...and it is not folded into the buy line. Scoped to the headline element
+    # itself: a slice of the surrounding markup would swallow the separate line
+    # this test exists to keep separate, and pass for the wrong reason.
+    headline = re.search(r'<div class="rk-headline">(.*?)</div>', html, re.S)
+    assert headline, "no headline rendered"
+    assert "22%" not in headline.group(1), \
+        "the research rate leaked into the buy headline"
+    assert "11%" in headline.group(1), "the buy rate is the headline"
+    print("  A3: research reported separately, labelled not-a-sale ✓")
+
+
+def test_a7_coherence_warning_renders() -> None:
+    html = _html(_report(_decision(coherence_incoherent=True)))
+    assert "COHERENCE" in html and "caution" in html
+    print("  A7: coherence warning renders ✓")
+
+
+def test_f3_scope_note_renders_for_unanchored_jobs() -> None:
+    html = _html(_report(_decision(purpose="brand_building")),
+                 purpose="brand_building")
+    assert "BETA" in html and "HOW FAR TO TRUST IT" in html
+    assert "BETA" not in _html(), "an anchored job must not cry wolf"
+    print("  F3: launch-scope caveat renders only for unanchored jobs ✓")
+
+
+def test_flags_render_in_plain_words_not_engine_tokens() -> None:
+    """The flag reaches the page — but as a sentence, not as the token. A
+    brand manager cannot act on `single_within_target`."""
+    html = _html()
+    assert "Only one consumer type fell within the declared target" in html
+    assert "single_within_target" not in html, "raw flag token leaked to the client"
+    print("  methodology flags render in plain words ✓")
+
+
+def test_provisional_dispositions_and_engine_read_reach_methodology() -> None:
+    html = _html(_report(provisional_dispositions=["skeptic_new_thing"]))
+    assert "PROVISIONAL DISPOSITIONS" in html and "skeptic new thing" in html
+    assert "MIXED" in html and "76/100" in html
+    print("  provisional dispositions + engine read reach methodology ✓")
+
+
+def test_audience_verdict_renders_in_both_directions() -> None:
+    """v2.1: a confident headline must never sit over a silent mismatch — and
+    the check passing is a claim worth stating too."""
+    from agent.schema import AudienceMatch
+    rep = _report()
+    rep.audience_match = AudienceMatch(
+        verdict="mismatched", declared_summary="men 18-24",
+        inferred_summary="women 35-54",
+        message="The creative's apparent target (women 35-54) does not match the "
+                "declared audience (men 18-24).")
+    html = _html(rep)
+    # Scoped to the warnings strip, not to the page. The run header carries a
+    # mismatch chip too, so a page-wide search passes on that alone while the
+    # pinned surface — the strip above the result — is gone.
+    strip = re.search(r'<div class="rk-warn">(.*?)</div></div>', html, re.S)
+    assert strip, "no warnings strip rendered for a mismatched read"
+    assert "AUDIENCE MISMATCH" in strip.group(1), \
+        "the mismatch left the warnings strip"
+    assert "women 35-54" in html and "men 18-24" in html
+
+    rep2 = _report()
+    rep2.audience_match = AudienceMatch(
+        verdict="aligned", declared_summary="adults 25-44",
+        inferred_summary="adults 25-44", message="consistent with the buy")
+    html2 = _html(rep2)
+    assert "AUDIENCE MISMATCH" not in html2, "an aligned read must not cry wolf"
+    assert "AUDIENCE ALIGNED" in html2 and "consistent with the buy" in html2
+    print("  v2.1: mismatch warns, alignment is stated, neither is silent ✓")
+
+
+def test_funnel_projection_is_explained_not_dropped() -> None:
+    from agent.schema import FunnelProjection, FunnelRates
+    rep = _report()
+    rep.funnel_projection = FunnelProjection(overall=FunnelRates(
+        stop_rate=.1, stop_band=(.05, .15), click_rate=.01, click_band=(.005, .02),
+        visit_rate=.008, visit_band=(.004, .012), convert_rate=.001,
+        convert_band=(.0005, .002)))
+    assert "not charted here" in _html(rep)
+    assert "not fitted to in-market outcomes" in _html()
+    print("  funnel explained whether off or computed-but-withheld ✓")
+
+
+def test_engine_scoping_vocabulary_never_reaches_the_page() -> None:
+    """Out-of-target pains arrive prefixed with the assess pass's own scoping
+    note. The page already carries within/outside as a visual state, so the
+    prefix is a duplicate — and it is engine jargon, verbatim, opening a
+    sentence a client reads."""
+    rep = _report()
+    rep.pain_map = [Pain(
+        id="P5",
+        pain=("OUTSIDE-TARGET CONTEXT (not verdict-load-bearing): among lapsed "
+              "buyers the ad reactivates a filed negative memory. And more."),
+        funnel_stage="attention", severity="structural", within_target=False)]
+    html = _html(rep)
+    assert "OUTSIDE-TARGET CONTEXT" not in html
+    assert "verdict-load-bearing" not in html
+    assert "Among lapsed buyers" in html, "the pain itself must survive the strip"
+    assert "OUTSIDE TARGET" in html, "the scope is still carried — as a chip"
+    print("  engine scoping vocabulary stripped; the scope stays as data ✓")
+
+
+def test_pain_lead_is_whole_and_the_body_adds_rather_than_repeats() -> None:
+    long_pain = (
+        "The creative reaches its within-target audience as recognized-but-inert "
+        "because every enthusiast already runs the sibling SKU and instantly "
+        "frames this as a lateral variant rather than a genuine upgrade with a "
+        "distinct payoff worth paying more for. Second sentence here."
+    )
+    rep = _report(strengths_to_preserve=[], top_3_changes=[])
+    rep.pain_map = [Pain(id="P1", pain=long_pain, funnel_stage="consideration",
+                         severity="execution", within_target=True)]
+    html = _html(rep)
+    section = html.split(_PROBLEMS)[1]
+    lead = re.search(r'<div class="lead"[^>]*>(.*?)</div>', section, re.S)
+    assert lead, "problem card rendered no lead"
+    text = lead.group(1).strip()
+    assert text.endswith("worth paying more for."), text[-60:]
+    assert "…" not in text, "the lead was clipped mid-clause"
+    # the second sentence survives, and the first is not printed twice
+    assert "Second sentence here." in section
+    assert section.count("recognized-but-inert") == 1, \
+        "the expanded body repeats the lead it sits under"
+    print("  pain lead is whole; the body adds instead of repeating ✓")
+
+
+def test_panel_degradation_renders() -> None:
+    html = _html(panel_health={"degraded": True, "succeeded": 96, "expected": 100})
+    assert "PANEL" in html and "96 of 100" in html
+    print("  panel degradation renders ✓")
+
+
+def test_within_target_pains_lead_even_when_they_leak_later() -> None:
+    """Within-target pains gate the decision, so they sort first — ahead of an
+    out-of-target pain that leaks at an EARLIER funnel stage. The fixture
+    deliberately carries no load-bearing pain: with one, load-bearing-first
+    ordering satisfies this assertion on its own and the within-target rule
+    goes untested.
+    """
+    rep = _report(_decision(load_bearing_pain_id=""))
+    rep.pain_map = [
+        Pain(id="P9", pain="An outside-target pain. Second sentence.",
+             funnel_stage="attention", severity="execution", within_target=False),
+        Pain(id="P1", pain="A within-target pain. Second sentence.",
+             funnel_stage="conversion", severity="execution", within_target=True),
+    ]
+    cards = _html(rep).split(_PROBLEMS)[1]
+    assert cards.index("A within-target pain") < cards.index("An outside-target pain"), \
+        "a within-target pain must lead an earlier-stage outside-target one"
+    assert "OUTSIDE TARGET" in cards and "WITHIN TARGET" in cards
+    print("  within-target pains lead, even when they leak later ✓")
+
+
+def test_load_bearing_pain_is_marked_on_the_card_not_only_the_map() -> None:
+    """The map and the cards both mark it. Asserting page-wide passes on the
+    map alone, so the card — the surface a reader actually opens — is checked
+    on its own."""
+    rep = _report()
+    rep.pain_map = [
+        Pain(id="P9", pain="An outside-target pain. Second sentence.",
+             funnel_stage="attention", severity="execution", within_target=False),
+        Pain(id="P1", pain="The load-bearing one. Second sentence.",
+             funnel_stage="conversion", severity="execution", within_target=True),
+    ]
+    html = _html(rep)
+    cards = html.split(_PROBLEMS)[1]
+    assert "LOAD-BEARING" in cards, "the load-bearing marker never reached the cards"
+    assert cards.index("The load-bearing one") < cards.index("An outside-target pain")
+    print("  the load-bearing pain is marked on the card, and leads ✓")
+
+
+# ---- page order — the design's fixed sequence --------------------------
+
+
+def test_page_renders_the_designed_section_order() -> None:
+    """header -> warnings -> result -> problem map -> problems -> fixes ->
+    what worked -> panel -> disclaimer -> extras -> methodology.
+
+    This order is the user's design and is fixed. The one placement inside it
+    that carries honesty weight is the warnings strip, pinned above the result
+    — see the caveat test below.
+    """
+    rep = _report(bet_ranking=["lever one"])
+    rep.pain_map = _one_pain()
+    html = _html(rep, l3={"segment_behavioral_distributions": _PANEL_DISTS})
+    # Each marker must identify one element. The methodology block also says
+    # "N simulated consumers"; if the panel marker ever matched that instead,
+    # this test would be asserting the order of the wrong thing and passing.
+    for marker in (_WARN, _VERDICT, _HEADLINE, _MAP, _PANEL, _DISC, _METHOD):
+        assert html.count(marker) == 1, f"ambiguous section marker: {marker!r}"
+    beats = [
+        ("warnings", html.index(_WARN)),
+        ("result", html.index(_VERDICT)),
+        ("problem map", html.index(_MAP)),
+        ("problems", html.index(_PROBLEMS)),
+        ("levers", html.index(_LEVERS)),
+        ("detailed changes", html.index(_FIXES)),
+        ("what worked", html.index(_WORKED)),
+        ("panel", html.index(_PANEL)),
+        ("disclaimer", html.index(_DISC)),
+        ("extras", html.index(_VOICE)),
+        ("methodology", html.index(_METHOD)),
+    ]
+    for (name_a, at_a), (name_b, at_b) in zip(beats, beats[1:]):
+        assert at_a < at_b, f"{name_b} must follow {name_a}, not precede it"
+    print("  the designed section order holds end to end ✓")
+
+
+def test_the_problem_map_is_the_hero_and_leads_the_diagnosis() -> None:
+    """The headline number cannot lead: under v3 buy-intent reads 0% on six of
+    the last eight runs. The map is what actually differs between a good read
+    and a bad one, so it comes before the problem cards it summarises."""
+    rep = _report()
+    rep.pain_map = _one_pain()
+    html = _html(rep)
+    assert html.index(_MAP) < html.index(_PROBLEMS)
+    assert html.index(_HEADLINE) < html.index(_MAP), \
+        "the map belongs to the diagnosis, after the result"
+    print("  the problem map leads the diagnosis ✓")
+
+
+def test_verdict_caveat_survives_every_decision_state() -> None:
+    """A guardrail conditional on state is a guardrail that gets missed. The
+    bucket leads the page in every state, so its caveat rides with it in every
+    state — including INCONCLUSIVE, where the card renders differently."""
+    from agent.read_model import VERDICT_CAVEAT
+    escaped = html_escape(VERDICT_CAVEAT)
+    for decision in ("ITERATE", "SCALE", "RETARGET", "REBUILD", "INCONCLUSIVE"):
+        rate = None if decision == "INCONCLUSIVE" else 0.11
+        rep = _report(_decision(decision=decision, target_action_rate=rate,
+                                within_dispositions=[] if rate is None
+                                else ["enthusiast_macros_lifter"]))
+        rep.pain_map = _one_pain()
+        html = _html(rep)
+        assert escaped in html, f"verdict caveat missing on {decision}"
+        assert html.index(_VERDICT) < html.index(escaped) < html.index(_MAP), \
+            f"the caveat escaped the decision card on {decision}"
+    print("  the verdict never renders without its caveat, in any state ✓")
+
+
+def test_ranked_levers_stay_adjacent_to_the_fixes_they_summarise() -> None:
+    """The lever list is the summary and the changes are the detail behind it.
+    The heading is decision-keyed call-to-action copy ("TO GET A TRUSTWORTHY
+    READ:" on INCONCLUSIVE), so separating them reads as two competing
+    prescriptions."""
+    rep = _report(bet_ranking=["lever one", "lever two"])
+    rep.pain_map = _one_pain()
+    html = _html(rep)
+    assert html.index(_PROBLEMS) < html.index(_LEVERS) < html.index(_FIXES)
+    between = html[html.index(_LEVERS):html.index(_FIXES)]
+    assert _WORKED not in between and _PANEL not in between, \
+        "a section wedged between the levers and the fixes they summarise"
+    print("  ranked levers stay adjacent to the fixes they summarise ✓")
+
+
+def test_every_caveat_precedes_the_result_it_qualifies() -> None:
+    """A caveat read after the number is not a caveat. Three of these qualify
+    the NUMBERS, not the diagnosis — coherence qualifies the buy figure,
+    launch scope the headline metric, panel degradation every denominator — so
+    asserting only that they precede the problem cards would pass while each
+    still arrived after the figure it exists to qualify."""
+    from agent.schema import AudienceMatch
+    rep = _report()
+    rep.audience_match = AudienceMatch(
+        verdict="mismatched", declared_summary="men 18-24",
+        inferred_summary="women 35-54",
+        message="The creative's apparent target does not match the declared audience.")
+    rep.pain_map = _one_pain()
+    html = _html(rep, panel_health={"degraded": True, "succeeded": 96,
+                                    "expected": 100},
+                 scope_note="brand-building is BETA",
+                 coherence_warning="buy intent contradicts the glance")
+    verdict_at = html.index(_VERDICT)
+    headline_at = html.index(_HEADLINE)
+    pains_at = html.index(_PROBLEMS)
+    for label in ("AUDIENCE MISMATCH", "HOW FAR TO TRUST IT", "COHERENCE",
+                  "96 of 100", "Only one consumer type"):
+        assert label in html, f"warning missing entirely: {label}"
+        at = html.index(label)
+        assert at < verdict_at, f"{label!r} rendered after the verdict it qualifies"
+        assert at < headline_at, f"{label!r} rendered after the number it qualifies"
+        assert at < pains_at, f"{label!r} rendered after the diagnosis it qualifies"
+    print("  every caveat precedes the verdict, the number AND the diagnosis ✓")
+
+
+def test_inconclusive_says_so_before_any_diagnosis() -> None:
+    """When the engine does not trust its own read, leading with the diagnosis
+    is actively wrong. The untrustworthy notice comes first, exactly once, and
+    no action rate appears at all."""
+    d = _decision(decision="INCONCLUSIVE", target_action_rate=None,
+                  within_dispositions=[], rationale="no within-target read")
+    rep = _report(d)
+    rep.pain_map = [
+        Pain(id="P1", pain="A pain the engine does not stand behind. Second.",
+             funnel_stage="conversion", severity="execution", within_target=True),
+    ]
+    html = _html(rep)
+    notice = "isn&#x27;t trustworthy yet"
+    assert notice in html, "INCONCLUSIVE notice missing"
+    assert html.index(notice) < html.index(_PROBLEMS), \
+        "INCONCLUSIVE must be stated before the diagnosis is read"
+    assert _HEADLINE not in html, "INCONCLUSIVE must not render an action rate"
+    assert html.count(notice) == 1, \
+        "INCONCLUSIVE tagline rendered twice — the second points at nothing"
+    print("  INCONCLUSIVE notice precedes the diagnosis, once, with no numbers ✓")
+
+
+def test_empty_diagnosis_drops_both_of_its_beats_cleanly() -> None:
+    """No pains means BOTH the map and the problem cards vanish — the map is
+    derived from the same pain_map, so an empty one must not leave a heading
+    over an empty grid."""
+    rep = _report()
+    rep.pain_map = []
+    html = _html(rep)
+    assert _MAP not in html, "the problem map left a heading with no problems"
+    assert _PROBLEMS not in html, "the problem section left a shell"
+    assert _FIXES in html, "the solutions beat must survive an empty diagnosis"
+    assert html.index(_VERDICT) < html.index(_HEADLINE) < html.index(_FIXES)
+    print("  empty diagnosis drops both beats cleanly, story still ordered ✓")
+
+
+def test_problem_map_counts_and_never_loses_a_funnel_stage() -> None:
+    """The map is the beat that makes the pattern visible: how many problems,
+    how many land on the audience being bought, how many are structural, and
+    where in the funnel they sit. A stage with nothing wrong must read Clear
+    rather than vanish — a renderer holding four stages against a schema of
+    five silently dropped every `recall` pain once already."""
+    rep = _report()
+    rep.pain_map = [
+        Pain(id="P1", pain="Generic stock opening. Second sentence.",
+             funnel_stage="attention", severity="execution", within_target=True,
+             cited_by=["enthusiast_macros_lifter", "aspirant_clean_label"]),
+        Pain(id="P2", pain="Price framing misreads. Second sentence.",
+             funnel_stage="comprehension", severity="execution", within_target=True),
+        Pain(id="P3", pain="No reason to switch brands. Second sentence.",
+             funnel_stage="recall", severity="structural", within_target=False),
+    ]
+    html = _html(rep)
+    assert ("3 problems — 2 within target · 1 outside · 2 execution · 1 structural"
+            in html)
+    for stage in ("Attention", "Comprehension", "Consideration", "Conversion",
+                  "Recall"):
+        assert stage in html, f"funnel stage missing from the map: {stage}"
+    assert html.count(">Clear</div>") == 2, \
+        "stages with no problems must read Clear, not disappear"
+    assert "2 types" in html, "breadth must render"
+    assert "LOAD-BEARING" in html, "the one to fix first must be marked"
+    print("  the map counts, keeps every stage, marks the load-bearing one ✓")
+
+
+# ---- the panel table ---------------------------------------------------
+
+
+_PANEL_DISTS = {
+    "enthusiast_macros_lifter::moderate": {
+        "counts": {"scroll_past": 14, "linger": 4},
+        "next_step_counts": {"nothing": 12, "buy_at_restock": 2, "research_first": 4}},
+    "skeptic_lapsed_protein::moderate": {
+        "counts": {"scroll_past": 12, "linger": 2, "save": 1},
+        "next_step_counts": {"nothing": 12, "mention_to_someone": 3}},
+}
+
+
+def _panel_html(within, dists, **kw):
+    rep = _report(_decision(within_dispositions=within, **kw))
+    rep.pain_map = _one_pain()
+    return _html(rep, l3={"segment_behavioral_distributions": dists})
+
+
+def test_panel_table_shows_out_of_target_types_the_headline_hides() -> None:
+    """The table exists because the in-target slice cannot answer 'who else
+    responded'. Out-of-target rows, their counts and their next steps must all
+    reach the page."""
+    html = _panel_html(["enthusiast_macros_lifter"], _PANEL_DISTS)
+    assert "enthusiast macros lifter" in html and "skeptic lapsed protein" in html
+    assert "TARGET" in html, "the in-target row must be marked"
+    assert "3 would mention it to someone" in html, \
+        "an out-of-target next step must reach the page — it is word of mouth"
+    assert "All 33 people in the panel" in html, "the real denominator"
+    print("  panel table renders out-of-target types + their next steps ✓")
+
+
+def test_panel_table_is_suppressed_on_an_inconclusive_read() -> None:
+    """NEW against the design, which rendered this table unconditionally. An
+    untrustworthy read must not show response rates by ANY route, and the
+    table is a second door onto the numbers the headline hides."""
+    html = _panel_html([], _PANEL_DISTS, decision="INCONCLUSIVE",
+                       target_action_rate=None, rationale="no within-target read")
+    assert 'class="rk-tbl"' not in html, "no response-rate table by any route"
+    assert "skeptic lapsed protein" not in html, \
+        "INCONCLUSIVE leaked per-type response data"
+    print("  panel table suppressed on INCONCLUSIVE ✓")
+
+
+def test_panel_table_vanishes_cleanly_with_no_l3() -> None:
+    rep = _report()
+    rep.pain_map = _one_pain()
+    html = _html(rep)                     # no l3 at all
+    assert 'class="rk-tbl"' not in html
+    assert _HEADLINE in html, "the rest of the result beat still renders"
+    print("  panel table vanishes cleanly when there is no L3 ✓")
+
+
+def test_panel_columns_cover_every_action_or_say_so() -> None:
+    """The table's action columns are a hand-maintained list inside a
+    renderer — the exact shape that lost every saver from the denominator
+    once before. An action with no column is reported underneath rather than
+    silently dropped."""
+    dists = {
+        "enthusiast_macros_lifter::moderate": {
+            "counts": {"scroll_past": 10, "linger": 3, "save": 1, "tap_cta": 2,
+                       "share": 1},
+            "next_step_counts": {"nothing": 12, "buy_at_restock": 5}},
+    }
+    html = _panel_html(["enthusiast_macros_lifter"], dists)
+    assert "without a column above" in html
+    assert "2 tap cta" in html and "1 share" in html, \
+        "an uncovered action vanished from the page"
+    # and the row's own n still counts everyone
+    assert ">17<" in html, "the row total must include the uncovered actions"
+    print("  actions with no column are reported, never dropped ✓")
+
+
+def test_decoupling_note_renders_when_outsiders_out_respond_the_target() -> None:
+    """Real on ProSki: an in-target type went 23/23 scroll-past while the
+    outsiders out-responded them. It is invisible on every in-target-only
+    view, which is the entire reason the table exists."""
+    dists = {
+        "enthusiast_macros_lifter::moderate": {
+            "counts": {"scroll_past": 20},
+            "next_step_counts": {"nothing": 20}},
+        "switcher_results_chaser::moderate": {
+            "counts": {"scroll_past": 12, "linger": 8},
+            "next_step_counts": {"nothing": 12, "research_first": 8}},
+    }
+    html = _panel_html(["enthusiast_macros_lifter"], dists)
+    assert "The people you are NOT buying responded more" in html
+    # ...and the EVERYONE ELSE bar says so too. The design drew a flat block
+    # there because everyone outside scrolled on the run it was built from; a
+    # bar that cannot show the difference reports "nobody" on a run like this.
+    assert "8 of 20 did something other than scroll past" in html
+    assert "Scrolled past — 20 of 20" not in html, \
+        "the outside bar claimed a clean scroll-past over 8 responders"
+    # The bar itself is drawn from the OUTSIDE slice alone. Checking only the
+    # legend leaves the segments free to be pooled across the whole panel,
+    # which on a narrow ad is the outside bar plus the target's 20 scrollers.
+    bar = html.split("EVERYONE ELSE")[1].split("did something other")[0]
+    assert "flex:12" in bar and "flex:8" in bar, bar
+    assert "flex:32" not in bar, "the target was pooled into the outside bar"
+    print("  the decoupling note and the outside bar both reach the page ✓")
+
+
+def test_the_denominator_stays_legible_on_the_page() -> None:
+    """An 18-of-100 panel is not a small sample by accident — it is one
+    audience type out of six. The old renderer said so with a 'who it reached'
+    chip row; this design carries the same property in the map's zone labels
+    and the panel table's TARGET badge, so the property is pinned, not the
+    widget."""
+    html = _panel_html(["enthusiast_macros_lifter"], _PANEL_DISTS)
+    assert "WITHIN TARGET — 18 OF 33" in html
+    assert "OUTSIDE — 15 OF 33" in html
+    assert "not just the 18 you&#x27;re buying" in html
+    print("  the in-target denominator is legible without the reach widget ✓")
+
+
+# ---- empty / degenerate shapes ----------------------------------------
+
+
+def test_empty_sections_are_omitted_not_broken() -> None:
+    rep = _report(
+        top_3_changes=[], strengths_to_preserve=[], context_fit_map={},
+        verbatim_consumer_voice=[], bet_ranking=[],
+    )
+    rep.pain_map = []
+    rep.target_match = TargetMatch()
+    html = _html(rep)
+    for absent in (_FIXES, _WORKED, _VOICE, _MAP, _PROBLEMS, "WHERE IT LANDS"):
+        assert absent not in html, f"empty section rendered a shell: {absent}"
+    assert "ITERATE" in html and "simulated persona" in html
+    print("  empty sections omitted; decision + disclaimer still render ✓")
+
+
+def test_no_glance_data_means_no_glance_bar() -> None:
+    """An empty glance is 'no data', never a 0% bar."""
+    html = _html()  # no l3_summary.json written
+    assert "GLANCE RESPONSE" not in html
+    print("  missing glance data -> no bar (not a false 0%) ✓")
+
+
+def test_retarget_champion_line_renders_and_handles_null_rate() -> None:
+    d = _decision(decision="RETARGET", champion_disposition="switcher_results_chaser",
+                  champion_action_rate=None)
+    html = _html(_report(d))
+    assert "Right ad, wrong person" in html
+    assert "switcher results chaser" in html
+    assert "None" not in html.split("Right ad, wrong person")[1][:200]
+    print("  RETARGET champion line renders, null rate handled ✓")
+
+
+def test_blinded_shape_degrades_without_leaving_empty_furniture() -> None:
+    """The decoy render strips the label, the creative, the run id and the
+    declared targeting. Each of those has its own block in this header, and an
+    empty block is both a visual defect and a hint."""
+    m = _model(declared_targeting="")
+    m.asset_label = "Read A"
+    m.asset_path = None
+    m.run_id = "read-a"
+    m.declared_audience = ""
+    m.audience_aligned = None
+    html = render_html(m, embed_image=False)
+    assert "DECLARED TARGETING" not in html, "empty targeting row rendered"
+    assert "AUDIENCE ALIGNED" not in html and "AUDIENCE MISMATCH" not in html
+    assert "data:image" not in html, "a creative was embedded into a blinded read"
+    assert "Read A" in html and "simulated persona" in html, \
+        "the diagnosis and its disclaimer must survive blinding"
+    print("  blinded shape degrades cleanly, guardrails intact ✓")

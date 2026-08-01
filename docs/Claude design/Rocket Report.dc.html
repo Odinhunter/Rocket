@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;color:var(--ink);background:var(--bg);
+--bg:#edebe6;--card:#fff;--card2:#faf9f7;--ink:#17181a;--body:#26282c;--txt:#3c3e43;--soft:#55585e;--muted:#6b6f76;--faint:#8a8d94;--ghost:#b0b3b9;
+--line:#eceae5;--line2:#e7e5e0;--chipbg:#f1f0ec;--shadow:0 1px 3px rgba(0,0,0,.05);
+--accent:#0f8a6d;--accent-deep:#0b6b55;--accent-tint:#e8f2ee;--accent-line:#dcebe4;--zone:#f7f6f2;
+--warnbg:#fdf6e9;--warnline:#f0e0bd;--warntag:#92400e;
+--execbg:#fffdf7;--execline:#f0e3c8;--exectag:#92400e;--exectagbg:#fdeeca;
+--structstripe:repeating-linear-gradient(135deg,#f3f3f5 0px,#f3f3f5 6px,#ececef 6px,#ececef 7px);--structline:#dedfe4;--structtag:#3f4653;--structtagbg:#dfe2e8;
+--quotebg:#faf9f6;--quoteline:#eceae3;--baridle:#e9e7e1;--barmid:#82c3b1;--outsidebar:#efede8;
+--spine:#e3e1dc;--pillbd:#e0ded8;--loadring:#17181a;--onload:#fff;--decbg:#b45309}
+body[data-decision="SCALE"]{--decbg:#15803d}
+body[data-decision="ITERATE"]{--decbg:#b45309}
+body[data-decision="RETARGET"]{--decbg:#1e56c2}
+body[data-decision="REBUILD"]{--decbg:#b91c1c}
+body[data-decision="INCONCLUSIVE"]{--decbg:#475569}
+body[data-theme="dark"]{--bg:#131416;--card:#1d1f23;--card2:#191b1e;--ink:#ececea;--body:#dededb;--txt:#c9cac6;--soft:#aaabaa;--muted:#96979a;--faint:#7f8287;--ghost:#63666c;
+--line:#2c2e33;--line2:#33363c;--chipbg:#2a2c31;--shadow:0 1px 3px rgba(0,0,0,.4);
+--accent:#37b393;--accent-deep:#52c8a8;--accent-tint:#143229;--accent-line:#1d4237;--zone:#17181b;
+--warnbg:#282214;--warnline:#4a3c20;--warntag:#e0a45c;
+--execbg:#242019;--execline:#453a21;--exectag:#e8b46a;--exectagbg:#3d331d;
+--structstripe:repeating-linear-gradient(135deg,#232529 0px,#232529 6px,#2b2d32 6px,#2b2d32 7px);--structline:#3a3d44;--structtag:#b9bfc9;--structtagbg:#333841;
+--quotebg:#212327;--quoteline:#2e3035;--baridle:#32343a;--barmid:#3d7c6a;--outsidebar:#26282c;
+--spine:#2e3036;--pillbd:#33363c;--loadring:#ececea;--onload:#131416}
+a{color:var(--accent)}a:hover{color:var(--accent-deep)}
+input{font-family:inherit}
+</style>
+</helmet>
+<div style="min-height:100vh;background:var(--bg)">
+<div style="height:56px;background:var(--card);border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:20px;padding:0 20px;position:sticky;top:0;z-index:30">
+  <div style="display:flex;align-items:center;gap:9px;width:200px"><span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span><span style="font-size:15.5px;font-weight:700;letter-spacing:-.01em">Rocket</span></div>
+  <div style="flex:1;max-width:340px;background:var(--chipbg);border-radius:8px;padding:8px 13px;font-size:12.5px;color:var(--faint)">Search</div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px"><span style="width:30px;height:30px;border-radius:50%;background:var(--accent-tint);color:var(--accent-deep);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center">BM</span><span style="font-size:11px;color:var(--faint)">▾</span></div>
+</div>
+<div style="display:flex;align-items:flex-start">
+<div style="width:212px;flex:none;position:sticky;top:56px;height:calc(100vh - 56px);background:var(--card);border-right:1px solid var(--line2);padding:16px 12px;box-sizing:border-box;display:flex;flex-direction:column;gap:2px">
+  <div style="background:var(--accent-tint);color:var(--accent-deep);font-size:13px;font-weight:600;padding:9px 12px;border-radius:8px;cursor:pointer">Reads</div>
+  <div style="color:var(--soft);font-size:13px;padding:9px 12px;border-radius:8px;cursor:pointer" style-hover="background:var(--chipbg)">New read</div>
+  <div style="color:var(--soft);font-size:13px;padding:9px 12px;border-radius:8px;cursor:pointer" style-hover="background:var(--chipbg)">Sessions</div>
+  <div style="color:var(--soft);font-size:13px;padding:9px 12px;border-radius:8px;cursor:pointer" style-hover="background:var(--chipbg)">Library</div>
+  <div style="color:var(--soft);font-size:13px;padding:9px 12px;border-radius:8px;cursor:pointer" style-hover="background:var(--chipbg)">Settings</div>
+</div>
+<div style="flex:1;min-width:0;padding:26px 32px 60px">
+<div style="max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+
+<div style="background:var(--card);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);padding:20px 24px;display:flex;gap:18px;align-items:flex-start">
+  <div style="width:120px;height:120px;flex:none;border-radius:10px;border:1px solid var(--line2);background:var(--structstripe);display:flex;align-items:center;justify-content:center;cursor:zoom-in" onClick="{{ openLb }}"><span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;color:var(--faint);text-align:center;line-height:1.5">ad creative<br>click to enlarge</span></div>
+  <div style="flex:1;min-width:0">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:17px;font-weight:600;letter-spacing:-.01em">{{ rAsset }}</span>
+      <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:var(--soft);background:var(--chipbg);border-radius:999px;padding:3px 9px">{{ rJob }}</span>
+    </div>
+    <div style="margin-top:5px;font-size:12.5px;color:var(--muted)">{{ rMeta }}</div>
+    <div style="margin-top:12px;font-size:12px;color:var(--soft)"><span style="font-weight:600;color:var(--faint);font-size:10px;letter-spacing:.07em">DECLARED TARGETING&nbsp;&nbsp;</span>{{ rTargeting }}</div>
+    <div style="margin-top:7px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+      <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:{{ audCol }};background:{{ audBg }};border-radius:999px;padding:3px 9px;white-space:nowrap">{{ audLabel }}</span>
+      <span style="font-size:12px;color:var(--muted);line-height:1.5">{{ audMsg }}</span>
+    </div>
+  </div>
+  <div style="flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+    <span style="background:var(--accent);color:#fff;font-size:12.5px;font-weight:600;padding:8px 16px;border-radius:8px;cursor:pointer">Export</span>
+    <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:var(--ghost);max-width:170px;word-break:break-all;text-align:right;line-height:1.5">{{ rRunId }}</span>
+  </div>
+</div>
+
+<sc-if value="{{ hasWarnings }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--warnbg);border:1px solid var(--warnline);border-radius:12px">
+  <sc-for list="{{ warnings }}" as="w" hint-placeholder-count="1">
+    <div style="display:flex;gap:12px;padding:11px 18px;align-items:baseline;border-top:{{ w.bt }}">
+      <span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;color:var(--warntag);width:128px">{{ w.tag }}</span>
+      <span style="font-size:12.5px;line-height:1.55;color:var(--txt)">{{ w.text }}</span>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isInc }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--card);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);padding:22px 26px 26px">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="background:var(--decbg);color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;padding:6px 13px;border-radius:8px">{{ decision }}</span>
+    <span style="font-size:13.5px;font-weight:500;color:var(--txt);line-height:1.4">{{ tagline }}</span>
+  </div>
+  <div style="height:1px;background:var(--line);margin:18px 0"></div>
+  <div style="font-size:21px;font-weight:600;line-height:1.35;letter-spacing:-.01em;text-wrap:pretty">{{ incMain }}</div>
+  <sc-for list="{{ incRest }}" as="r" hint-placeholder-count="2">
+    <div style="margin-top:8px;font-size:13.5px;line-height:1.55;color:var(--soft)">{{ r.text }}</div>
+  </sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasNumbers }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--card);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);padding:22px 26px 26px">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="background:var(--decbg);color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;padding:6px 13px;border-radius:8px">{{ decision }}</span>
+    <span style="font-size:13.5px;font-weight:500;color:var(--txt);flex:1;line-height:1.4">{{ tagline }}</span>
+    <sc-if value="{{ hasTrust }}" hint-placeholder-val="{{ false }}"><span style="border:{{ trustBorder }};color:var(--soft);font-size:10.5px;font-weight:700;letter-spacing:.07em;padding:5px 10px;border-radius:999px;white-space:nowrap">{{ trustChip }}</span></sc-if>
+  </div>
+  <sc-if value="{{ hasCaveat }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;font-size:12px;line-height:1.5;color:var(--muted)">{{ caveat }}</div></sc-if>
+  <sc-if value="{{ hasTrustNote }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;line-height:1.5;color:var(--muted)">{{ trustNote }}</div></sc-if>
+  <div style="height:1px;background:var(--line);margin:18px 0"></div>
+  <div style="font-size:23px;font-weight:600;line-height:1.3;letter-spacing:-.01em;font-variant-numeric:tabular-nums;text-wrap:pretty">{{ headline }}</div>
+  <sc-if value="{{ hasResearch }}" hint-placeholder-val="{{ false }}"><div style="margin-top:8px;font-size:13px;line-height:1.55;color:var(--soft)">{{ researchLine }}</div></sc-if>
+  <sc-if value="{{ hasNarrow }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;line-height:1.55;color:var(--soft)">{{ narrowLine }}</div></sc-if>
+  <div style="height:1px;background:var(--line);margin:18px 0"></div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">{{ glanceHead }}</span><span style="font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums">{{ glanceN }}</span></div>
+  <div style="display:flex;height:26px;border-radius:7px;overflow:hidden;margin-top:10px">
+    <sc-for list="{{ segs }}" as="s" hint-placeholder-count="3"><div style="flex:{{ s.flex }};background:{{ s.color }}"></div></sc-for>
+  </div>
+  <div style="display:flex;gap:18px;margin-top:8px;font-size:12px;color:var(--soft);font-variant-numeric:tabular-nums;flex-wrap:wrap">
+    <sc-for list="{{ segs }}" as="s" hint-placeholder-count="3"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:{{ s.color }}"></span>{{ s.legend }}</span></sc-for>
+  </div>
+  <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">EVERYONE ELSE</span><span style="font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums">{{ outsideN }}</span></div>
+  <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;margin-top:8px"><div style="flex:1;background:var(--outsidebar)"></div></div>
+  <div style="margin-top:6px;font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums">{{ outsideLegend }}</div>
+  <div style="height:1px;background:var(--line);margin:18px 0"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">
+    <div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">NEXT STEP — IN TARGET</div>
+      <sc-for list="{{ nextRows }}" as="n" hint-placeholder-count="2">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:9px;font-size:13px"><span style="color:var(--txt)">{{ n.label }}</span><span style="font-weight:600;font-variant-numeric:tabular-nums;color:{{ n.valCol }}">{{ n.val }}</span></div>
+      </sc-for>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">PURCHASE CYCLE — WOULD BUY</div>
+      <sc-for list="{{ cycleRows }}" as="c" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:10px;margin-top:9px"><span style="font-size:13px;color:var(--txt);width:92px">{{ c.label }}</span><span style="display:flex;gap:3px;flex-wrap:wrap"><sc-for list="{{ c.dots }}" as="d" hint-placeholder-count="5"><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid {{ d.bd }};background:{{ d.bg }}"></span></sc-for></span><span style="margin-left:auto;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums">{{ c.val }}</span></div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<div style="background:var(--card);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);padding:22px 26px 24px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px">
+    <span style="font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">PROBLEM MAP</span>
+    <span style="font-size:12px;color:var(--soft);font-variant-numeric:tabular-nums">{{ ovLine }}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 180px 1fr;margin-top:14px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--soft);text-align:right;padding:0 16px 10px 0">{{ zoneInLabel }}</div>
+    <div></div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--faint);padding:0 0 10px 16px">{{ zoneOutLabel }}</div>
+    <sc-for list="{{ mapStages }}" as="st" hint-placeholder-count="5">
+      <div style="display:flex;justify-content:flex-end;align-items:center;padding:9px 0">
+        <div style="display:flex;flex-direction:column;gap:6px;max-width:330px;min-width:0">
+          <sc-for list="{{ st.within }}" as="p" hint-placeholder-count="0">
+            <div style="border:{{ p.cardBd }};background:{{ p.cardBg }};border-radius:9px;padding:8px 10px">
+              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:var(--soft);background:var(--chipbg);border-radius:5px;padding:1px 5px">{{ p.id }}</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:{{ p.sevCol }};background:{{ p.sevBg }};border-radius:999px;padding:1px 7px">{{ p.sevLabel }}</span><sc-if value="{{ p.lb }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:var(--onload);background:var(--loadring);border-radius:999px;padding:1px 7px">LOAD-BEARING</span></sc-if><span style="font-size:9.5px;color:var(--faint)">{{ p.types }}</span></div>
+              <div style="margin-top:4px;font-size:11px;line-height:1.4;color:{{ p.leadCol }};max-height:2.8em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">{{ p.lead }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ st.hasWithin }}" hint-placeholder-val="{{ false }}"><div style="width:16px;height:2px;background:var(--spine);flex:none"></div></sc-if>
+      </div>
+      <div style="background:linear-gradient(var(--spine),var(--spine)) center/2px 100% no-repeat;display:flex;align-items:center;justify-content:center;padding:9px 0">
+        <sc-if value="{{ st.has }}" hint-placeholder-val="{{ true }}">
+          <div style="width:{{ st.pillW }};background:var(--card);border:1px solid var(--pillbd);border-radius:999px;padding:6px 0;text-align:center;box-shadow:var(--shadow)"><div style="font-size:11.5px;font-weight:600">{{ st.name }}</div><div style="font-size:9.5px;color:var(--faint);font-variant-numeric:tabular-nums">{{ st.cLabel }}</div></div>
+        </sc-if>
+        <sc-if value="{{ st.clear }}" hint-placeholder-val="{{ false }}">
+          <div style="width:{{ st.pillW }};background:var(--card2);border:1px dashed var(--pillbd);border-radius:999px;padding:5px 0;text-align:center"><div style="font-size:11px;font-weight:600;color:var(--faint)">{{ st.name }}</div><div style="font-size:9.5px;color:var(--accent);font-weight:600">Clear</div></div>
+        </sc-if>
+      </div>
+      <div style="display:flex;justify-content:flex-start;align-items:center;padding:9px 0">
+        <sc-if value="{{ st.hasOutside }}" hint-placeholder-val="{{ false }}"><div style="width:16px;height:2px;background:var(--spine);flex:none"></div></sc-if>
+        <div style="display:flex;flex-direction:column;gap:6px;max-width:300px;min-width:0">
+          <sc-for list="{{ st.outside }}" as="p" hint-placeholder-count="0">
+            <div style="border:{{ p.cardBd }};background:{{ p.cardBg }};border-radius:8px;padding:7px 9px">
+              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:var(--muted);background:var(--card);border-radius:5px;padding:1px 5px">{{ p.id }}</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;color:{{ p.sevCol }};background:{{ p.sevBg }};border-radius:999px;padding:1px 7px">{{ p.sevLabel }}</span><span style="font-size:9.5px;color:var(--faint)">{{ p.types }}</span></div>
+              <div style="margin-top:4px;font-size:10.5px;line-height:1.4;color:{{ p.leadCol }};max-height:2.8em;overflow:hidden;mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)">{{ p.lead }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;gap:18px;margin-top:14px;font-size:11px;color:var(--muted);align-items:center;flex-wrap:wrap">
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:var(--exectagbg);border:1px solid var(--execline)"></span>Execution — fixable in the creative</span>
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:var(--structstripe);border:1px solid var(--structline)"></span>Structural — no creative tweak fixes it</span>
+    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;border:1.5px solid var(--loadring)"></span>Load-bearing</span>
+  </div>
+</div>
+
+<div style="display:flex;align-items:baseline;gap:10px;margin-top:6px;padding:0 2px"><span style="font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">{{ probHead }}</span><span style="font-size:11px;color:var(--ghost)">leads only — expand a card for the evidence</span></div>
+<div style="display:flex;flex-direction:column;gap:10px">
+  <sc-for list="{{ problems }}" as="p" hint-placeholder-count="6">
+    <div style="border:{{ p.cardBd }};background:{{ p.cardBg }};border-radius:11px;padding:14px 18px;cursor:pointer;box-shadow:var(--shadow)" onClick="{{ p.toggle }}">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;color:var(--soft);background:var(--chipbg);border-radius:5px;padding:2px 7px">{{ p.id }}</span>
+        <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:var(--soft);border:1px solid var(--pillbd);border-radius:999px;padding:2px 8px">{{ p.stage }}</span>
+        <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:{{ p.sevCol }};background:{{ p.sevBg }};border-radius:999px;padding:2px 8px">{{ p.sevLabel }}</span>
+        <span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:{{ p.tgtCol }};background:{{ p.tgtBg }};border-radius:999px;padding:2px 8px">{{ p.tgtLabel }}</span>
+        <sc-if value="{{ p.lb }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:var(--onload);background:var(--loadring);border-radius:999px;padding:2px 8px">LOAD-BEARING</span></sc-if>
+        <span style="margin-left:auto;font-size:10.5px;color:var(--faint)">{{ p.types }}</span>
+        <span style="font-size:11px;color:var(--accent);font-weight:600;white-space:nowrap">{{ p.icon }}</span>
+      </div>
+      <div style="margin-top:8px;font-size:13.5px;line-height:1.5;color:{{ p.leadColCard }};max-width:880px;text-wrap:pretty">{{ p.lead }}</div>
+      <sc-if value="{{ p.open }}" hint-placeholder-val="{{ false }}">
+        <div style="height:1px;background:var(--line);margin:14px 0"></div>
+        <div style="font-size:12.5px;line-height:1.6;color:var(--soft);max-width:880px">{{ p.detail }}</div>
+        <sc-if value="{{ p.hasPrev }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;display:flex;gap:10px;align-items:baseline"><span style="flex:none;font-size:9px;font-weight:700;letter-spacing:.07em;color:var(--faint)">PREVALENCE</span><span style="font-size:12px;line-height:1.55;color:var(--soft)">{{ p.prevalence }}</span></div></sc-if>
+        <sc-if value="{{ p.hasQuotes }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ p.quotes }}" as="q" hint-placeholder-count="0">
+              <div style="background:var(--quotebg);border:1px solid var(--quoteline);border-radius:9px;padding:10px 14px"><div style="font-size:12.5px;line-height:1.55;color:var(--txt)">{{ q.q }}</div><div style="margin-top:5px;font-size:11px;color:var(--faint)">{{ q.attr }}</div></div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </sc-if>
+    </div>
+  </sc-for>
+</div>
+
+<sc-if value="{{ hasFixSection }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--card);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);padding:20px 24px 24px">
+  <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--body)">{{ fixHeading }}</div>
+  <sc-if value="{{ hasLevers }}" hint-placeholder-val="{{ true }}">
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:9px">
+      <sc-for list="{{ levers }}" as="l" hint-placeholder-count="4">
+        <div style="display:flex;gap:12px;align-items:baseline"><span style="flex:none;width:20px;height:20px;border-radius:50%;background:var(--accent-tint);color:var(--accent-deep);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;transform:translateY(3px)">{{ l.n }}</span><span style="font-size:13px;line-height:1.55;color:var(--body);text-wrap:pretty">{{ l.text }}</span></div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{ hasFixes }}" hint-placeholder-val="{{ true }}">
+    <div style="height:1px;background:var(--line);margin:18px 0"></div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">DETAILED CHANGES</div>
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ fixes }}" as="f" hint-placeholder-count="3">
+        <div style="border:1px solid var(--line2);border-radius:10px;padding:13px 16px">
+          <div style="font-size:13px;line-height:1.55;color:var(--body);text-wrap:pretty">{{ f.change }}</div>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:{{ f.typeCol }};background:{{ f.typeBg }};border-radius:999px;padding:2px 8px">{{ f.typeLabel }}</span><span style="margin-left:8px;font-size:9px;font-weight:700;letter-spacing:.07em;color:var(--ghost)">SOLVES</span><sc-for list="{{ f.solves }}" as="s" hint-placeholder-count="2"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:var(--soft);background:var(--chipbg);border-radius:5px;padding:2px 6px">{{ s.id }}</span></sc-for></div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasWorked }}" hint-placeholder-val="{{ true }}">
+<div style="background:var(--card);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);padding:20px 24px 22px">
+  <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">WHAT WORKED</div>
+  <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+    <sc-for list="{{ worked }}" as="w" hint-placeholder-count="3">
+      <div style="background:var(--accent-tint);border:1px solid var(--accent-line);border-radius:10px;padding:13px 15px"><div style="font-size:12.5px;line-height:1.55;color:var(--body);text-wrap:pretty">{{ w.point }}</div><div style="margin-top:9px;font-size:11.5px;line-height:1.5;color:var(--muted)">{{ w.quote }}</div></div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<div style="background:var(--card);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);padding:20px 24px 22px">
+  <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">{{ panelHead }}</div>
+  <div style="margin-top:12px;display:grid;grid-template-columns:minmax(150px,1.3fr) 40px minmax(64px,100px) minmax(56px,86px) minmax(48px,76px) minmax(150px,1fr);font-variant-numeric:tabular-nums;overflow-x:auto">
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:var(--faint);padding:6px 10px">CONSUMER TYPE</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:var(--faint);padding:6px 10px;text-align:right">N</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:var(--faint);padding:6px 10px;text-align:right">SCROLLED PAST</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:var(--faint);padding:6px 10px;text-align:right">STOPPED</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:var(--faint);padding:6px 10px;text-align:right">SAVED</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;color:var(--faint);padding:6px 10px">NEXT STEP</div>
+    <sc-for list="{{ panelRows }}" as="r" hint-placeholder-count="5">
+      <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;background:{{ r.bg }};border-radius:8px;border-top:1px solid var(--line)">
+        <div style="font-size:13px;font-weight:{{ r.wt }};color:{{ r.col }};padding:10px;display:flex;align-items:center;gap:8px">{{ r.type }}<sc-if value="{{ r.inTarget }}" hint-placeholder-val="{{ false }}"><span style="font-size:8.5px;font-weight:700;letter-spacing:.06em;color:#fff;background:var(--accent);border-radius:999px;padding:2px 7px">TARGET</span></sc-if></div>
+        <div style="font-size:13px;font-weight:{{ r.wt }};color:{{ r.col }};padding:10px;text-align:right">{{ r.n }}</div>
+        <div style="font-size:13px;color:{{ r.col }};padding:10px;text-align:right">{{ r.scrolled }}</div>
+        <div style="font-size:13px;color:{{ r.stoppedCol }};padding:10px;text-align:right">{{ r.stopped }}</div>
+        <div style="font-size:13px;color:{{ r.savedCol }};padding:10px;text-align:right">{{ r.saved }}</div>
+        <div style="font-size:12.5px;color:{{ r.nextCol }};padding:10px">{{ r.next }}</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+
+<div style="border:1.5px solid var(--ink);background:var(--card);border-radius:12px;padding:13px 18px;font-size:12.5px;line-height:1.6;color:var(--body);font-weight:500">{{ disclaimer }}</div>
+
+<div style="background:var(--card);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);padding:20px 24px 22px">
+  <div style="font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">METHODOLOGY</div>
+  <div style="margin-top:10px;display:grid;grid-template-columns:150px 1fr;gap:7px 14px;font-size:12px;line-height:1.55;color:var(--soft)">
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--ghost);padding-top:2px">PANEL</div><div>{{ mPanel }}</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--ghost);padding-top:2px">CONTEXTS</div><div>{{ mContexts }}</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--ghost);padding-top:2px">DECLARED TARGETING</div><div>{{ mTargeting }}</div>
+    <sc-if value="{{ hasMFlags }}" hint-placeholder-val="{{ false }}"><div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--ghost);padding-top:2px">FLAGS</div><div>{{ mFlags }}</div></sc-if>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--ghost);padding-top:2px">PROJECTED FUNNEL</div><div>{{ mFunnel }}</div>
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--ghost);padding-top:2px">RUN ID</div><div style="font-family:ui-monospace,Menlo,monospace;font-size:11px">{{ mRunId }}</div>
+  </div>
+</div>
+
+<div style="padding:6px 2px 0;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:11px;color:var(--ghost)">Rocket</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:var(--ghost)">{{ rRunId }}</span></div>
+
+</div>
+</div>
+</div>
+<sc-if value="{{ lbOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;background:rgba(10,10,12,.55);z-index:60;display:flex;align-items:center;justify-content:center;cursor:zoom-out" onClick="{{ closeLb }}">
+    <div style="background:var(--card);border-radius:14px;padding:18px;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3)" onClick="{{ stopEv }}">
+      <div style="width:420px;height:420px;border-radius:10px;border:1px solid var(--line2);background:var(--structstripe);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--faint);text-align:center;line-height:1.6;max-width:300px">ad creative — drop the real asset here</span></div>
+      <div style="margin-top:12px;font-size:13px;font-weight:600">{{ rAsset }}</div>
+      <div style="margin-top:4px;font-size:12px;color:var(--muted);line-height:1.55">{{ rCreative }}</div>
+    </div>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Preview&quot;},&quot;runState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;iterate&quot;,&quot;inconclusive&quot;],&quot;default&quot;:&quot;iterate&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Preview&quot;},&quot;warningsMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;this run&quot;,&quot;stress: 5 warnings&quot;],&quot;default&quot;:&quot;this run&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Preview&quot;}}">
+const REPORT = {
+  run: {
+    asset_label: "MuscleBlaze Biozyme Performance Whey",
+    creative: "a grey 2kg tub of whey protein, MuscleBlaze logo, '27g protein per scoop', an Informed Protein certification seal",
+    category: "Health & wellness nutrition",
+    generated_at: "2026-07-20",
+    run_id: "20260721_021850_seed71_muscleblaze_biozyme",
+    ad_job: "Direct-sell",
+    panel_size: 100,
+    declared_targeting: "adults 25-44, metro tier-1, ₹7-40 LPA, protein-curious",
+    declared_audience: "all genders aged 25-44",
+    inferred_audience: "people aged 25-34",
+    audience_match: "aligned",
+    audience_match_message: "The creative's apparent target (people aged 25-34) is consistent with the declared audience (all genders aged 25-44)."
+  },
+  result: {
+    decision: "ITERATE",
+    tagline: "Target responds; a specific in-scope fix is leaking conversion. Fix it, re-run, then scale.",
+    verdict_caveat: "Didn't separate a known-bad control — tiebreaker, not gate.",
+    trust: "DIRECTIONAL",
+    trust_note: "Trust: DIRECTIONAL — thin evidence (one narrow audience engaged); treat as a lead, not a verdict.",
+    headline: "0% of your target (enthusiast macros lifter) would buy — 0 of 19.",
+    research_line: "Separately, 26% would look it up first (5 of 19) — research, not a purchase.",
+    narrow_frame_line: "It reaches no one else (everyone else scrolls — expected; tighten targeting).",
+    target_group: "enthusiast macros lifter",
+    target_n: 19,
+    outside_n: 81
+  },
+  glance_in_target: { n: 19, "Scrolled past": 14, "Sought more info": 0, "Stopped to look": 4, "Saved it": 1, "Sent it to someone": 0, "Tapped through": 0 },
+  next_steps_in_target: { n: 19, "would look it up first": 5, "did nothing": 14 },
+  purchase_cycle: [
+    { label: "running low", num: 0, denom: 5 },
+    { label: "mid-cycle", num: 0, denom: 9 },
+    { label: "just bought", num: 0, denom: 5 }
+  ],
+  diagnosis_overview: { problems: 6, within_target: 4, outside_target: 2, execution: 4, structural: 2, stages_present: ["attention", "consideration", "recall"], load_bearing: "P4", widest_breadth: 2 },
+  problems: [
+    { id: "P1", stage: "consideration", severity: "execution", within_target: true, breadth: 1, load_bearing: false,
+      lead: "The creative presents the isolate as a familiar line-extension of a brand the target already trusts and largely already uses — so within-target recognition is instant but the ad never dramatizes a switching TRIGGER.",
+      detail: "Every lifter parses it as 'the iso version of what I run,' correctly slots it as adjacent-not-me, and defaults to reordering their existing Performance Whey. The ad wins comprehension but loses the consideration beat because it argues no reason-to-upgrade; earned brand equity converts to inertia, not incremental purchase.",
+      prevalence: "near-universal among within-target enthusiast macros lifters across all contexts",
+      quotes: [
+        { text: "already running low on my usual Biozyme Performance, not about to swap to an isolate I haven't looked into just because it's the same brand", who: "enthusiast macros lifter", context: "weekend afternoon browse" },
+        { text: "the iso zero doesn't solve any problem i currently have", who: "enthusiast macros lifter", context: "late night wind down" },
+        { text: "isolate is a different use case I haven't decided I need", who: "enthusiast macros lifter", context: "commute scroll" }
+      ] },
+    { id: "P2", stage: "consideration", severity: "execution", within_target: true, breadth: 1, load_bearing: false,
+      lead: "The single most repeated within-target friction is an unanswered price-per-serving question: the target reads 'isolate' and immediately prices in a premium the ad never shows or justifies.",
+      detail: "Because the cost delta versus their known Performance Whey number is left blank, the engaged buyer defers to off-ad math that mostly never closes — the ad opens a value-comparison loop it cannot resolve on-surface, leaking the most interested lifters into a deferred search.",
+      prevalence: "widespread among within-target, especially in pre-purchase research and weekend browse; the ones who lingered or saved all cite it",
+      quotes: [
+        { text: "i'd want to know the price per serving vs my regular performance whey before even considering a switch", who: "enthusiast macros lifter", context: "late night wind down" },
+        { text: "want to check the price per serving on healthkart and see if the isolate is worth the premium over what i'm already running", who: "enthusiast macros lifter", context: "weekend afternoon browse" }
+      ] },
+    { id: "P3", stage: "recall", severity: "execution", within_target: true, breadth: 1, load_bearing: false,
+      lead: "The ad delivers almost zero net-new information to the target, so recall collapses to what the buyer already knew about the brand.",
+      detail: "Within-target agents can retrieve 'Biozyme isolate, 27g' — but explicitly attribute that retention to prior brand familiarity, not to the creative. The ad borrows memory instead of building it, meaning it does no work to be top-of-mind at the actual restock trigger weeks later.",
+      prevalence: "consistent across within-target lifters in every context",
+      quotes: [
+        { text: "that's roughly it, and only because I already know the brand. The ISO Zero name stuck slightly, nothing else did", who: "enthusiast macros lifter", context: "weekend afternoon browse" },
+        { text: "only because it's the same brand I already use, not because the ad did anything memorable", who: "enthusiast macros lifter", context: "late night wind down" }
+      ] },
+    { id: "P4", stage: "attention", severity: "execution", within_target: true, breadth: 1, load_bearing: true,
+      lead: "The one proof asset that does earn a stop — the Informed Protein seal — fires a half-second flicker but is never built into a claim the target can act on.",
+      detail: "Within-target lifters recognize and trust the seal, yet it lands as a passive checkmark rather than an argument, so it fails to convert recognition into a differentiating reason-to-buy. The strongest lever the ad holds is under-leveraged.",
+      prevalence: "recurring across within-target; the badge consistently 'caught the eye for half a second' then dissipated",
+      quotes: [
+        { text: "the seal caught my eye for half a second but I'm mid-tub on the Performance Whey and not in restock mode at all, so it kind of just washed over", who: "enthusiast macros lifter", context: "commute scroll" },
+        { text: "the informed protein cert badge registered for like half a second but i already have a full tub so none of it really landed", who: "enthusiast macros lifter", context: "late night wind down" }
+      ] },
+    { id: "P5", stage: "attention", severity: "structural", within_target: false, breadth: 1, load_bearing: false,
+      lead: "Among lapsed protein buyers the ad reactivates a filed negative brand memory before any proof can be read.",
+      detail: "The MuscleBlaze identity plus the 2kg format triggers a 'wasted money / never finished the tub' recall that the certification badge cannot overwrite — a structural trust scar for this segment, but this audience is out of target.",
+      prevalence: "consistent across lapsed protein skeptics, all contexts",
+      quotes: [
+        { text: "no amount of certification badges is going to undo that tub sitting on my counter", who: "skeptic lapsed protein", context: "pre-purchase research" }
+      ] },
+    { id: "P6", stage: "attention", severity: "structural", within_target: false, breadth: 2, load_bearing: false,
+      lead: "For clean-label / plant-forward and snacker audiences the grey-tub, MB-logo, 2kg-format gestalt is read as a category and identity signal ('gym-bro / a different kind of person') that closes the door pre-comprehension.",
+      detail: "No in-scope creative lever reaches them because the rejection is identity/category-based, not message-based — informational only, since these are outside target.",
+      prevalence: "dominant across clean-label aspirants and protein snackers, all contexts",
+      quotes: [
+        { text: "the whole brand aesthetic signals something that has nothing to do with my life", who: "aspirant clean label", context: "pre-purchase research" },
+        { text: "i'd have to become a different kind of person before that tub made sense", who: "pragmatist protein snacker", context: "late night wind down" }
+      ] }
+  ],
+  levers: [
+    "Rewrite the hook to state the upgrade reason AND the price-per-serving vs their current Performance Whey on-surface — this resolves the two biggest consideration leaks at once.",
+    "Convert the Informed Protein seal from a passive flicker into an active spoken claim fused to the isolate spec, so the ad builds new memory and a reason-to-buy instead of borrowing prior brand recall.",
+    "Concentrate and sequence spend on weekend-browse and pre-purchase-research windows with a restock-timed retarget of save/linger audiences.",
+    "Do NOT chase the lapsed, clean-label or snacker segments — their rejection is a structural trust/identity scar no in-scope creative lever can move."
+  ],
+  fixes: [
+    { change: "Rebuild the headline around an explicit upgrade-and-cost argument: lead with the switch trigger ('Isolate, 27g vs the 25g in your Performance Whey — same Informed seal, ~₹X per serving') so the spec delta and the price-per-serving both live ON the creative surface.", solves: ["P1", "P2"], type: "creative" },
+    { change: "Promote the Informed Protein seal from a passive half-second flicker into a spoken, on-screen claim — pair it with the 27g isolate spec as the stated reason-to-upgrade.", solves: ["P4", "P3"], type: "creative" },
+    { change: "Concentrate media spend on weekend-browse and pre-purchase-research windows, and layer a restock-timed retargeting sequence (save/linger audiences re-served 2–4 weeks later).", solves: ["P3", "P1", "P2"], type: "media buy" }
+  ],
+  panel: [
+    { type: "enthusiast macros lifter", in_target: true, n: 19, scrolled_past: 14, stopped: 4, saved: 1, next_step: "5 would look it up first" },
+    { type: "aspirant clean label", in_target: false, n: 24, scrolled_past: 24, stopped: 0, saved: 0, next_step: "none" },
+    { type: "pragmatist protein snacker", in_target: false, n: 23, scrolled_past: 23, stopped: 0, saved: 0, next_step: "none" },
+    { type: "switcher results chaser", in_target: false, n: 19, scrolled_past: 19, stopped: 0, saved: 0, next_step: "1 would mention it to someone" },
+    { type: "skeptic lapsed protein", in_target: false, n: 15, scrolled_past: 15, stopped: 0, saved: 0, next_step: "none" }
+  ],
+  what_worked: [
+    { point: "The brand is instantly recognized and trusted by the target, buying immediate comprehension at zero attention cost.", quote: "Oh it's Biozyme, I know this brand" },
+    { point: "The 27g-per-scoop spec is legible and, when the buyer engages, flags an upgrade over their current 25g.", quote: "that's 2g more than my current tub and the seal is legitimate, so that's not nothing" },
+    { point: "When timing aligns with restock, trusted brand + Informed seal + higher spec earns a save and a genuine intent to return.", quote: "isolate with 27g and the same Informed certification I already trust — worth pulling up when this tub runs out" }
+  ],
+  browsing_contexts: ["weekend afternoon browse", "pre-purchase research", "commute scroll", "late night wind down"],
+  methodology_flags: ["Only one consumer type fell within the declared target — evidence is thin."],
+  disclaimer: "Model-inferred read: every reaction and quote here is generated by a simulated persona, not collected from a real consumer. Read it as a pre-flight diagnostic, not a survey.",
+  funnel_note: "Projected funnel: off — heuristic_v1, not fitted to in-market outcomes. It is computed and logged for future calibration either way."
+};
+
+const INCONCLUSIVE = {
+  decision: "INCONCLUSIVE",
+  tagline: "The read isn't trustworthy yet — see why below.",
+  lever_heading: "TO GET A TRUSTWORTHY READ:",
+  reasons: [
+    "We can't give you a trustworthy read on this creative yet.",
+    "Why: the read isn't trustworthy on this pool.",
+    "To get a real read: check that the audience you declared matches who the ad is for."
+  ]
+};
+
+const DECISION_META = {
+  SCALE: { heading: "PROTECT ON SCALE-UP:" },
+  ITERATE: { heading: "THE FIX(ES) (highest-leverage first):" },
+  RETARGET: { heading: "RE-AIM + FIX (highest-leverage first):" },
+  REBUILD: { heading: "IF YOU REBUILD, what has to change:" },
+  INCONCLUSIVE: { heading: "TO GET A TRUSTWORTHY READ:" }
+};
+
+const WARN_STRESS = [
+  { tag: "AUDIENCE MISMATCH", text: "The creative reads as targeting women aged 18-24, but the declared audience is men aged 35-54 (mismatch on gender, age). Likely a wrong-creative upload or a fundamentally misaimed campaign." },
+  { tag: "PANEL", text: "94 of 100 simulated respondents completed; a few dropped out mid-run. The read stands, but it rests on a slightly smaller sample than planned." },
+  { tag: "COHERENCE", text: "Coherence check: buy-now intent was stated, but every one of those people scrolled past without even stopping on the ad — treat the buy number with caution." },
+  { tag: "SCOPE", text: "BETA — brand-building scoring is provisional (resonance half only; brand-attribution is a known, flagged limitation). Trust the pains and the voice; treat the headline metric as directional." },
+  { tag: "METHOD", text: "Only one consumer type fell within the declared target — evidence is thin." }
+];
+
+const STAGES = ["attention", "comprehension", "consideration", "conversion", "recall"];
+const PILL_W = ["158px", "142px", "126px", "110px", "94px"];
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+class Component extends DCLogic {
+  state = { open: {}, lb: false };
+  applyBody() {
+    document.body.dataset.theme = this.props.theme ?? "light";
+    document.body.dataset.decision = this.isInc() ? "INCONCLUSIVE" : REPORT.result.decision;
+  }
+  componentDidMount() { this.applyBody(); }
+  componentDidUpdate() { this.applyBody(); }
+  isInc() { return (this.props.runState ?? "iterate") === "inconclusive"; }
+  marker(p) {
+    const exec = p.severity === "execution";
+    const lb = p.load_bearing;
+    return {
+      id: p.id, lb,
+      sevLabel: p.severity.toUpperCase(),
+      sevCol: exec ? "var(--exectag)" : "var(--structtag)",
+      sevBg: exec ? "var(--exectagbg)" : "var(--structtagbg)",
+      cardBg: exec ? "var(--execbg)" : "var(--structstripe)",
+      cardBd: lb ? "1.5px solid var(--loadring)" : (exec ? "1px solid var(--execline)" : "1px solid var(--structline)"),
+      types: p.breadth + (p.breadth === 1 ? " type" : " types"),
+      lead: p.lead,
+      leadCol: p.within_target ? "var(--txt)" : "var(--muted)"
+    };
+  }
+  renderVals() {
+    const R = REPORT, isInc = this.isInc();
+    const res = R.result, open = this.state.open;
+    const stress = (this.props.warningsMode ?? "this run") !== "this run";
+    const warnings = stress ? WARN_STRESS : R.methodology_flags.map(t => ({ tag: "METHOD", text: t }));
+    const segColors = ["var(--baridle)", "var(--barmid)", "var(--accent)"];
+    const segOrder = ["Scrolled past", "Stopped to look", "Saved it", "Sought more info", "Sent it to someone", "Tapped through"];
+    const segs = segOrder.filter(k => R.glance_in_target[k] > 0).map((k, i) => ({
+      flex: R.glance_in_target[k], color: segColors[Math.min(i, 2)], legend: k + " — " + R.glance_in_target[k]
+    }));
+    const nextRows = Object.keys(R.next_steps_in_target).filter(k => k !== "n").map(k => ({
+      label: cap(k), val: R.next_steps_in_target[k] + " of " + R.next_steps_in_target.n,
+      valCol: k === "did nothing" ? "var(--faint)" : "var(--ink)"
+    }));
+    const cycleRows = R.purchase_cycle.map(c => ({
+      label: cap(c.label), val: c.num + " of " + c.denom,
+      dots: Array.from({ length: c.denom }, (_, i) => i < c.num
+        ? { bg: "var(--ink)", bd: "var(--ink)" } : { bg: "transparent", bd: "var(--ghost)" })
+    }));
+    const ov = R.diagnosis_overview;
+    const probs = R.problems.map(p => ({
+      ...this.marker(p),
+      stage: p.stage.toUpperCase(),
+      tgtLabel: p.within_target ? "WITHIN TARGET" : "OUTSIDE TARGET",
+      tgtCol: p.within_target ? "var(--accent-deep)" : "var(--muted)",
+      tgtBg: p.within_target ? "var(--accent-tint)" : "var(--chipbg)",
+      leadColCard: p.within_target ? "var(--body)" : "var(--soft)",
+      detail: p.detail, hasPrev: !!p.prevalence, prevalence: p.prevalence,
+      quotes: (p.quotes || []).map(q => ({ q: "\u201C" + q.text + "\u201D", attr: "— " + q.who + " · " + q.context + " · simulated" })),
+      hasQuotes: (p.quotes || []).length > 0,
+      open: !!open[p.id],
+      toggle: () => this.setState(s => ({ open: { ...s.open, [p.id]: !s.open[p.id] } })),
+      icon: open[p.id] ? "Hide ▴" : "Details ▾"
+    }));
+    const mapStages = STAGES.map((name, i) => {
+      const within = R.problems.filter(p => p.stage === name && p.within_target).map(p => this.marker(p));
+      const outside = R.problems.filter(p => p.stage === name && !p.within_target).map(p => this.marker(p));
+      const n = within.length + outside.length;
+      return { name: cap(name), pillW: PILL_W[i], has: n > 0, clear: n === 0,
+        cLabel: n + (n === 1 ? " problem" : " problems"),
+        within, outside, hasWithin: within.length > 0, hasOutside: outside.length > 0 };
+    });
+    const dm = DECISION_META[isInc ? "INCONCLUSIVE" : res.decision];
+    const dt = new Date(R.run.generated_at + "T00:00:00");
+    const dateStr = dt.getDate() + " " + ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][dt.getMonth()] + " " + dt.getFullYear();
+    return {
+      rAsset: R.run.asset_label, rJob: R.run.ad_job.toUpperCase(), rCreative: R.run.creative,
+      rMeta: R.run.category + " · " + dateStr + " · Panel — " + R.run.panel_size + " simulated consumers",
+      rTargeting: R.run.declared_targeting, rRunId: R.run.run_id,
+      audLabel: R.run.audience_match === "aligned" ? "AUDIENCE ALIGNED" : "AUDIENCE MISMATCH",
+      audCol: R.run.audience_match === "aligned" ? "var(--accent-deep)" : "#b91c1c",
+      audBg: R.run.audience_match === "aligned" ? "var(--accent-tint)" : "#fdecec",
+      audMsg: R.run.audience_match_message,
+      hasWarnings: warnings.length > 0,
+      warnings: warnings.map((w, i) => ({ ...w, bt: i === 0 ? "none" : "1px solid var(--warnline)" })),
+      panelHead: "PANEL — " + R.run.panel_size + " SIMULATED CONSUMERS",
+      panelRows: R.panel.map(r => ({
+        type: r.type, inTarget: r.in_target, n: r.n, scrolled: r.scrolled_past,
+        stopped: r.stopped, saved: r.saved, next: r.next_step,
+        bg: r.in_target ? "var(--accent-tint)" : "transparent",
+        wt: r.in_target ? 600 : 400,
+        col: r.in_target ? "var(--ink)" : "var(--soft)",
+        stoppedCol: r.stopped > 0 ? (r.in_target ? "var(--ink)" : "var(--soft)") : "var(--ghost)",
+        savedCol: r.saved > 0 ? (r.in_target ? "var(--ink)" : "var(--soft)") : "var(--ghost)",
+        nextCol: r.next_step === "none" ? "var(--ghost)" : (r.in_target ? "var(--body)" : "var(--soft)")
+      })),
+      isInc, hasNumbers: !isInc,
+      decision: isInc ? INCONCLUSIVE.decision : res.decision,
+      tagline: isInc ? INCONCLUSIVE.tagline : res.tagline,
+      incMain: INCONCLUSIVE.reasons[0],
+      incRest: INCONCLUSIVE.reasons.slice(1).map(t => ({ text: t })),
+      hasCaveat: !isInc && !!res.verdict_caveat, caveat: res.verdict_caveat,
+      hasTrust: !isInc && !!res.trust, trustChip: "TRUST: " + res.trust,
+      trustBorder: res.trust === "HIGH" ? "1.5px solid var(--ink)" : "1.5px dashed var(--ghost)",
+      hasTrustNote: !isInc && !!res.trust_note, trustNote: res.trust_note,
+      headline: res.headline,
+      hasResearch: !!res.research_line, researchLine: res.research_line,
+      hasNarrow: !!res.narrow_frame_line, narrowLine: res.narrow_frame_line,
+      glanceHead: "GLANCE RESPONSE — TARGET: " + res.target_group.toUpperCase(),
+      glanceN: "n=" + R.glance_in_target.n, segs,
+      outsideN: "n=" + res.outside_n,
+      outsideLegend: "Scrolled past — " + res.outside_n + " of " + res.outside_n,
+      nextRows, cycleRows,
+      ovLine: ov.problems + " problems — " + ov.within_target + " within target · " + ov.outside_target + " outside · " + ov.execution + " execution · " + ov.structural + " structural",
+      zoneInLabel: "WITHIN TARGET — " + res.target_n + " OF " + R.run.panel_size,
+      zoneOutLabel: "OUTSIDE — " + res.outside_n + " OF " + R.run.panel_size,
+      mapStages,
+      probHead: "PROBLEMS — " + R.problems.length,
+      problems: probs,
+      fixHeading: dm.heading,
+      hasLevers: R.levers.length > 0, levers: R.levers.map((t, i) => ({ n: i + 1, text: t })),
+      hasFixes: R.fixes.length > 0,
+      fixes: R.fixes.map(f => ({
+        change: f.change,
+        typeLabel: f.type.toUpperCase(),
+        typeCol: f.type === "creative" ? "var(--accent-deep)" : "var(--structtag)",
+        typeBg: f.type === "creative" ? "var(--accent-tint)" : "var(--structtagbg)",
+        solves: f.solves.map(id => ({ id }))
+      })),
+      hasFixSection: R.levers.length > 0 || R.fixes.length > 0,
+      hasWorked: R.what_worked.length > 0,
+      worked: R.what_worked.map(w => ({ point: w.point, quote: "\u201C" + w.quote + "\u201D" })),
+      disclaimer: R.disclaimer,
+      mPanel: R.run.panel_size + " simulated consumers",
+      mContexts: R.browsing_contexts.join(" · "),
+      mTargeting: R.run.declared_targeting,
+      hasMFlags: R.methodology_flags.length > 0, mFlags: R.methodology_flags.join(" "),
+      mFunnel: R.funnel_note, mRunId: R.run.run_id,
+      lbOpen: this.state.lb,
+      openLb: () => this.setState({ lb: true }),
+      closeLb: () => this.setState({ lb: false }),
+      stopEv: e => e.stopPropagation()
+    };
+  }
+}
+</script>
+</body>
+</html>
