@@ -1,7 +1,7 @@
 """ReadModel — the presentation-neutral view of a finished Creative Read.
 
 One source of truth for every line a brand manager reads, so the terminal
-report (batch_run.py) and the client-facing HTML (agent/report_html.py)
+report (batch_run.py) and the client-facing HTML (agent/dashboard_html.py)
 cannot drift apart on the honesty surfaces. The rule that motivates this
 module: the client artifact may curate which FINDINGS it shows; it may
 never drop a GUARDRAIL.
@@ -40,7 +40,7 @@ from agent.purpose import resolve_purpose
 from agent.schema import Report
 
 # ---- Shared presentation vocabulary -------------------------------------
-# Imported by batch_run.py (terminal) and agent/report_html.py (client HTML).
+# Imported by batch_run.py (terminal) and agent/dashboard_html.py (client HTML).
 # Changing a string here changes both renderers, which is the point.
 
 DECISION_TAGLINE = {

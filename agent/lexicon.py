@@ -10,7 +10,9 @@ the client report any more, and `ReadModel` no longer carries a lexicon field.
                      (PAID, ~$0.07/run: 1 propose + 2 classify calls; writes
                      lexicon.json into the run directory)
   to re-ship the     the report render lived in agent/report_html.py and
-  report render      agent/read_model.py up to commit 31215a8 --
+  report render      agent/read_model.py up to commit 31215a8. That module has
+                     since been DELETED at HEAD (the dashboard renderer
+                     replaced it), so do not go looking for it on disk --
                      `git show 31215a8:agent/report_html.py` has _word_cloud,
                      _cloud_block, _cloud_words, _cloud_size and the CSS;
                      `git show 31215a8:tests/test_report_html.py` has its 8

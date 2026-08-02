@@ -7,7 +7,7 @@ This package enforces that server-side rather than trusting operator
 discipline, the same way the consumer kiosk enforces its one-shot glance.
 
 Nothing here renders a report. Reports come from `agent.read_model` +
-`agent.report_html` — the same two calls `render_read.py` makes — so the
+`agent.dashboard_html` — the same two calls `render_read.py` makes — so the
 guardrails cannot be lost by going around the model.
 """
 

@@ -1,9 +1,11 @@
 """dashboard_html — the guardrails must reach the PAGE, not just the model.
 
-The port of tests/test_report_html.py onto the user's Claude Design layout. A
+The port of the old renderer's test file onto the user's Claude Design layout
+(`git show 298b60e:tests/test_report_html.py` — both are deleted at HEAD). A
 guardrail that lives in ReadModel but never renders is not a guardrail, and a
 redesign is exactly when one goes missing — so every honesty surface the old
-renderer was pinned on is pinned here too, against the new markup.
+renderer was pinned on is pinned here too, against the new markup. That
+correspondence was checked name by name before the old file was removed.
 
 Four assertions are NEW, because the design as delivered did not carry them:
 

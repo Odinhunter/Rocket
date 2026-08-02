@@ -1,9 +1,9 @@
 """The operator server's own pages — console, capture forms, blinded reveal.
 
-Reports are NOT rendered here. They come from agent/report_html.py through
+Reports are NOT rendered here. They come from agent/dashboard_html.py through
 server/runs.py; this module only builds the scaffolding around them, and it
-borrows that module's stylesheet (report_html.PAGE_CSS) so the session and the
-deliverable read as one product rather than two.
+borrows that module's stylesheet (dashboard_html.PAGE_CSS) so the session and
+the deliverable read as one product rather than two.
 
 Stdlib only, matching the engine's no-template-dependency rule.
 """

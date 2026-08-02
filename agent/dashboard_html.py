@@ -3,8 +3,10 @@
 The visual design is the user's, produced in Claude Design and kept at
 `docs/Claude design/Rocket Report.dc.html`. This module is that design rebuilt
 against `ReadModel`: same palette, same section order, same components. It is
-NOT a restyle of the old `report_html.py` and it is not an interpretation —
-where the two disagree, the design wins on look and `ReadModel` wins on data.
+NOT a restyle of the renderer it replaced (`agent/report_html.py`, deleted —
+`git show 298b60e:agent/report_html.py` if you ever need to see it) and it is
+not an interpretation: where the two disagree, the design wins on look and
+`ReadModel` wins on data.
 
 Three properties the design does not carry on its own, and this module must:
 
@@ -1222,8 +1224,9 @@ def render_html(
 ) -> str:
     """Render the Creative Read as a self-contained dashboard page.
 
-    Signature-compatible with `report_html.render_html`, so the operator server
-    and `render_read.py` swap renderers without changing a call site.
+    The signature is the one the renderer it replaced had, which is why the
+    operator server and `render_read.py` were cut over without a call site
+    changing. Keep it: `full_document=False` is the fragment path.
 
     The section order below is the user's design and is fixed. Two placements
     inside it are load-bearing and were reasoned about; don't re-flip either:
