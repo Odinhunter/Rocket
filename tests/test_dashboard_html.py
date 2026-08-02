@@ -143,6 +143,55 @@ def test_page_is_self_contained() -> None:
     print("  page is self-contained and zero-JS ✓")
 
 
+def test_the_designed_typeface_travels_with_the_page() -> None:
+    """The design is drawn in Instrument Sans and the self-contained rule
+    forbids fetching it, so the face itself is embedded as a data URI.
+
+    This one fails silently by construction. A page that has lost the font
+    still renders, still passes every other test in this file, and is simply
+    not the document the user approved — nothing but this assertion notices.
+    """
+    html = _html()
+    assert "@font-face" in html, "the typeface is not declared at all"
+    assert 'font-family:"Instrument Sans"' in html
+    faces = re.findall(r"url\(data:font/woff2;base64,([A-Za-z0-9+/=]+)\)", html)
+    assert faces, "the typeface is declared but its bytes are not embedded"
+    assert all(len(b) > 10_000 for b in faces), \
+        f"a face carries no real font data: {[len(b) for b in faces]}"
+    print(f"  Instrument Sans travels with the page, "
+          f"{sum(len(b) for b in faces) // 1024}KB ✓")
+
+
+def test_each_font_subset_is_scoped_by_its_unicode_range() -> None:
+    """Two subsets ship, and each must carry the range that scopes it.
+
+    Both faces share one family, weight and style. That makes the ranges
+    load-bearing rather than decorative: with them gone the last face declared
+    wins outright, and since latin-ext holds no ASCII, every ordinary character
+    on the page falls through to the system stack. The page still renders, so
+    only this notices.
+
+    latin is the subset that matters today — checked against the character
+    inventory of all 56 runs on disk, it covers everything they contain except
+    ₹, → ↔ ▴ ▾ and Devanagari, none of which Instrument Sans has a glyph for in
+    ANY subset (read out of the cmap, not inferred from the declared range).
+    Those fall back, and were eyeballed on screen: the macOS fallback sits with
+    Instrument Sans without reading as an island. latin-ext contributes nothing
+    to today's reports and ships as insurance against an accented name landing
+    in a verbatim and changing typeface mid-word.
+    """
+    html = _html()
+    faces = re.findall(r"@font-face\{[^}]*\}", html)
+    assert len(faces) == 2, \
+        f"expected the latin and latin-ext subsets, found {len(faces)}"
+    assert all("unicode-range:" in f for f in faces), \
+        "a face declares no range, so it wins outright over the other"
+    ranges = " ".join(faces)
+    assert "U+0000-00FF" in ranges, "latin is gone — ASCII would fall back"
+    assert "U+0100-02BA" in ranges, "latin-ext is gone — accented names would"
+    print("  both subsets ship, each scoped by its unicode-range ✓")
+
+
 def test_the_read_renders_light_for_everyone() -> None:
     """The report is a client deliverable. It must look the same on the brand
     manager's laptop as it did on ours, so it does NOT follow the reader's OS

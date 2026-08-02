@@ -61,15 +61,76 @@ _MIME = {
     ".webp": "image/webp", ".gif": "image/gif",
 }
 
-# The design specifies Instrument Sans, loaded from Google Fonts. A network
-# request is not available to a page that must render identically from disk,
-# so the stack degrades to the closest system faces. Embedding the real face as
-# a base64 data URI is the upgrade path and is licence-clean (Instrument Sans
-# is SIL OFL) — it is deliberately not done here, because a ~40KB payload on
-# every report is a decision to take once the layout is settled.
+# The design specifies Instrument Sans, loaded from Google Fonts. That link is
+# dropped — a page that must render identically from disk cannot depend on a
+# network request — and the real face is EMBEDDED instead, as a base64 data URI
+# built from the woff2 files in agent/fonts/. ~53KB per page, licence-clean
+# (SIL OFL 1.1; the licence ships beside the files at agent/fonts/OFL.txt).
+# The system faces stay behind it: they still carry the glyphs Instrument Sans
+# has no coverage for, e.g. the Devanagari that shows up in persona verbatims.
 _FONT_STACK = ('"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,'
                '"Helvetica Neue",Arial,sans-serif')
 _MONO = 'ui-monospace,Menlo,"SF Mono","Cascadia Code",Consolas,monospace'
+
+_FONT_DIR = Path(__file__).parent / "fonts"
+
+# Google's own subsets of the Instrument Sans variable face, with their
+# unicode-ranges copied verbatim from the css2 response they came from.
+#
+# The ranges are NOT decoration. Two faces share one family/weight/style here,
+# so with the ranges removed the last one declared wins outright and every
+# ASCII character falls through to the system stack — a page that looks subtly
+# wrong and errors nowhere.
+#
+# What each subset actually contains, read out of the cmap rather than assumed
+# from the range it declares — a range is the subset's DEFINITION, not a
+# promise that the glyph exists:
+#
+#   latin (208 glyphs)  — everything real reports use today, verified against
+#                         the character inventory of all 56 runs on disk:
+#                         ASCII plus · × é – — “ ” … ™ −
+#   latin-ext (123)     — accented Latin only (ā ł ş …). NONE of it appears in
+#                         any report so far; it ships as insurance, because the
+#                         day one accented name lands in a persona verbatim the
+#                         alternative is a typeface change mid-word. 14KB.
+#
+# NOT in either, so they render in the reader's fallback face: ₹ (U+20B9 — the
+# font has no rupee glyph at all, in any subset), → ↔ ▴ ▾, and the Devanagari
+# that turns up in verbatims. Checked on screen at body and display size: the
+# macOS fallback sits with Instrument Sans without reading as an island.
+_FONT_SUBSETS = (
+    ("InstrumentSans-latin-ext.woff2",
+     "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,"
+     "U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,"
+     "U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF"),
+    ("InstrumentSans-latin.woff2",
+     "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,"
+     "U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,"
+     "U+FEFF,U+FFFD"),
+)
+
+
+def _font_faces() -> str:
+    """The @font-face block, with the face bytes inlined as data URIs.
+
+    A missing file raises at import rather than degrading quietly: the whole
+    failure mode of an embedded font is that the page still renders, just not
+    in the typeface it was designed in, and nothing downstream can notice.
+    No font-display — there is nothing to fetch, so there is no swap period.
+    """
+    faces = []
+    for name, ranges in _FONT_SUBSETS:
+        b64 = base64.b64encode((_FONT_DIR / name).read_bytes()).decode("ascii")
+        faces.append(
+            '@font-face{font-family:"Instrument Sans";font-style:normal;'
+            'font-weight:400 700;font-stretch:100%;'
+            f'src:url(data:font/woff2;base64,{b64}) format("woff2");'
+            f'unicode-range:{ranges}}}'
+        )
+    return "\n".join(faces)
+
+
+_FONT_FACES = _font_faces()
 
 # The five funnel stages, in the order a buyer moves through them, with the
 # tapering pill widths the design gives them. Sourced from read_model so a
@@ -189,6 +250,7 @@ _DECISION_BG = {
 # primary. The dark palette above is Claude Design's and is KEPT, but it is
 # opt-in via data-theme="dark" on <html>, never automatic.
 _CSS = f"""
+{_FONT_FACES}
 *{{box-sizing:border-box}}
 body{{margin:0;background:#edebe6}}
 :root[data-theme="dark"] body{{background:#131416}}
@@ -378,6 +440,7 @@ details:not([open])>summary .opened{{display:none}}
 # deliverable they are handed are visibly one product, rather than two
 # stylesheets that drift apart. Style only: no report content, no guardrail.
 PAGE_CSS = f"""
+{_FONT_FACES}
 :root{{
   --font-sans:{_FONT_STACK};--font-mono:{_MONO};
   --ground:#edebe6;--surface:#fff;--surface-2:#faf9f7;--ink:#17181a;
