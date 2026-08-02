@@ -160,7 +160,16 @@ def test_the_designed_typeface_travels_with_the_page() -> None:
     assert faces, "the typeface is declared but its bytes are not embedded"
     assert all(len(b) > 10_000 for b in faces), \
         f"a face carries no real font data: {[len(b) for b in faces]}"
-    print(f"  Instrument Sans travels with the page, "
+
+    # PAGE_CSS is a SEPARATE stylesheet — the operator server's own console and
+    # capture pages, the surface a prospect watches being driven. It shares the
+    # font block with the report so tool and deliverable read as one product,
+    # and it needs its own assertion: everything above this line renders through
+    # _CSS, so unwiring PAGE_CSS alone would leave this test green.
+    from agent.dashboard_html import PAGE_CSS
+    assert PAGE_CSS.count("data:font/woff2;base64,") == 2, \
+        "the operator's own pages lost the typeface the deliverable has"
+    print(f"  Instrument Sans travels with the page and the console, "
           f"{sum(len(b) for b in faces) // 1024}KB ✓")
 
 

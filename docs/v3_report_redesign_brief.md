@@ -107,7 +107,7 @@ line · 6 consumer verbatims · footer with run id, flags, category.
 
 Conditional surfaces. A page showing a confident number with its qualifier missing is worse
 than no page. Each is pinned by a test at its trigger condition in
-`tests/test_read_model.py` / `tests/test_report_html.py`.
+`tests/test_read_model.py` / `tests/test_dashboard_html.py`.
 
 1. Sample degradation · "how much to trust the headline" (F3 launch scope) · A7 coherence check
 2. **v2.1 audience mismatch** — has never fired in any of the 56 runs on disk, so it cannot
@@ -162,7 +162,13 @@ what failed was the method, not the effort.
 
 ### 6.1 The architecture fork — decide this FIRST
 
-The current page is HTML assembled from Python strings (`agent/report_html.py`). That is
+> ⚠ **Updated 2026-08-02.** §6.1 below was written when `agent/report_html.py` was the
+> renderer. The design has since landed and been built as `agent/dashboard_html.py`, and
+> `report_html.py` was deleted (`git show 298b60e:agent/report_html.py` to see it). The
+> architecture fork below is still the open question for an app around the read; read
+> "report_html.py" as "dashboard_html.py" throughout.
+
+The current page is HTML assembled from Python strings (`agent/dashboard_html.py`). That is
 why it looks the way it does: there is no component library, no chart library, and CSS
 inside a Python string literal is a hostile medium for iterating on a visual design.
 
@@ -183,7 +189,7 @@ inside a Python string literal is a hostile medium for iterating on a visual des
 > `sample_report.html` failure rebuilt in TypeScript.
 
 The FastAPI server already builds `ReadModel` on every request, so the API is a
-serialiser away. Keep `agent/report_html.py` alive as the self-contained export path.
+serialiser away. Keep `agent/dashboard_html.py` alive as the self-contained export path.
 
 ### 6.2 Tools — what to use, and what not to
 
