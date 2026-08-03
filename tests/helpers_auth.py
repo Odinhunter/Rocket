@@ -3,7 +3,7 @@
 There is no test-only bypass in `create_app`, deliberately: a flag that opens
 the server is a flag someone can set in a deploy config to get past a bad
 first deploy, and then it stays set. So the offline suite does what a browser
-does — POSTs the password to `/login` and keeps the cookie.
+does — POSTs the password to `/signin` and keeps the cookie.
 
 The cost is one line per fixture. The benefit is that every server test also
 exercises the gate, so a change that breaks sign-in cannot pass by being
@@ -35,7 +35,7 @@ def demo_auth() -> Auth:
 
 def sign_in(client: TestClient) -> TestClient:
     """POST the real form and keep the cookie on the client's jar."""
-    resp = client.post("/login", data={"password": PASSWORD},
+    resp = client.post("/signin", data={"password": PASSWORD},
                        follow_redirects=False)
     assert resp.status_code == 303, resp.text
     assert client.cookies.get("rocket_auth"), "sign-in issued no cookie"

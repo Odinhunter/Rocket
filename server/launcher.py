@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import secrets
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -59,11 +60,26 @@ class Job:
 
 
 @dataclass
+class Preparing:
+    """A prepare running on its own thread. Under a minute, but not instant."""
+
+    token: str
+    thread: threading.Thread
+    prep: RunPreparation | None = None
+    error: str | None = None
+
+    @property
+    def done(self) -> bool:
+        return self.prep is not None or self.error is not None
+
+
+@dataclass
 class Launcher:
     """Prepared-but-uncommitted runs, and the threads running committed ones."""
 
     prepared: dict[str, RunPreparation] = field(default_factory=dict)
     jobs: dict[str, Job] = field(default_factory=dict)
+    preparing: dict[str, Preparing] = field(default_factory=dict)
     _lock: threading.Lock = field(default_factory=threading.Lock)
 
     # ---- phase A ----
@@ -74,6 +90,49 @@ class Launcher:
         with self._lock:
             self.prepared[prep.run_id] = prep
         return prep
+
+    def prepare_async(self, config) -> str:
+        """The same paid call, off the request thread, keyed by a token.
+
+        `prepare` fires the target classifier and resolves the panel — tens of
+        seconds, sometimes more on a cold persona-core cache. Doing that inside
+        the POST means a browser sitting on a blank tab with a spinner it owns,
+        no way to say what is happening, and a proxy free to time the request
+        out and leave the operator thinking nothing ran. Running it here lets
+        the browser land on a page that can say "classifying the creative".
+
+        The thread is a daemon, unlike `commit`'s: no credit has been debited,
+        so losing a prepare to a shutdown costs ~$0.15 and a retry, where
+        losing a commit costs the run.
+        """
+        token = secrets.token_urlsafe(8)
+        state = Preparing(token=token, thread=threading.Thread(target=lambda: None))
+
+        def _run() -> None:
+            try:
+                # Through self.prepare, not RunService directly: that keeps ONE
+                # entry point to the paid call, so a test double substitutes in
+                # one place and cannot be bypassed by the async path.
+                prep = self.prepare(config)
+            except Exception as exc:  # noqa: BLE001 — surfaced on the page
+                state.error = f"{type(exc).__name__}: {exc}"
+                _log.exception("prepare %s failed", token)
+                return
+            # Set LAST: `done` flips on this, and a reader that saw prep before
+            # `prepare` had registered it would redirect to a review page that
+            # cannot find it.
+            state.prep = prep
+
+        state.thread = threading.Thread(target=_run, name=f"rocket-prep-{token}",
+                                        daemon=True)
+        with self._lock:
+            self.preparing[token] = state
+        state.thread.start()
+        return token
+
+    def preparation(self, token: str) -> Preparing | None:
+        with self._lock:
+            return self.preparing.get(token)
 
     def take(self, run_id: str) -> RunPreparation | None:
         with self._lock:
@@ -119,6 +178,46 @@ class Launcher:
         job.thread.start()
         return job
 
+    # ---- recovery ----
+
+    def replay(self, run_dir: Path, key: str) -> Job:
+        """Re-run L2→L4 on transcripts already on disk.
+
+        Costs real money — the synthesis layers go through the model — but a
+        fraction of a full run, because the 100 agent calls that dominate the
+        bill are read back from disk instead of being paid for twice. No credit
+        is debited: the credit was spent when the run was committed.
+
+        Non-daemon like `commit`, and for the same reason: it is spending.
+        """
+        account, brand, run_id = (key.split("/") + ["", "", ""])[:3]
+        job = Job(run_id=run_id, account_id=account, brand_profile_id=brand,
+                  thread=threading.Thread(target=lambda: None))
+
+        def _run() -> None:
+            try:
+                import asyncio
+
+                # Imported here, not at module scope: replay_synthesis is a
+                # top-level script that loads .env on import, and the server
+                # must not fail to start because a recovery tool is missing.
+                from replay_synthesis import _replay
+
+                asyncio.run(_replay(run_dir))
+            except Exception as exc:  # noqa: BLE001 — recorded, not swallowed
+                job.error = f"{type(exc).__name__}: {exc}"
+                _log.exception("replay %s failed", key)
+
+        job.thread = threading.Thread(target=_run, name=f"rocket-replay-{run_id}",
+                                      daemon=False)
+        with self._lock:
+            existing = self.jobs.get(key)
+            if existing is not None and existing.thread.is_alive():
+                return existing  # idempotent: one recovery at a time
+            self.jobs[key] = job
+        job.thread.start()
+        return job
+
     # ---- status ----
 
     def status(self, runs_root: Path, key: str) -> dict:
@@ -153,7 +252,12 @@ class Launcher:
             "running": alive, "error": error,
             "updated_at": raw.get("updated_at", ""),
             "panel_health": raw.get("panel_health"),
-            "has_report": bool(raw.get("report")),
+            # replay_report.json counts: a recovered run has a real report,
+            # it just is not the one run.json holds. discover_runs already
+            # treats the two the same, and a status page that disagreed would
+            # keep offering "recover" for a run that had been recovered.
+            "has_report": bool(raw.get("report"))
+                          or (rd / "replay_report.json").exists(),
             # The middle of the run — the only thing that moves during the
             # minutes run.json says nothing about. None until the first phase
             # lands, and left as-is on a failed run so the status page can say

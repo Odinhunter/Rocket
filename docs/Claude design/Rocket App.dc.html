@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--ground);
+--mono:ui-monospace,Menlo,'SF Mono','Cascadia Code',Consolas,monospace;
+--ground:#edebe6;--surface:#ffffff;--surface-2:#faf9f7;--ink:#17181a;--muted:#6b6f76;--faint:#8a8d94;--line:#e7e5e0;
+--accent:#0f8a6d;--accent-ink:#0b6b55;--accent-tint:#e8f2ee;--good:#0f8a6d;--good-tint:#e8f2ee;
+--leak:#b45309;--leak-tint:#fdf6e9;--leak-line:#f0e0bd;
+--shadow:0 1px 3px rgba(0,0,0,.05);
+--stripe:repeating-linear-gradient(135deg,#f3f3f5 0px,#f3f3f5 6px,#ececef 6px,#ececef 7px)}
+a{color:var(--accent)}a:hover{color:var(--accent-ink)}
+input,select,button,textarea{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+@keyframes rk-bar{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+@keyframes rk-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</helmet>
+<div style="background:var(--ground);min-height:100vh;padding:34px 40px 90px">
+<div style="max-width:1280px;margin:0 auto">
+
+<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--line)">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="width:14px;height:14px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span>
+      <span style="font-size:20px;font-weight:700;letter-spacing:-.015em">Rocket — the signed-in application</span>
+    </div>
+    <div style="margin-top:8px;font-size:13px;color:var(--muted);max-width:640px;line-height:1.55;text-wrap:pretty">Every state, labelled and stacked. Same tokens as the Creative Read, less visual weight. Light mode only; every action is a real form post or a real link.</div>
+  </div>
+  <div style="font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.06em;line-height:1.9;text-align:right">
+    <div>SIDEBAR LINKS JUMP BETWEEN STATES IN THIS SHEET</div>
+    <div>REAL ROUTES SIT IN DATA.NAV AT THE TOP OF THE FILE</div>
+  </div>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:6px 8px;padding:16px 0 30px">
+  <sc-for list="{{ index }}" as="s" hint-placeholder-count="18">
+    <a href="{{ s.href }}" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--muted);text-decoration:none;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 8px" style-hover="color:var(--ink);border-color:var(--faint)">{{ s.label }}</a>
+  </sc-for>
+</div>
+
+<section id="state-1-signed-out" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 1 · state-1-signed-out</span>
+    <span style="font-size:12.5px;color:var(--muted)">One shared password. No email, no reset, no signup — none of them lead anywhere.</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:var(--ground);min-height:430px;display:flex;align-items:center;justify-content:center;padding:40px">
+      <form method="post" action="/signin" style="width:328px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:30px 30px 26px;margin:0">
+        <div style="display:flex;align-items:center;gap:9px">
+          <span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span>
+          <span style="font-size:16px;font-weight:700;letter-spacing:-.01em">Rocket</span>
+        </div>
+        <div style="margin-top:6px;font-size:12.5px;color:var(--muted);line-height:1.5">Read the creative before you run it.</div>
+        <div style="margin-top:24px">
+          <label for="pw-a" style="display:block;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">PASSWORD</label>
+          <input id="pw-a" name="password" type="password" required="{{ true }}" autoComplete="current-password" style="margin-top:7px;width:100%;box-sizing:border-box;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;color:var(--ink)" />
+        </div>
+        <button type="submit" style="margin-top:16px;width:100%;background:var(--accent);color:#fff;border:0;border-radius:8px;padding:11px 16px;font-size:13.5px;font-weight:600;cursor:pointer" style-hover="background:var(--accent-ink)">Sign in</button>
+      </form>
+    </div>
+    <div style="border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:var(--ground);min-height:430px;display:flex;align-items:center;justify-content:center;padding:40px;position:relative">
+      <span style="position:absolute;top:12px;left:14px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--faint)">1B · WRONG PASSWORD</span>
+      <form method="post" action="/signin" style="width:328px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:30px 30px 26px;margin:0">
+        <div style="display:flex;align-items:center;gap:9px">
+          <span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span>
+          <span style="font-size:16px;font-weight:700;letter-spacing:-.01em">Rocket</span>
+        </div>
+        <div style="margin-top:6px;font-size:12.5px;color:var(--muted);line-height:1.5">Read the creative before you run it.</div>
+        <div style="margin-top:24px">
+          <label for="pw-b" style="display:block;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">PASSWORD</label>
+          <input id="pw-b" name="password" type="password" required="{{ true }}" aria-invalid="true" aria-describedby="pw-b-err" style="margin-top:7px;width:100%;box-sizing:border-box;background:var(--surface-2);border:1px solid var(--leak);border-radius:8px;padding:10px 12px;font-size:13.5px;color:var(--ink)" />
+          <div id="pw-b-err" style="margin-top:8px;display:flex;gap:8px;align-items:baseline">
+            <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.07em;color:var(--leak);flex:none">INCORRECT</span>
+            <span style="font-size:12px;line-height:1.5;color:var(--muted)">That password doesn't match. Try again.</span>
+          </div>
+        </div>
+        <button type="submit" style="margin-top:16px;width:100%;background:var(--accent);color:#fff;border:0;border-radius:8px;padding:11px 16px;font-size:13.5px;font-weight:600;cursor:pointer" style-hover="background:var(--accent-ink)">Sign in</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section id="state-2-reads-populated" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 2 · state-2-reads-populated</span>
+    <span style="font-size:12.5px;color:var(--muted)">Home. Decisions are marked by type, never on a good-to-bad colour scale. Every row carries its date and run id because the same creative recurs.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface);display:flex;min-height:700px">
+    <div style="width:212px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 10px 20px"><span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span><span style="font-size:15.5px;font-weight:700;letter-spacing:-.01em">Rocket</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="#state-2-reads-populated" aria-current="page" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:var(--accent-tint);color:var(--accent-ink)">Reads</a>
+        <a href="#state-4-new-read" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">New read</a>
+        <a href="#state-12-brand-profiles" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Brand profiles</a>
+        <a href="#state-13-settings" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Settings</a>
+      </div>
+      <div style="margin-top:auto;border-top:1px solid var(--line);padding:14px 12px 2px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">SIGNED IN</div>
+        <div style="margin-top:5px;font-family:var(--mono);font-size:12.5px;color:var(--ink)">{{ account }}</div>
+        <form method="post" action="/signout" style="margin:9px 0 0"><button type="submit" style="background:none;border:0;padding:0;font-size:12.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:var(--ink)">Sign out</button></form>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;background:var(--ground);padding:26px 30px 40px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+        <div>
+          <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">Reads</h1>
+          <div style="margin-top:5px;font-size:12.5px;color:var(--muted)">{{ readCount }}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <form method="get" action="/reads" role="search" style="display:flex;gap:6px;margin:0">
+            <label for="q-2" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Filter reads</label>
+            <input id="q-2" name="q" type="search" placeholder="Filter by creative or decision" style="width:250px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12.5px;color:var(--ink)" />
+            <button type="submit" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 13px;font-size:12.5px;color:var(--ink);cursor:pointer" style-hover="border-color:var(--faint)">Filter</button>
+          </form>
+          <a href="#state-4-new-read" style="background:var(--accent);color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;text-decoration:none" style-hover="background:var(--accent-ink)">New read</a>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow-x:auto">
+        <div style="display:grid;grid-template-columns:minmax(230px,1fr) 190px 210px 150px 44px;padding:0 6px;min-width:830px">
+          <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;border-bottom:1px solid var(--line)">
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint);padding:11px 12px">CREATIVE</div>
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint);padding:11px 12px">DECISION</div>
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint);padding:11px 12px">RUN</div>
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint);padding:11px 12px">BRAND PROFILE</div>
+            <div></div>
+          </div>
+          <sc-for list="{{ reads }}" as="r" hint-placeholder-count="6">
+            <a href="#state-2b-read-open" style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;text-decoration:none;color:inherit;border-bottom:1px solid var(--line);border-radius:8px" style-hover="background:var(--surface-2)">
+              <div style="padding:13px 12px;font-size:13.5px;color:var(--ink);line-height:1.4;text-wrap:pretty">{{ r.creative }}</div>
+              <div style="padding:13px 12px">
+                <sc-if value="{{ r.hasDecision }}" hint-placeholder-val="{{ true }}">
+                  <span style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:7px;padding:4px 9px 4px 7px;background:var(--surface-2)">
+                    <span style="width:11px;height:11px;flex:none;border-radius:2px;background:{{ r.mkBg }};border:{{ r.mkBd }}"></span>
+                    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--ink)">{{ r.decision }}</span>
+                  </span>
+                </sc-if>
+                <sc-if value="{{ r.noDecision }}" hint-placeholder-val="{{ false }}">
+                  <span style="display:inline-flex;align-items:center;gap:7px;border:1px dashed var(--line);border-radius:7px;padding:4px 9px;background:none">
+                    <span style="font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--faint)">NOT GRADED</span>
+                  </span>
+                  <div style="margin-top:4px;font-size:11px;color:var(--faint);line-height:1.4">Predates the decision layer</div>
+                </sc-if>
+              </div>
+              <div style="padding:13px 12px">
+                <div style="font-family:var(--mono);font-size:12px;color:var(--ink);font-variant-numeric:tabular-nums">{{ r.date }}</div>
+                <sc-if value="{{ showRunId }}" hint-placeholder-val="{{ true }}"><div style="margin-top:3px;font-family:var(--mono);font-size:9.5px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.run }}</div></sc-if>
+              </div>
+              <div style="padding:13px 12px;font-family:var(--mono);font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.brand }}</div>
+              <div style="padding:13px 10px;text-align:right;font-size:13px;color:var(--faint)">›</div>
+            </a>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px 20px">
+        <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">THE FIVE DECISIONS — INSTRUCTIONS, NOT SCORES</div>
+        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:9px 26px">
+          <sc-for list="{{ legend }}" as="d" hint-placeholder-count="5">
+            <div style="display:flex;gap:10px;align-items:baseline">
+              <span style="width:11px;height:11px;flex:none;border-radius:2px;transform:translateY(1px);background:{{ d.mkBg }};border:{{ d.mkBd }}"></span>
+              <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--ink);flex:none;width:104px">{{ d.name }}</span>
+              <span style="font-size:12px;line-height:1.5;color:var(--muted);text-wrap:pretty">{{ d.gloss }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-2b-read-open" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 2B · state-2b-read-open</span>
+    <span style="font-size:12.5px;color:var(--muted)">Opening a read leaves the application. No sidebar, no search, no chrome — one back link above a standalone document. Export lives inside the report, and only downloads the HTML.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--ground);min-height:440px">
+    <div style="background:var(--surface);border-bottom:1px solid var(--line);padding:13px 24px">
+      <a href="#state-2-reads-populated" style="font-size:13px;color:var(--muted);text-decoration:none" style-hover="color:var(--ink)">← Back to reads</a>
+    </div>
+    <div style="padding:26px 30px 40px">
+      <div style="max-width:1000px;margin:0 auto;border:1px solid var(--line);border-radius:12px;background:var(--stripe);min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px">
+        <span style="font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted);text-align:center">THE CREATIVE READ — THE ATTACHED DOCUMENT, UNCHANGED</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--faint);text-align:center;line-height:1.7">self-contained file · served at /reads/&lt;run_id&gt;<br />it carries its own Export control; the app adds none</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-3-reads-empty" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 3 · state-3-reads-empty</span>
+    <span style="font-size:12.5px;color:var(--muted)">One sentence and the action. No illustration.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface);display:flex;min-height:430px">
+    <div style="width:212px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 10px 20px"><span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span><span style="font-size:15.5px;font-weight:700;letter-spacing:-.01em">Rocket</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="#state-3-reads-empty" aria-current="page" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:var(--accent-tint);color:var(--accent-ink)">Reads</a>
+        <a href="#state-4-new-read" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">New read</a>
+        <a href="#state-12-brand-profiles" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Brand profiles</a>
+        <a href="#state-13-settings" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Settings</a>
+      </div>
+      <div style="margin-top:auto;border-top:1px solid var(--line);padding:14px 12px 2px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">SIGNED IN</div>
+        <div style="margin-top:5px;font-family:var(--mono);font-size:12.5px;color:var(--ink)">{{ account }}</div>
+        <form method="post" action="/signout" style="margin:9px 0 0"><button type="submit" style="background:none;border:0;padding:0;font-size:12.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:var(--ink)">Sign out</button></form>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;background:var(--ground);padding:26px 30px 40px">
+      <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">Reads</h1>
+      <div style="margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:40px 36px;display:flex;flex-direction:column;align-items:flex-start;gap:16px;max-width:620px">
+        <div style="font-size:15px;line-height:1.55;color:var(--ink);text-wrap:pretty">A read puts your ad in front of a synthetic panel of buyers, then tells you what it gets wrong and what to do about it — before you spend on it.</div>
+        <a href="#state-4-new-read" style="background:var(--accent);color:#fff;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;text-decoration:none" style-hover="background:var(--accent-ink)">New read</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-4-new-read" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 4 · state-4-new-read</span>
+    <span style="font-size:12.5px;color:var(--muted)">One multipart form post. The drop target is also the file picker, so it works with JS switched off.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface);display:flex;min-height:860px">
+    <div style="width:212px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 10px 20px"><span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span><span style="font-size:15.5px;font-weight:700;letter-spacing:-.01em">Rocket</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="#state-2-reads-populated" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Reads</a>
+        <a href="#state-4-new-read" aria-current="page" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:var(--accent-tint);color:var(--accent-ink)">New read</a>
+        <a href="#state-12-brand-profiles" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Brand profiles</a>
+        <a href="#state-13-settings" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Settings</a>
+      </div>
+      <div style="margin-top:auto;border-top:1px solid var(--line);padding:14px 12px 2px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">SIGNED IN</div>
+        <div style="margin-top:5px;font-family:var(--mono);font-size:12.5px;color:var(--ink)">{{ account }}</div>
+        <form method="post" action="/signout" style="margin:9px 0 0"><button type="submit" style="background:none;border:0;padding:0;font-size:12.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:var(--ink)">Sign out</button></form>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;background:var(--ground);padding:26px 30px 44px">
+      <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">New read</h1>
+      <div style="margin-top:5px;font-size:12.5px;color:var(--muted)">Two phases. This one classifies the ad and resolves the panel — nothing is charged here.</div>
+      <form method="post" action="/reads/new" encType="multipart/form-data" style="margin:18px 0 0;max-width:760px;display:flex;flex-direction:column;gap:14px">
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px 22px 24px">
+          <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">THE CREATIVE</div>
+
+          <label for="creative-file" style="margin-top:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:196px;border:1.5px dashed #cfcdc7;border-radius:11px;background:var(--surface-2);padding:26px;cursor:pointer;text-align:center" style-hover="border-color:var(--accent);background:var(--accent-tint)">
+            <span style="width:34px;height:34px;border-radius:8px;border:1.5px solid var(--faint);display:flex;align-items:center;justify-content:center">
+              <svg width="17" height="17" viewBox="0 0 17 17" aria-hidden="true"><path d="M8.5 12.5V3.5M8.5 3.5 4.8 7.2M8.5 3.5l3.7 3.7" fill="none" stroke="#6b6f76" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M2.5 12v1.5h12V12" fill="none" stroke="#6b6f76" stroke-width="1.4" stroke-linecap="round"></path></svg>
+            </span>
+            <span style="font-size:15px;font-weight:600;color:var(--ink)">Drop the ad creative here</span>
+            <span style="font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--faint)">.PNG · .JPG · .WEBP</span>
+            <input id="creative-file" name="creative" type="file" accept=".png,.jpg,.jpeg,.webp" required="{{ true }}" style="font-size:12px;color:var(--muted);max-width:280px" />
+          </label>
+
+          <div style="margin-top:20px">
+            <label for="asset-label" style="display:block;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">LABEL</label>
+            <div style="margin-top:4px;font-size:12px;color:var(--muted)">How it should read in the report header.</div>
+            <input id="asset-label" name="asset_label" type="text" style="margin-top:7px;width:100%;box-sizing:border-box;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;color:var(--ink)" />
+          </div>
+
+          <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:18px">
+            <div>
+              <label for="category" style="display:block;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">CATEGORY</label>
+              <div style="margin-top:4px;font-size:12px;color:var(--muted)">Which disposition library to read against.</div>
+              <select id="category" name="category" defaultValue="Health &amp; wellness nutrition" style="margin-top:7px;width:100%;box-sizing:border-box;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;color:var(--ink)">
+                <sc-for list="{{ categories }}" as="c" hint-placeholder-count="4"><option value="{{ c }}">{{ c }}</option></sc-for>
+              </select>
+            </div>
+            <div style="min-width:0">
+              <label for="audience-spec" style="display:block;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">AUDIENCE SPEC</label>
+              <div style="margin-top:4px;font-size:12px;color:var(--muted)">The audience this is aimed at.</div>
+              <select id="audience-spec" name="audience_spec" defaultValue="health_wellness_cold_traffic.json" style="margin-top:7px;width:100%;box-sizing:border-box;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--ink);text-overflow:ellipsis">
+                <sc-for list="{{ audiences }}" as="a" hint-placeholder-count="2"><option value="{{ a }}">{{ a }}</option></sc-for>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px 22px 24px">
+          <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">THE BUY</div>
+
+          <div style="margin-top:14px">
+            <label for="declared-targeting" style="display:block;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">DECLARED TARGETING</label>
+            <div style="margin-top:4px;font-size:12px;color:var(--muted);line-height:1.5;max-width:600px;text-wrap:pretty">Their stated audience, in their words. A hint to the classifier — it never overrides what the creative itself reads as.</div>
+            <textarea id="declared-targeting" name="declared_targeting" rows="2" style="margin-top:7px;width:100%;box-sizing:border-box;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.5;color:var(--ink);resize:vertical"></textarea>
+          </div>
+
+          <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:18px">
+            <div>
+              <label for="ad-job" style="display:block;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">THE AD'S JOB</label>
+              <div style="margin-top:4px;font-size:12px;color:var(--muted)">What it is being graded against.</div>
+              <select id="ad-job" name="ad_job" defaultValue="Direct-sell" style="margin-top:7px;width:100%;box-sizing:border-box;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;color:var(--ink)">
+                <sc-for list="{{ jobs }}" as="j" hint-placeholder-count="5"><option value="{{ j }}">{{ j }}</option></sc-for>
+              </select>
+            </div>
+            <div style="min-width:0">
+              <label for="brand-profile" style="display:block;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">BRAND PROFILE</label>
+              <div style="margin-top:4px;font-size:12px;color:var(--muted)">Where the read gets filed.</div>
+              <select id="brand-profile" name="brand_profile" defaultValue="health_wellness_demo" style="margin-top:7px;width:100%;box-sizing:border-box;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:12px;color:var(--ink);text-overflow:ellipsis">
+                <sc-for list="{{ brands }}" as="b" hint-placeholder-count="5"><option value="{{ b }}">{{ b }}</option></sc-for>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-top:20px;border-top:1px solid var(--line);padding-top:16px;display:flex;gap:11px;align-items:flex-start">
+            <input id="marketer-led" name="marketer_led" type="checkbox" defaultChecked="{{ true }}" style="width:16px;height:16px;margin:1px 0 0;accent-color:#0f8a6d;flex:none" />
+            <div>
+              <label for="marketer-led" style="font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer">Marketer-led composition</label>
+              <div style="margin-top:3px;font-size:12px;color:var(--muted);line-height:1.5;max-width:560px">Compose the panel from the declared audience. On for a real client read.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <button type="submit" style="background:var(--accent);color:#fff;border:0;border-radius:8px;padding:12px 22px;font-size:13.5px;font-weight:600;cursor:pointer" style-hover="background:var(--accent-ink)">Prepare (~$0.15)</button>
+          <span style="font-size:12.5px;color:var(--muted);line-height:1.5;max-width:460px">Preparing classifies the creative and resolves the panel. You review the cost before anything is committed.</span>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section id="state-4b-uploaded" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 4B / 4C · state-4b-uploaded · state-4c-wrong-type</span>
+    <span style="font-size:12.5px;color:var(--muted)">The creative block only — the rest of the form is unchanged.</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:var(--ground);padding:22px">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--faint);margin-bottom:12px">4B · UPLOADED</div>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px 22px 22px">
+        <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">THE CREATIVE</div>
+        <div style="margin-top:14px;display:flex;gap:16px;align-items:flex-start;border:1px solid var(--line);border-radius:11px;background:var(--surface-2);padding:14px">
+          <div style="width:96px;height:96px;flex:none;border-radius:8px;border:1px solid var(--line);background:var(--stripe);display:flex;align-items:center;justify-content:center"><span style="font-family:var(--mono);font-size:8.5px;color:var(--faint);text-align:center;line-height:1.5">uploaded<br />creative</span></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:var(--mono);font-size:12px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">muscleblaze_biozyme_iso_zero.png</div>
+            <div style="margin-top:4px;font-family:var(--mono);font-size:10.5px;color:var(--faint)">1080 × 1080 · PNG</div>
+            <div style="margin-top:12px;display:flex;gap:8px">
+              <label for="creative-file-2" style="background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:6px 12px;font-size:12.5px;color:var(--ink);cursor:pointer" style-hover="border-color:var(--faint)">Replace</label>
+              <input id="creative-file-2" name="creative" type="file" accept=".png,.jpg,.jpeg,.webp" style="position:absolute;width:1px;height:1px;opacity:0" />
+              <button type="submit" name="remove_creative" value="1" style="background:none;border:0;padding:6px 4px;font-size:12.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:var(--ink)">Remove</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:18px">
+          <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">LABEL</div>
+          <div style="margin-top:7px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;color:var(--ink)">MuscleBlaze Biozyme Performance Whey</div>
+        </div>
+      </div>
+    </div>
+    <div style="border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:var(--ground);padding:22px">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--faint);margin-bottom:12px">4C · WRONG FILE TYPE</div>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px 22px 22px">
+        <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">THE CREATIVE</div>
+        <label for="creative-file-3" style="margin-top:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:150px;border:1.5px dashed var(--leak);border-radius:11px;background:var(--leak-tint);padding:22px;cursor:pointer;text-align:center">
+          <span style="font-size:14px;font-weight:600;color:var(--ink)">Drop the ad creative here</span>
+          <span style="font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--faint)">.PNG · .JPG · .WEBP</span>
+          <input id="creative-file-3" name="creative" type="file" accept=".png,.jpg,.jpeg,.webp" style="font-size:12px;color:var(--muted);max-width:260px" />
+        </label>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:baseline">
+          <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.07em;color:var(--leak);flex:none">REJECTED</span>
+          <div>
+            <span style="font-size:12.5px;line-height:1.5;color:var(--ink)">That's not a .png, .jpg or .webp.</span>
+            <div style="margin-top:3px;font-family:var(--mono);font-size:10.5px;color:var(--faint)">brief_final_v3.pdf</div>
+          </div>
+        </div>
+        <div style="margin-top:18px">
+          <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">LABEL</div>
+          <div style="margin-top:7px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;color:var(--faint)">Kept as typed — the form does not clear</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-5-preparing" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 5 · state-5-preparing</span>
+    <span style="font-size:12.5px;color:var(--muted)">Under a minute, so an indeterminate indicator is honest here.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface);display:flex;min-height:420px">
+    <div style="width:212px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 10px 20px"><span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span><span style="font-size:15.5px;font-weight:700;letter-spacing:-.01em">Rocket</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="#state-2-reads-populated" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Reads</a>
+        <a href="#state-4-new-read" aria-current="page" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:var(--accent-tint);color:var(--accent-ink)">New read</a>
+        <a href="#state-12-brand-profiles" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Brand profiles</a>
+        <a href="#state-13-settings" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Settings</a>
+      </div>
+      <div style="margin-top:auto;border-top:1px solid var(--line);padding:14px 12px 2px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">SIGNED IN</div>
+        <div style="margin-top:5px;font-family:var(--mono);font-size:12.5px;color:var(--ink)">{{ account }}</div>
+        <form method="post" action="/signout" style="margin:9px 0 0"><button type="submit" style="background:none;border:0;padding:0;font-size:12.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:var(--ink)">Sign out</button></form>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;background:var(--ground);padding:26px 30px 44px">
+      <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">New read</h1>
+      <div style="margin-top:18px;max-width:760px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:22px 24px 24px">
+        <div style="display:flex;gap:16px;align-items:center">
+          <div style="width:64px;height:64px;flex:none;border-radius:8px;border:1px solid var(--line);background:var(--stripe)"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:600;color:var(--ink)">Preparing the read</div>
+            <div style="margin-top:4px;font-size:12.5px;color:var(--muted);line-height:1.5">Classifying the creative and resolving the panel. Usually under a minute — nothing is charged yet.</div>
+          </div>
+          <span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 10px;flex:none;animation:rk-pulse 1.8s ease-in-out infinite">WORKING</span>
+        </div>
+        <div style="margin-top:18px;height:3px;border-radius:2px;background:var(--line);overflow:hidden">
+          <div style="width:33%;height:100%;background:var(--accent);animation:rk-bar 1.6s ease-in-out infinite"></div>
+        </div>
+        <div style="margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--faint)">{{ runLabel }}</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-6-review-clean" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 6 · state-6-review-clean</span>
+    <span style="font-size:12.5px;color:var(--muted)">The money screen, common case. Its own page, never a modal. The cost block borrows the report's ink-bordered treatment — the one weight the product reserves for "read this".</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface);display:flex;min-height:900px">
+    <div style="width:212px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 10px 20px"><span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span><span style="font-size:15.5px;font-weight:700;letter-spacing:-.01em">Rocket</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="#state-2-reads-populated" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Reads</a>
+        <a href="#state-4-new-read" aria-current="page" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:var(--accent-tint);color:var(--accent-ink)">New read</a>
+        <a href="#state-12-brand-profiles" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Brand profiles</a>
+        <a href="#state-13-settings" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Settings</a>
+      </div>
+      <div style="margin-top:auto;border-top:1px solid var(--line);padding:14px 12px 2px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">SIGNED IN</div>
+        <div style="margin-top:5px;font-family:var(--mono);font-size:12.5px;color:var(--ink)">{{ account }}</div>
+        <form method="post" action="/signout" style="margin:9px 0 0"><button type="submit" style="background:none;border:0;padding:0;font-size:12.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:var(--ink)">Sign out</button></form>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;background:var(--ground);padding:26px 30px 48px">
+      <div style="max-width:820px;display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div style="font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--muted)">Phase 2 of 2 · before a credit is debited</div>
+          <h1 style="margin:6px 0 0;font-size:24px;font-weight:600;letter-spacing:-.015em">Review, then commit</h1>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--stripe)"></span>
+            <span style="font-size:13px;color:var(--ink)">{{ runLabel }}</span>
+            <span style="font-family:var(--mono);font-size:10.5px;color:var(--faint)">Direct-sell · health_wellness_demo</span>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px 22px 22px">
+          <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">WHAT THE CREATIVE READS AS</div>
+          <div style="margin-top:11px;font-size:15px;line-height:1.6;color:var(--ink);text-wrap:pretty">{{ inferred }}</div>
+          <div style="margin-top:18px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 170px">
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--faint);padding:10px 0 8px">DISPOSITION</div>
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--faint);padding:10px 0 8px">AGAINST THAT TARGET</div>
+            <sc-for list="{{ dispositions }}" as="d" hint-placeholder-count="6">
+              <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;border-top:1px solid var(--line);align-items:center">
+                <div style="font-family:var(--mono);font-size:12.5px;color:var(--ink);padding:9px 0">{{ d.id }}</div>
+                <div style="padding:9px 0">
+                  <sc-if value="{{ d.within }}" hint-placeholder-val="{{ true }}"><span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--accent-ink);background:var(--accent-tint);border-radius:999px;padding:3px 9px">WITHIN</span></sc-if>
+                  <sc-if value="{{ d.outside }}" hint-placeholder-val="{{ false }}"><span style="font-family:var(--mono);font-size:11.5px;color:var(--faint)">outside</span></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:14px;font-size:12.5px;line-height:1.55;color:var(--muted);text-wrap:pretty">One within and five outside is what a correctly narrow ad looks like. It is not a fault in the buy.</div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px 22px 22px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">THE PANEL</span>
+            <span style="font-family:var(--mono);font-size:10.5px;color:var(--faint)">{{ panelVersion }}</span>
+          </div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ panelLines }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex;gap:10px;align-items:baseline">
+                <span style="width:5px;height:5px;border-radius:50%;background:var(--faint);flex:none;transform:translateY(-2px)"></span>
+                <span style="font-family:var(--mono);font-size:12.5px;line-height:1.5;color:var(--ink)">{{ p.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1.5px solid var(--ink);border-radius:12px;padding:22px 24px 24px">
+          <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--ink)">COST</div>
+          <div style="margin-top:10px;font-size:15px;line-height:1.6;color:var(--ink);text-wrap:pretty">Estimated <strong style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums">{{ costEstimate }}</strong> — persona cores rendered: {{ costCores }}. Committing debits one credit and starts spending immediately.</div>
+          <form method="post" action="/reads/prepared/commit" style="margin:18px 0 0">
+            <button type="submit" style="background:var(--accent);color:#fff;border:0;border-radius:9px;padding:13px 26px;font-size:14.5px;font-weight:600;cursor:pointer" style-hover="background:var(--accent-ink)">Commit and run</button>
+          </form>
+          <div style="margin-top:14px"><a href="#state-4-new-read" style="font-size:12.5px;color:var(--muted);text-decoration:none" style-hover="color:var(--ink)">← cancel (no credit debited)</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-6b-warnings" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 6B · state-6b-warnings</span>
+    <span style="font-size:12.5px;color:var(--muted)">Two warnings and one STOP flag, all in one hairline stack. The STOP is marked by a filled tag and a bolder line — nothing to acknowledge, nothing blocking the commit.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface);display:flex;min-height:960px">
+    <div style="width:212px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 10px 20px"><span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span><span style="font-size:15.5px;font-weight:700;letter-spacing:-.01em">Rocket</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="#state-2-reads-populated" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Reads</a>
+        <a href="#state-4-new-read" aria-current="page" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:var(--accent-tint);color:var(--accent-ink)">New read</a>
+        <a href="#state-12-brand-profiles" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Brand profiles</a>
+        <a href="#state-13-settings" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Settings</a>
+      </div>
+      <div style="margin-top:auto;border-top:1px solid var(--line);padding:14px 12px 2px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">SIGNED IN</div>
+        <div style="margin-top:5px;font-family:var(--mono);font-size:12.5px;color:var(--ink)">{{ account }}</div>
+        <form method="post" action="/signout" style="margin:9px 0 0"><button type="submit" style="background:none;border:0;padding:0;font-size:12.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:var(--ink)">Sign out</button></form>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;background:var(--ground);padding:26px 30px 48px">
+      <div style="max-width:820px;display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div style="font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--muted)">Phase 2 of 2 · before a credit is debited</div>
+          <h1 style="margin:6px 0 0;font-size:24px;font-weight:600;letter-spacing:-.015em">Review, then commit</h1>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--stripe)"></span>
+            <span style="font-size:13px;color:var(--ink)">{{ runLabel }}</span>
+            <span style="font-family:var(--mono);font-size:10.5px;color:var(--faint)">Direct-sell · health_wellness_demo</span>
+          </div>
+        </div>
+
+        <div style="background:var(--leak-tint);border:1px solid var(--leak-line);border-radius:12px">
+          <sc-for list="{{ flags2 }}" as="w" hint-placeholder-count="3">
+            <div style="display:flex;gap:14px;padding:12px 18px;align-items:baseline;border-top:{{ w.bt }}">
+              <span style="flex:none;width:104px"><span style="display:inline-block;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.07em;color:{{ w.tagCol }};background:{{ w.tagBg }};border-radius:4px;padding:{{ w.tagPad }}">{{ w.tag }}</span></span>
+              <span style="font-size:12.5px;line-height:1.55;color:var(--ink);font-weight:{{ w.titleWt }}">{{ w.title }}<sc-if value="{{ w.hasNote }}" hint-placeholder-val="{{ false }}"><span style="color:var(--muted);font-weight:400"> — {{ w.note }}</span></sc-if></span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px 22px 22px">
+          <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">WHAT THE CREATIVE READS AS</div>
+          <div style="margin-top:11px;font-size:15px;line-height:1.6;color:var(--ink);text-wrap:pretty">{{ inferred }}</div>
+          <div style="margin-top:18px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 170px">
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--faint);padding:10px 0 8px">DISPOSITION</div>
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--faint);padding:10px 0 8px">AGAINST THAT TARGET</div>
+            <sc-for list="{{ dispositions }}" as="d" hint-placeholder-count="6">
+              <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;border-top:1px solid var(--line);align-items:center">
+                <div style="font-family:var(--mono);font-size:12.5px;color:var(--ink);padding:9px 0">{{ d.id }}</div>
+                <div style="padding:9px 0">
+                  <sc-if value="{{ d.within }}" hint-placeholder-val="{{ true }}"><span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--accent-ink);background:var(--accent-tint);border-radius:999px;padding:3px 9px">WITHIN</span></sc-if>
+                  <sc-if value="{{ d.outside }}" hint-placeholder-val="{{ false }}"><span style="font-family:var(--mono);font-size:11.5px;color:var(--faint)">outside</span></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:14px;font-size:12.5px;line-height:1.55;color:var(--muted);text-wrap:pretty">One within and five outside is what a correctly narrow ad looks like. It is not a fault in the buy.</div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px 22px 22px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--faint)">THE PANEL</span>
+            <span style="font-family:var(--mono);font-size:10.5px;color:var(--faint)">{{ panelVersion }}</span>
+          </div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ panelLines }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex;gap:10px;align-items:baseline">
+                <span style="width:5px;height:5px;border-radius:50%;background:var(--faint);flex:none;transform:translateY(-2px)"></span>
+                <span style="font-family:var(--mono);font-size:12.5px;line-height:1.5;color:var(--ink)">{{ p.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <form method="post" action="/reads/prepared/commit" style="margin:0;display:flex;flex-direction:column;gap:14px">
+          <div style="background:var(--surface);border:1.5px solid var(--ink);border-radius:12px;padding:22px 24px 24px">
+            <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--ink)">COST</div>
+            <div style="margin-top:10px;font-size:15px;line-height:1.6;color:var(--ink);text-wrap:pretty">Estimated <strong style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums">{{ costEstimate }}</strong> — persona cores rendered: {{ costCores }}. Committing debits one credit and starts spending immediately.</div>
+            <div style="margin-top:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+              <button type="submit" style="background:var(--accent);color:#fff;border:0;border-radius:9px;padding:13px 26px;font-size:14.5px;font-weight:600;cursor:pointer" style-hover="background:var(--accent-ink)">Commit and run</button>
+              <span style="font-size:12.5px;color:var(--muted)">One flag above is marked STOP — read it, then commit.</span>
+            </div>
+            <div style="margin-top:14px"><a href="#state-4-new-read" style="font-size:12.5px;color:var(--muted);text-decoration:none" style-hover="color:var(--ink)">← cancel (no credit debited)</a></div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-6c-stress" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 6C · state-6c-stress</span>
+    <span style="font-size:12.5px;color:var(--muted)">Worst case: six warnings and both STOP flags in the same stack. One container, hairline rows, one fixed tag column — eight read as a list, not a wall.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:var(--ground);padding:26px 30px 30px">
+    <div style="max-width:820px;display:flex;flex-direction:column;gap:14px">
+      <div style="background:var(--leak-tint);border:1px solid var(--leak-line);border-radius:12px">
+        <sc-for list="{{ flags6 }}" as="w" hint-placeholder-count="8">
+          <div style="display:flex;gap:14px;padding:12px 18px;align-items:baseline;border-top:{{ w.bt }}">
+            <span style="flex:none;width:104px"><span style="display:inline-block;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.07em;color:{{ w.tagCol }};background:{{ w.tagBg }};border-radius:4px;padding:{{ w.tagPad }}">{{ w.tag }}</span></span>
+            <span style="font-size:12.5px;line-height:1.55;color:var(--ink);font-weight:{{ w.titleWt }}">{{ w.title }}<sc-if value="{{ w.hasNote }}" hint-placeholder-val="{{ false }}"><span style="color:var(--muted);font-weight:400"> — {{ w.note }}</span></sc-if></span>
+          </div>
+        </sc-for>
+      </div>
+
+      <form method="post" action="/reads/prepared/commit" style="margin:0">
+        <div style="background:var(--surface);border:1.5px solid var(--ink);border-radius:12px;padding:22px 24px 24px">
+          <div style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;color:var(--ink)">COST</div>
+          <div style="margin-top:10px;font-size:15px;line-height:1.6;color:var(--ink);text-wrap:pretty">Estimated <strong style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums">{{ costEstimate }}</strong> — persona cores rendered: {{ costCores }}. Committing debits one credit and starts spending immediately.</div>
+          <div style="margin-top:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <button type="submit" style="background:var(--accent);color:#fff;border:0;border-radius:9px;padding:13px 26px;font-size:14.5px;font-weight:600;cursor:pointer" style-hover="background:var(--accent-ink)">Commit and run</button>
+            <span style="font-size:12.5px;color:var(--muted)">Eight flags, two of them STOP. Nothing blocks the commit.</span>
+          </div>
+          <div style="margin-top:14px"><a href="#state-4-new-read" style="font-size:12.5px;color:var(--muted);text-decoration:none" style-hover="color:var(--ink)">← cancel (no credit debited)</a></div>
+        </div>
+      </form>
+      <div style="font-family:var(--mono);font-size:10px;line-height:1.7;color:var(--faint);letter-spacing:.03em">HANDOFF · flags render from DATA.warnings + DATA.gates through one row template; gate rows carry gate:true, which only changes the tag fill and the label weight. No acknowledgement fields post.</div>
+    </div>
+  </div>
+</section>
+
+<section id="state-7-running" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 7 · state-7-running</span>
+    <span style="font-size:12.5px;color:var(--muted)">Four to eight minutes, watched. The only moving parts are real counts; nothing fills at a constant rate, and no time remaining is claimed.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface);display:flex;min-height:620px">
+    <div style="width:212px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 10px 20px"><span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span><span style="font-size:15.5px;font-weight:700;letter-spacing:-.01em">Rocket</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="#state-2-reads-populated" aria-current="page" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:var(--accent-tint);color:var(--accent-ink)">Reads</a>
+        <a href="#state-4-new-read" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">New read</a>
+        <a href="#state-12-brand-profiles" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Brand profiles</a>
+        <a href="#state-13-settings" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Settings</a>
+      </div>
+      <div style="margin-top:auto;border-top:1px solid var(--line);padding:14px 12px 2px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">SIGNED IN</div>
+        <div style="margin-top:5px;font-family:var(--mono);font-size:12.5px;color:var(--ink)">{{ account }}</div>
+        <form method="post" action="/signout" style="margin:9px 0 0"><button type="submit" style="background:none;border:0;padding:0;font-size:12.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:var(--ink)">Sign out</button></form>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;background:var(--ground);padding:26px 30px 44px">
+      <div style="max-width:820px">
+        <div style="display:flex;gap:16px;align-items:flex-start">
+          <div style="width:72px;height:72px;flex:none;border-radius:9px;border:1px solid var(--line);background:var(--stripe)"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">RUNNING</div>
+            <h1 style="margin:6px 0 0;font-size:19px;font-weight:600;letter-spacing:-.01em;text-wrap:pretty">{{ runLabel }}</h1>
+            <div style="margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--faint);word-break:break-all">{{ runId }}</div>
+          </div>
+          <div style="flex:none;text-align:right">
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">ELAPSED</div>
+            <div style="margin-top:4px;font-family:var(--mono);font-size:26px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums">{{ elapsedEarly }}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px 22px 18px">
+          <sc-for list="{{ phasesEarly }}" as="p" hint-placeholder-count="5">
+            <div style="padding:14px 0;border-top:{{ p.bt }}">
+              <div style="display:flex;align-items:baseline;gap:12px">
+                <span style="width:16px;height:16px;flex:none;border-radius:50%;background:{{ p.dotBg }};border:{{ p.dotBd }};display:flex;align-items:center;justify-content:center;transform:translateY(3px)">
+                  <sc-if value="{{ p.done }}" hint-placeholder-val="{{ false }}"><svg width="9" height="9" viewBox="0 0 9 9" aria-hidden="true"><path d="M1.6 4.7 3.5 6.6 7.4 2.7" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+                  <sc-if value="{{ p.active }}" hint-placeholder-val="{{ true }}"><span style="width:6px;height:6px;border-radius:50%;background:#fff;animation:rk-pulse 1.6s ease-in-out infinite"></span></sc-if>
+                </span>
+                <span style="flex:1;min-width:0;font-size:14.5px;font-weight:{{ p.wt }};color:{{ p.col }}">{{ p.name }}<sc-if value="{{ p.hasNote }}" hint-placeholder-val="{{ true }}"><span style="font-size:12.5px;font-weight:400;color:var(--muted)"> — {{ p.note }}</span></sc-if></span>
+                <sc-if value="{{ p.hasCounter }}" hint-placeholder-val="{{ true }}"><span style="flex:none;font-family:var(--mono);font-size:13px;font-weight:600;color:{{ p.col }};font-variant-numeric:tabular-nums">{{ p.counter }}</span></sc-if>
+                <sc-if value="{{ p.pending }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--faint)">QUEUED</span></sc-if>
+              </div>
+              <sc-if value="{{ p.hasBar }}" hint-placeholder-val="{{ false }}">
+                <div style="margin:11px 0 0 28px;height:4px;border-radius:2px;background:var(--line);overflow:hidden"><div style="width:{{ p.pct }};height:100%;background:var(--accent);border-radius:2px"></div></div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top:14px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <span style="font-size:12.5px;color:var(--muted);line-height:1.55;max-width:520px;text-wrap:pretty">No time remaining is shown — the phases don't run at a predictable rate, so any estimate would be made up. The counters above are the real thing.</span>
+          <span style="font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--faint)">{{ refresh }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-7b-running-later" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 7B · state-7-running (later)</span>
+    <span style="font-size:12.5px;color:var(--muted)">Three minutes on, after a reload. Identical geometry — the rows never reflow, so the refresh reads as a tick, not a flash. Shell unchanged.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:var(--ground);padding:26px 30px 30px">
+    <div style="max-width:820px">
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div style="width:72px;height:72px;flex:none;border-radius:9px;border:1px solid var(--line);background:var(--stripe)"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">RUNNING</div>
+          <h1 style="margin:6px 0 0;font-size:19px;font-weight:600;letter-spacing:-.01em;text-wrap:pretty">{{ runLabel }}</h1>
+          <div style="margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--faint);word-break:break-all">{{ runId }}</div>
+        </div>
+        <div style="flex:none;text-align:right">
+          <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">ELAPSED</div>
+          <div style="margin-top:4px;font-family:var(--mono);font-size:26px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums">{{ elapsedLate }}</div>
+        </div>
+      </div>
+      <div style="margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px 22px 18px">
+        <sc-for list="{{ phasesLate }}" as="p" hint-placeholder-count="5">
+          <div style="padding:14px 0;border-top:{{ p.bt }}">
+            <div style="display:flex;align-items:baseline;gap:12px">
+              <span style="width:16px;height:16px;flex:none;border-radius:50%;background:{{ p.dotBg }};border:{{ p.dotBd }};display:flex;align-items:center;justify-content:center;transform:translateY(3px)">
+                <sc-if value="{{ p.done }}" hint-placeholder-val="{{ false }}"><svg width="9" height="9" viewBox="0 0 9 9" aria-hidden="true"><path d="M1.6 4.7 3.5 6.6 7.4 2.7" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+                <sc-if value="{{ p.active }}" hint-placeholder-val="{{ true }}"><span style="width:6px;height:6px;border-radius:50%;background:#fff;animation:rk-pulse 1.6s ease-in-out infinite"></span></sc-if>
+              </span>
+              <span style="flex:1;min-width:0;font-size:14.5px;font-weight:{{ p.wt }};color:{{ p.col }}">{{ p.name }}<sc-if value="{{ p.hasNote }}" hint-placeholder-val="{{ true }}"><span style="font-size:12.5px;font-weight:400;color:var(--muted)"> — {{ p.note }}</span></sc-if></span>
+              <sc-if value="{{ p.hasCounter }}" hint-placeholder-val="{{ true }}"><span style="flex:none;font-family:var(--mono);font-size:13px;font-weight:600;color:{{ p.col }};font-variant-numeric:tabular-nums">{{ p.counter }}</span></sc-if>
+              <sc-if value="{{ p.pending }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--faint)">QUEUED</span></sc-if>
+            </div>
+            <sc-if value="{{ p.hasBar }}" hint-placeholder-val="{{ false }}">
+              <div style="margin:11px 0 0 28px;height:4px;border-radius:2px;background:var(--line);overflow:hidden"><div style="width:{{ p.pct }};height:100%;background:var(--accent);border-radius:2px"></div></div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-8-complete" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 8 · state-8-complete</span>
+    <span style="font-size:12.5px;color:var(--muted)">Quiet. One action, and the two facts worth knowing before you open it.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface);display:flex;min-height:480px">
+    <div style="width:212px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 10px 20px"><span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span><span style="font-size:15.5px;font-weight:700;letter-spacing:-.01em">Rocket</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="#state-2-reads-populated" aria-current="page" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:var(--accent-tint);color:var(--accent-ink)">Reads</a>
+        <a href="#state-4-new-read" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">New read</a>
+        <a href="#state-12-brand-profiles" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Brand profiles</a>
+        <a href="#state-13-settings" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Settings</a>
+      </div>
+      <div style="margin-top:auto;border-top:1px solid var(--line);padding:14px 12px 2px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">SIGNED IN</div>
+        <div style="margin-top:5px;font-family:var(--mono);font-size:12.5px;color:var(--ink)">{{ account }}</div>
+        <form method="post" action="/signout" style="margin:9px 0 0"><button type="submit" style="background:none;border:0;padding:0;font-size:12.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:var(--ink)">Sign out</button></form>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;background:var(--ground);padding:26px 30px 44px">
+      <div style="max-width:820px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:24px 26px 26px">
+        <div style="display:flex;gap:16px;align-items:flex-start">
+          <div style="width:72px;height:72px;flex:none;border-radius:9px;border:1px solid var(--line);background:var(--stripe)"></div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="width:15px;height:15px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center"><svg width="9" height="9" viewBox="0 0 9 9" aria-hidden="true"><path d="M1.6 4.7 3.5 6.6 7.4 2.7" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+              <span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--accent-ink)">READ COMPLETE</span>
+            </div>
+            <h1 style="margin:8px 0 0;font-size:19px;font-weight:600;letter-spacing:-.01em;text-wrap:pretty">{{ runLabel }}</h1>
+            <div style="margin-top:4px;font-family:var(--mono);font-size:10.5px;color:var(--faint);word-break:break-all">{{ runId }}</div>
+          </div>
+        </div>
+        <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--surface-2)">
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">DECISION</div>
+            <div style="margin-top:9px;display:flex;align-items:center;gap:8px">
+              <span style="width:12px;height:12px;flex:none;border-radius:2px;background:{{ completeMkBg }};border:{{ completeMkBd }}"></span>
+              <span style="font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.07em;color:var(--ink)">{{ completeDecision }}</span>
+            </div>
+            <div style="margin-top:8px;font-size:12px;line-height:1.5;color:var(--muted);text-wrap:pretty">{{ completeGloss }}</div>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--surface-2)">
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">PANEL HEALTH</div>
+            <div style="margin-top:9px;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">{{ completeHealth }}</div>
+            <div style="margin-top:8px;font-size:12px;line-height:1.5;color:var(--muted)">Everyone in the panel responded.</div>
+          </div>
+        </div>
+        <div style="margin-top:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <a href="#state-2b-read-open" style="background:var(--accent);color:#fff;border-radius:9px;padding:12px 22px;font-size:14px;font-weight:600;text-decoration:none" style-hover="background:var(--accent-ink)">Open the Creative Read</a>
+          <a href="#state-2-reads-populated" style="font-size:12.5px;color:var(--muted);text-decoration:none" style-hover="color:var(--ink)">Back to reads</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-9-degraded" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 9 · state-9-degraded</span>
+    <span style="font-size:12.5px;color:var(--muted)">A qualification, not an error — same page, with the shortfall stated where the health line already is. Shell unchanged.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:var(--ground);padding:26px 30px 30px">
+    <div style="max-width:820px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:24px 26px 26px">
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div style="width:72px;height:72px;flex:none;border-radius:9px;border:1px solid var(--line);background:var(--stripe)"></div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:15px;height:15px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center"><svg width="9" height="9" viewBox="0 0 9 9" aria-hidden="true"><path d="M1.6 4.7 3.5 6.6 7.4 2.7" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+            <span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--accent-ink)">READ COMPLETE</span>
+          </div>
+          <h1 style="margin:8px 0 0;font-size:19px;font-weight:600;letter-spacing:-.01em;text-wrap:pretty">{{ runLabel }}</h1>
+          <div style="margin-top:4px;font-family:var(--mono);font-size:10.5px;color:var(--faint);word-break:break-all">{{ runId }}</div>
+        </div>
+      </div>
+      <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--surface-2)">
+          <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">DECISION</div>
+          <div style="margin-top:9px;display:flex;align-items:center;gap:8px">
+            <span style="width:12px;height:12px;flex:none;border-radius:2px;background:{{ completeMkBg }};border:{{ completeMkBd }}"></span>
+            <span style="font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.07em;color:var(--ink)">{{ completeDecision }}</span>
+          </div>
+          <div style="margin-top:8px;font-size:12px;line-height:1.5;color:var(--muted);text-wrap:pretty">{{ completeGloss }}</div>
+        </div>
+        <div style="border:1px solid var(--leak-line);border-radius:10px;padding:14px 16px;background:var(--leak-tint)">
+          <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--leak)">PANEL HEALTH</div>
+          <div style="margin-top:9px;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">{{ degradedHealth }}</div>
+          <div style="margin-top:8px;font-size:12px;line-height:1.5;color:var(--muted);text-wrap:pretty">{{ degradedNote }}</div>
+        </div>
+      </div>
+      <div style="margin-top:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <a href="#state-2b-read-open" style="background:var(--accent);color:#fff;border-radius:9px;padding:12px 22px;font-size:14px;font-weight:600;text-decoration:none" style-hover="background:var(--accent-ink)">Open the Creative Read</a>
+        <span style="font-size:12.5px;color:var(--muted)">The report carries the same qualification in its header.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-10-failed" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 10 / 11 · state-10-failed · state-11-interrupted</span>
+    <span style="font-size:12.5px;color:var(--muted)">Both answer the question the user actually has: was I charged, and do I have to pay again. Shell unchanged.</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:var(--ground);padding:22px">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--faint);margin-bottom:12px">10 · FAILED</div>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:22px 24px 24px">
+        <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--leak)">RUN FAILED</div>
+        <h2 style="margin:8px 0 0;font-size:17px;font-weight:600;letter-spacing:-.01em;text-wrap:pretty">{{ runLabel }}</h2>
+        <div style="margin-top:4px;font-family:var(--mono);font-size:10.5px;color:var(--faint);word-break:break-all">{{ runId }}</div>
+        <div style="margin-top:16px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">ERROR</div>
+        <div style="margin-top:7px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:12px 14px;font-family:var(--mono);font-size:11.5px;line-height:1.6;color:var(--ink);word-break:break-word">{{ failedError }}</div>
+        <div style="margin-top:16px;border:1.5px solid var(--ink);border-radius:10px;padding:14px 16px">
+          <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--ink)">WERE YOU CHARGED</div>
+          <div style="margin-top:7px;font-size:13.5px;line-height:1.55;color:var(--ink);text-wrap:pretty">{{ failedCharged }}</div>
+        </div>
+        <div style="margin-top:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <a href="#state-4-new-read" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--ink);text-decoration:none" style-hover="border-color:var(--faint)">Start a new read</a>
+          <a href="#state-2-reads-populated" style="font-size:12.5px;color:var(--muted);text-decoration:none" style-hover="color:var(--ink)">Back to reads</a>
+        </div>
+      </div>
+    </div>
+    <div style="border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:var(--ground);padding:22px">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--faint);margin-bottom:12px">11 · INTERRUPTED</div>
+      <div id="state-11-interrupted" style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:22px 24px 24px;scroll-margin-top:20px">
+        <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--faint)">RUN INTERRUPTED · RECOVERABLE</div>
+        <h2 style="margin:8px 0 0;font-size:17px;font-weight:600;letter-spacing:-.01em;text-wrap:pretty">{{ runLabel }}</h2>
+        <div style="margin-top:4px;font-family:var(--mono);font-size:10.5px;color:var(--faint);word-break:break-all">{{ runId }}</div>
+        <div style="margin-top:16px;font-size:14px;line-height:1.6;color:var(--ink);text-wrap:pretty">{{ interruptedText }}</div>
+        <div style="margin-top:16px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">RECOVERY</div>
+        <div style="margin-top:7px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:12px 14px;font-family:var(--mono);font-size:11.5px;line-height:1.6;color:var(--ink);word-break:break-all">{{ interruptedCommand }}</div>
+        <form method="post" action="/reads/20260721_021850_seed71_muscleblaze_biozyme/replay" style="margin:18px 0 0;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <button type="submit" style="background:var(--accent);color:#fff;border:0;border-radius:9px;padding:11px 20px;font-size:13.5px;font-weight:600;cursor:pointer" style-hover="background:var(--accent-ink)">Recover this run</button>
+          <span style="font-size:12.5px;color:var(--muted)">No further credit is debited.</span>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-12-brand-profiles" style="margin:0 0 46px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 12 · state-12-brand-profiles</span>
+    <span style="font-size:12.5px;color:var(--muted)">Counts only, no charts. Rows carry equal weight so the three one-read profiles look like the norm they are.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface);display:flex;min-height:520px">
+    <div style="width:212px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 10px 20px"><span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span><span style="font-size:15.5px;font-weight:700;letter-spacing:-.01em">Rocket</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="#state-2-reads-populated" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Reads</a>
+        <a href="#state-4-new-read" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">New read</a>
+        <a href="#state-12-brand-profiles" aria-current="page" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:var(--accent-tint);color:var(--accent-ink)">Brand profiles</a>
+        <a href="#state-13-settings" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Settings</a>
+      </div>
+      <div style="margin-top:auto;border-top:1px solid var(--line);padding:14px 12px 2px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">SIGNED IN</div>
+        <div style="margin-top:5px;font-family:var(--mono);font-size:12.5px;color:var(--ink)">{{ account }}</div>
+        <form method="post" action="/signout" style="margin:9px 0 0"><button type="submit" style="background:none;border:0;padding:0;font-size:12.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:var(--ink)">Sign out</button></form>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;background:var(--ground);padding:26px 30px 44px">
+      <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">Brand profiles</h1>
+      <div style="margin-top:5px;font-size:12.5px;color:var(--muted)">{{ profileTotal }}</div>
+      <div style="margin-top:18px;max-width:700px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--line);background:var(--surface-2)">
+          <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">ACCOUNT</span>
+          <span style="font-family:var(--mono);font-size:12.5px;color:var(--ink)">{{ account }}</span>
+        </div>
+        <sc-for list="{{ profiles }}" as="p" hint-placeholder-count="5">
+          <a href="#state-2-reads-populated" style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:14px 18px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit" style-hover="background:var(--surface-2)">
+            <span style="font-family:var(--mono);font-size:13px;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+            <span style="flex:none;display:flex;align-items:baseline;gap:6px">
+              <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums">{{ p.reads }}</span>
+              <span style="font-size:12px;color:var(--faint)">{{ p.label }}</span>
+            </span>
+          </a>
+        </sc-for>
+      </div>
+      <div style="margin-top:12px;max-width:700px;font-size:12.5px;color:var(--muted);line-height:1.55;text-wrap:pretty">A profile is made when the first read is filed under it. Most hold one.</div>
+    </div>
+  </div>
+</section>
+
+<section id="state-13-settings" style="margin:0 0 20px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--surface-2);background:var(--ink);padding:4px 9px;border-radius:6px">STATE 13 · state-13-settings</span>
+    <span style="font-size:12.5px;color:var(--muted)">Thin, and honest about why there is no account switcher.</span>
+  </div>
+  <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface);display:flex;min-height:400px">
+    <div style="width:212px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 10px 20px"><span style="width:13px;height:13px;background:var(--accent);border-radius:3px;transform:rotate(45deg)"></span><span style="font-size:15.5px;font-weight:700;letter-spacing:-.01em">Rocket</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="#state-2-reads-populated" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Reads</a>
+        <a href="#state-4-new-read" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">New read</a>
+        <a href="#state-12-brand-profiles" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;text-decoration:none;color:var(--muted)" style-hover="background:var(--surface-2);color:var(--ink)">Brand profiles</a>
+        <a href="#state-13-settings" aria-current="page" style="display:block;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:var(--accent-tint);color:var(--accent-ink)">Settings</a>
+      </div>
+      <div style="margin-top:auto;border-top:1px solid var(--line);padding:14px 12px 2px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">SIGNED IN</div>
+        <div style="margin-top:5px;font-family:var(--mono);font-size:12.5px;color:var(--ink)">{{ account }}</div>
+        <form method="post" action="/signout" style="margin:9px 0 0"><button type="submit" style="background:none;border:0;padding:0;font-size:12.5px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:var(--ink)">Sign out</button></form>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;background:var(--ground);padding:26px 30px 44px">
+      <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">Settings</h1>
+      <div style="margin-top:18px;max-width:560px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px 22px 22px">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--faint)">ACCOUNT</div>
+        <div style="margin-top:7px;font-family:var(--mono);font-size:15px;color:var(--ink)">{{ account }}</div>
+        <div style="margin-top:8px;font-size:12.5px;line-height:1.55;color:var(--muted);text-wrap:pretty">Everything in the app is scoped to this account. There is nothing to switch to.</div>
+        <div style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
+          <form method="post" action="/signout" style="margin:0"><button type="submit" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer" style-hover="border-color:var(--faint)">Sign out</button></form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:980},&quot;accountName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;demo&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Data&quot;},&quot;readsStamp&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;date + run id&quot;,&quot;date only&quot;],&quot;default&quot;:&quot;date + run id&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Reads list&quot;}}">
+const DATA = {
+  account: "demo",
+  nav: [
+    { label: "Reads", route: "/reads", anchor: "#state-2-reads-populated" },
+    { label: "New read", route: "/reads/new", anchor: "#state-4-new-read" },
+    { label: "Brand profiles", route: "/profiles", anchor: "#state-12-brand-profiles" },
+    { label: "Settings", route: "/settings", anchor: "#state-13-settings" }
+  ],
+  reads: [
+    { creative: "ProSki protein cereal", decision: "REBUILD", brand: "health_wellness_demo", date: "2026-07-28", run: "20260728_114302_seed12_proski_cereal" },
+    { creative: "The Whole Truth whey isolate (pack shot)", decision: "ITERATE", brand: "health_wellness_demo", date: "2026-07-26", run: "20260726_193344_seed08_wholetruth_isolate" },
+    { creative: "AI-hype protein (buzzword control)", decision: "ITERATE", brand: "health_wellness_demo", date: "2026-07-24", run: "20260724_101215_seed44_aihype_control" },
+    { creative: "MuscleBlaze Biozyme Performance Whey", decision: "ITERATE", brand: "health_wellness_demo", date: "2026-07-21", run: "20260721_021850_seed71_muscleblaze_biozyme" },
+    { creative: "Starbucks — The world has a pause button", decision: "ITERATE", brand: "starbucks_coffee", date: "2026-07-19", run: "20260719_154120_seed03_starbucks_pause" },
+    { creative: "MuscleBlaze Biozyme Performance Whey", decision: null, brand: "health_wellness_demo", date: "2026-06-30", run: "20260630_082211_seed71_muscleblaze_biozyme" }
+  ],
+  decisions: {
+    SCALE: { gloss: "Put spend behind it — no in-scope lever would materially lift it." },
+    ITERATE: { gloss: "Target responds; a specific in-scope fix is leaking conversion. Fix it, re-run, then scale." },
+    RETARGET: { gloss: "The creative works — for a different audience than it's aimed at. Fix the buy, not the ad." },
+    REBUILD: { gloss: "The target rejects it on grounds no in-scope tweak fixes. Don't run as-is." },
+    INCONCLUSIVE: { gloss: "The read isn't trustworthy yet — see why below." }
+  },
+  form: {
+    categories: ["Health & wellness nutrition", "Coffee & beverages", "Consumer audio", "Chocolate & confectionery"],
+    audiences: ["health_wellness_cold_traffic.json", "health_wellness_baseline.json"],
+    jobs: ["Direct-sell", "Cold-hook", "Awareness / informer", "Brand-building", "Retain / win-back"],
+    brands: ["health_wellness_demo", "boat_audio", "starbucks_coffee", "bru_coffee", "cadbury_chocolate"]
+  },
+  prepare: { label: "MuscleBlaze Biozyme Performance Whey", cost: "~$0.15" },
+  review: {
+    inferred: "Serious gym-goers and protein-literate buyers who care about isolate purity, grams-per-scoop, and third-party certification. Skews male, 20s\u201330s, urban, already inside the whey category.",
+    dispositions: [
+      { id: "enthusiast_macros_lifter", within: true },
+      { id: "aspirant_clean_label", within: false },
+      { id: "switcher_results_chaser", within: false },
+      { id: "skeptic_lapsed_protein", within: false },
+      { id: "pragmatist_protein_snacker", within: false },
+      { id: "purist_food_first", within: false }
+    ],
+    panel: [
+      "100 agents across 6 dispositions × 4 contexts",
+      "15 segments (disposition × chaos band)",
+      "chaos mix: impulsive 25%, moderate 45%, deliberate 30%"
+    ],
+    panelVersion: "panel v2026.07.1",
+    cost: { estimate: "$4.28", cores: "29" }
+  },
+  warnings: [
+    { tag: "COVERAGE", title: "Thin audience coverage — 11/24 personas", note: "Fewer eligible personas than the panel expects." },
+    { tag: "PURPOSE", title: "Purpose mismatch — reads as COLD HOOK, grading as DIRECT SELL", note: "" },
+    { tag: "TRUST", title: "Trust ceiling — a confident \u201cship it\u201d is unreachable with this panel", note: "" },
+    { tag: "DISPOSITIONS", title: "Provisional dispositions", note: "Awaiting team review; the report will carry the flag." },
+    { tag: "TARGET", title: "Ambiguous target", note: "The classifier could not settle on one audience." },
+    { tag: "NO MATCH", title: "No match", note: "The creative matched none of the authored buyer types." }
+  ],
+  gates: [
+    { id: "gate-demo", title: "Gross demographic mismatch",
+      body: "Advisory, not a block. If this is deliberate (an off-demographic creative under test), carry on. Otherwise fix the declared audience, or check you uploaded the right creative." },
+    { id: "gate-cat", title: "Unvalidated category",
+      body: "There is no hand-built, validated disposition library for this category. The engine will not fail gracefully: every persona classifies \u201coutside\u201d and the read comes out confident and wrong." }
+  ],
+  run: {
+    label: "MuscleBlaze Biozyme Performance Whey",
+    runId: "20260721_021850_seed71_muscleblaze_biozyme",
+    phases: [
+      { name: "The panel is reacting", note: "100 people are meeting your ad.", counter: "63 of 100", done: "100 of 100" },
+      { name: "Grouping by buyer type", note: "15 segments.", counter: "11 of 15", done: "15 of 15" },
+      { name: "Building the population picture", note: "", counter: "", done: "" },
+      { name: "Diagnosing the problems", note: "", counter: "", done: "" },
+      { name: "Ranking the fixes", note: "", counter: "", done: "" }
+    ],
+    elapsedEarly: "02:41",
+    elapsedLate: "05:18",
+    refresh: "refreshes automatically every 10s",
+    complete: { decision: "ITERATE", health: "100/100 agents" },
+    degraded: { decision: "ITERATE", health: "94/100 agents — DEGRADED", note: "Six agents dropped out mid-run. The read stands, on 94 responses instead of 100." },
+    failed: { error: "worker exited with code 1 — provider request failed after 3 retries (stage: panel_reaction, agent 41)", charged: "A credit was debited when you committed this run. It has not been returned." },
+    interrupted: { text: "The worker thread is gone and the run never completed. Recover it with replay_synthesis rather than paying again — the agent transcripts are already on disk.", command: "replay_synthesis 20260721_021850_seed71_muscleblaze_biozyme" }
+  },
+  profiles: [
+    { account: "demo", name: "health_wellness_demo", reads: 27 },
+    { account: "demo", name: "boat_audio", reads: 6 },
+    { account: "demo", name: "starbucks_coffee", reads: 1 },
+    { account: "demo", name: "bru_coffee", reads: 1 },
+    { account: "demo", name: "cadbury_chocolate", reads: 1 }
+  ]
+};
+
+const pctOf = c => { const m = /(\d+)\s+of\s+(\d+)/.exec(c || ""); return m ? Math.round((+m[1] / +m[2]) * 100) + "%" : "0%"; };
+
+const gateFlag = g => ({ tag: "STOP", title: g.title, note: g.body, gate: true });
+
+const rows = list => list.map((w, i) => ({
+  tag: w.tag, title: w.title, note: w.note, hasNote: !!w.note,
+  gate: !!w.gate,
+  bt: i === 0 ? "0" : "1px solid var(--leak-line)",
+  tagBg: w.gate ? "#b45309" : "transparent",
+  tagCol: w.gate ? "#fff" : "#b45309",
+  tagPad: w.gate ? "3px 7px" : "3px 0",
+  titleWt: w.gate ? "600" : "400"
+}));
+
+const INK = "#17181a";
+const MARK = {
+  SCALE:        { mkBg: INK, mkBd: "1px solid " + INK },
+  ITERATE:      { mkBg: "linear-gradient(#fff 0 50%," + INK + " 50% 100%)", mkBd: "1px solid " + INK },
+  RETARGET:     { mkBg: "linear-gradient(90deg," + INK + " 0 50%,#fff 50% 100%)", mkBd: "1px solid " + INK },
+  REBUILD:      { mkBg: "repeating-linear-gradient(135deg," + INK + " 0 2px,#fff 2px 4px)", mkBd: "1px solid " + INK },
+  INCONCLUSIVE: { mkBg: "transparent", mkBd: "1px dashed #8a8d94" }
+};
+
+class Component extends DCLogic {
+  renderVals() {
+    const account = this.props.accountName || DATA.account;
+    const showRunId = (this.props.readsStamp || "date + run id") === "date + run id";
+
+    const reads = DATA.reads.map(r => Object.assign({}, r, {
+      hasDecision: !!r.decision,
+      noDecision: !r.decision,
+      mkBg: r.decision ? MARK[r.decision].mkBg : "transparent",
+      mkBd: r.decision ? MARK[r.decision].mkBd : "1px dashed #8a8d94"
+    }));
+
+    const legend = Object.keys(DATA.decisions).map(k => ({
+      name: k, gloss: DATA.decisions[k].gloss, mkBg: MARK[k].mkBg, mkBd: MARK[k].mkBd
+    }));
+
+    const index = [
+      { label: "1 signed out", href: "#state-1-signed-out" },
+      { label: "2 reads", href: "#state-2-reads-populated" },
+      { label: "2b read open", href: "#state-2b-read-open" },
+      { label: "3 empty", href: "#state-3-reads-empty" },
+      { label: "4 new read", href: "#state-4-new-read" },
+      { label: "4b uploaded", href: "#state-4b-uploaded" },
+      { label: "5 preparing", href: "#state-5-preparing" },
+      { label: "6 review", href: "#state-6-review-clean" },
+      { label: "6b flags", href: "#state-6b-warnings" },
+      { label: "6c stress", href: "#state-6c-stress" },
+      { label: "7 running", href: "#state-7-running" },
+      { label: "8 complete", href: "#state-8-complete" },
+      { label: "9 degraded", href: "#state-9-degraded" },
+      { label: "10 failed", href: "#state-10-failed" },
+      { label: "11 interrupted", href: "#state-11-interrupted" },
+      { label: "12 brand profiles", href: "#state-12-brand-profiles" },
+      { label: "13 settings", href: "#state-13-settings" }
+    ];
+
+    const dispositions = DATA.review.dispositions.map(d => ({
+      id: d.id,
+      within: d.within,
+      outside: !d.within,
+      label: d.within ? "WITHIN" : "outside"
+    }));
+
+    const phasesEarly = DATA.run.phases.map((p, i) => ({
+      n: String(i + 1),
+      name: p.name,
+      note: p.note,
+      active: i === 0,
+      done: false,
+      pending: i > 0,
+      counter: i === 0 ? p.counter : "",
+      hasCounter: i === 0,
+      hasBar: i === 0,
+      pct: pctOf(p.counter),
+      hasNote: !!p.note,
+      bt: i === 0 ? "0" : "1px solid var(--line)",
+      col: i === 0 ? "var(--ink)" : "var(--faint)",
+      wt: i === 0 ? "600" : "400",
+      dotBg: i === 0 ? "var(--accent)" : "transparent",
+      dotBd: i === 0 ? "1px solid var(--accent)" : "1px solid var(--line)"
+    }));
+
+    const phasesLate = DATA.run.phases.map((p, i) => ({
+      n: String(i + 1),
+      name: p.name,
+      note: p.note,
+      active: i === 1,
+      done: i === 0,
+      pending: i > 1,
+      counter: i === 0 ? p.done : (i === 1 ? p.counter : ""),
+      hasCounter: i < 2,
+      hasBar: i === 1,
+      pct: pctOf(p.counter),
+      hasNote: !!p.note,
+      bt: i === 0 ? "0" : "1px solid var(--line)",
+      col: i <= 1 ? "var(--ink)" : "var(--faint)",
+      wt: i === 1 ? "600" : "400",
+      dotBg: i === 0 ? "var(--accent)" : (i === 1 ? "var(--accent)" : "transparent"),
+      dotBd: i <= 1 ? "1px solid var(--accent)" : "1px solid var(--line)"
+    }));
+
+    return {
+      account, showRunId, reads, legend, index, dispositions,
+      readCount: DATA.reads.length + " reads · newest first",
+      categories: DATA.form.categories,
+      audiences: DATA.form.audiences,
+      jobs: DATA.form.jobs,
+      brands: DATA.form.brands,
+      prepareCost: "Prepare (~$0.15)",
+      inferred: DATA.review.inferred,
+      panelLines: DATA.review.panel.map(t => ({ text: t })),
+      panelVersion: DATA.review.panelVersion,
+      costEstimate: DATA.review.cost.estimate,
+      costCores: DATA.review.cost.cores,
+      flags2: rows(DATA.warnings.slice(0, 2).concat([gateFlag(DATA.gates[0])])),
+      flags6: rows(DATA.warnings.concat(DATA.gates.map(gateFlag))),
+      run: DATA.run,
+      runLabel: DATA.run.label,
+      runId: DATA.run.runId,
+      phasesEarly, phasesLate,
+      elapsedEarly: DATA.run.elapsedEarly,
+      elapsedLate: DATA.run.elapsedLate,
+      refresh: DATA.run.refresh,
+      completeHealth: DATA.run.complete.health,
+      completeDecision: DATA.run.complete.decision,
+      completeGloss: DATA.decisions[DATA.run.complete.decision].gloss,
+      completeMkBg: MARK[DATA.run.complete.decision].mkBg,
+      completeMkBd: MARK[DATA.run.complete.decision].mkBd,
+      degradedHealth: DATA.run.degraded.health,
+      degradedNote: DATA.run.degraded.note,
+      failedError: DATA.run.failed.error,
+      failedCharged: DATA.run.failed.charged,
+      interruptedText: DATA.run.interrupted.text,
+      interruptedCommand: DATA.run.interrupted.command,
+      profiles: DATA.profiles.map(p => ({ account: p.account, name: p.name, reads: String(p.reads), label: p.reads === 1 ? "read" : "reads" })),
+      profileTotal: DATA.profiles.reduce((a, p) => a + p.reads, 0) + " reads across " + DATA.profiles.length + " profiles"
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -23,12 +23,15 @@ from fastapi.responses import (
 )
 
 from agent.config import build_run_config, default_asset_label
+from agent.progress import phase_view
 from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER, resolve_purpose
 from agent.read_model import build_read_model, purpose_scope_note
-from server import pages
+from server import app_html, pages
 from server.auth import COOKIE_NAME, DEMO_ACCOUNT, Auth, RequireSignIn, safe_next
 from server.launcher import VALIDATED_CATEGORIES, Launcher
-from server.runs import discover_runs, render_blinded, render_run, resolve_run
+from server.runs import (
+    discover_runs, peek_run, render_blinded, render_run, resolve_run,
+)
 from server.sessions import SLOTS, PredictionMissing, SessionError, SessionStore
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -81,6 +84,17 @@ def create_app(
     # route added later is protected without anyone remembering to protect it.
     app.add_middleware(RequireSignIn, auth=auth)
 
+    # The label typed on the form, held only until the preparation carries its
+    # own. Small, bounded by how many reads one operator starts in a session,
+    # and losing it to a restart costs a line of grey text on one screen.
+    _prepare_labels: dict[str, str] = {}
+
+    def _run_label(root, key: str) -> str:
+        return peek_run(root, key)[0]
+
+    def _run_decision(root, key: str) -> str:
+        return peek_run(root, key)[1]
+
     # ---- helpers ----
 
     def _session(session_id: str):
@@ -115,12 +129,12 @@ def create_app(
         """
         return JSONResponse({"ok": True})
 
-    @app.get("/login", response_class=HTMLResponse)
-    def login_form(next: str = "") -> HTMLResponse:
-        return _html(pages.login_page(
-            next_url=safe_next(next), configured=auth.configured))
+    @app.get("/signin", response_class=HTMLResponse)
+    def signin_form(next: str = "") -> HTMLResponse:
+        return _html(app_html.signin_page(
+            next_url=safe_next(next, ""), configured=auth.configured))
 
-    @app.post("/login")
+    @app.post("/signin")
     def sign_in(password: str = Form(""), next: str = Form("")) -> Response:
         """`Form("")` rather than `Form(...)`: a required field turns a missing
         or empty password into a 422 validation page, which is a different and
@@ -132,18 +146,21 @@ def create_app(
             # password is the whole threat model here, and a second per attempt
             # ends it. Not a lockout — see Auth.failed_delay_seconds.
             time.sleep(auth.failed_delay_seconds)
-            return _html(pages.login_page(
-                error=("That password is not right."
+            return _html(app_html.signin_page(
+                error=("That password doesn't match. Try again."
                        if auth.configured else "Sign-in is not configured."),
-                next_url=target, configured=auth.configured,
+                next_url=safe_next(next, ""), configured=auth.configured,
             ), 401)
         response = RedirectResponse(target, status_code=303)
         response.set_cookie(COOKIE_NAME, auth.issue(DEMO_ACCOUNT),
                             **auth.cookie_kwargs())
         return response
 
-    @app.get("/logout")
+    @app.post("/signout")
     def sign_out() -> Response:
+        """POST, not a link — the design's call and the right one. A GET
+        /logout is triggerable by any image tag on any page, which signs a
+        user out mid-run for no reason."""
         response = RedirectResponse("/", status_code=303)
         # Deleted with the same path the cookie was set on. A delete_cookie
         # whose path does not match leaves the cookie in place and the browser
@@ -162,7 +179,34 @@ def create_app(
         """
         return _html(pages.console(store.list(), discover_runs(runs_root)))
 
-    # ---- reports, outside a session (operator's own view) ----
+    # ---- the application ----
+
+    @app.get("/reads", response_class=HTMLResponse)
+    def reads(q: str = "") -> HTMLResponse:
+        """Home. Scoped to one account — `internal/*` is our own smoke-test
+        exhaust and never appears in the product surface."""
+        runs = discover_runs(runs_root, account=DEMO_ACCOUNT)
+        if q.strip():
+            needle = q.strip().lower()
+            runs = [r for r in runs
+                    if needle in r.asset_label.lower()
+                    or needle in r.decision.lower()
+                    or needle in r.brand_profile_id.lower()]
+        return _html(app_html.reads_page(runs, account=DEMO_ACCOUNT, query=q))
+
+    @app.get("/profiles", response_class=HTMLResponse)
+    def profiles() -> HTMLResponse:
+        counts: dict[str, int] = {}
+        for r in discover_runs(runs_root, account=DEMO_ACCOUNT):
+            counts[r.brand_profile_id] = counts.get(r.brand_profile_id, 0) + 1
+        ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        return _html(app_html.profiles_page(ordered, account=DEMO_ACCOUNT))
+
+    @app.get("/settings", response_class=HTMLResponse)
+    def settings() -> HTMLResponse:
+        return _html(app_html.settings_page(account=DEMO_ACCOUNT))
+
+    # ---- the read itself ----
 
     # Registered twice on purpose. `/reads/...` is the name a client-facing
     # read should have had all along; `/runs/...` stays because it is in
@@ -179,7 +223,7 @@ def create_app(
         if path is None:
             raise HTTPException(status_code=404, detail="No such run.")
         try:
-            return _html(render_run(path, base_dir=base_dir))
+            return _html(app_html.with_back_bar(render_run(path, base_dir=base_dir)))
         except (ValueError, FileNotFoundError) as exc:
             # build_read_model refuses a run with no Report. Surface that,
             # never a blank page — this one can be in front of a prospect.
@@ -187,35 +231,52 @@ def create_app(
 
     # ---- starting a run (PAID) ----
 
-    @app.get("/runs/new", response_class=HTMLResponse)
-    def new_run() -> HTMLResponse:
-        specs = sorted(p.name for p in specs_dir.glob("*.json"))
-        cats = sorted(
-            (p.stem, p.stem in VALIDATED_CATEGORIES)
-            for p in (REPO_ROOT / "packs").glob("*.py")
-            if not p.stem.startswith("_")
-        )
-        # Validated categories first — the picker should make the safe choice
-        # the obvious one, not bury it alphabetically among the unvalidated.
-        cats.sort(key=lambda c: (not c[1], c[0]))
-        return _html(pages.new_run_page(specs, cats, list(PURPOSE_ORDER)))
+    def _humanise(stem: str) -> str:
+        """`health_wellness_nutrition` -> `Health wellness nutrition`.
 
-    @app.post("/runs/prepare")
-    def prepare_run(
+        Derived, not a lookup table: a hand-written display map drifts the
+        moment someone adds a pack, and the failure is a category that silently
+        stops appearing in the picker.
+        """
+        words = stem.replace("_", " ").strip()
+        return words[:1].upper() + words[1:]
+
+    @app.get("/reads/new", response_class=HTMLResponse)
+    def new_read() -> HTMLResponse:
+        specs = sorted(p.name for p in specs_dir.glob("*.json"))
+        cats = sorted(p.stem for p in (REPO_ROOT / "packs").glob("*.py")
+                      if not p.stem.startswith("_"))
+        # Validated first — the picker still leads with the safe choice even
+        # though it no longer labels the others (the user's call, 2026-08-03:
+        # the warning arrives on the review screen instead, before any spend).
+        cats.sort(key=lambda c: (c not in VALIDATED_CATEGORIES, c))
+        brands = sorted({r.brand_profile_id
+                         for r in discover_runs(runs_root, account=DEMO_ACCOUNT)})
+        return _html(app_html.new_read_page(
+            account=DEMO_ACCOUNT,
+            categories=[(c, _humanise(c)) for c in cats],
+            audiences=specs,
+            jobs=[(k, resolve_purpose(k).label) for k in PURPOSE_ORDER],
+            brands=brands,
+        ))
+
+    @app.post("/reads/new")
+    def start_prepare(
         asset: UploadFile = File(...),
         category: str = Form(...), audience_spec: str = Form(...),
         asset_label: str = Form(""), declared_targeting: str = Form(""),
-        purpose: str = Form(DEFAULT_PURPOSE), account: str = Form("demo"),
-        brand_profile: str = Form("default"), library_id: str = Form(""),
+        purpose: str = Form(DEFAULT_PURPOSE),
+        brand_profile: str = Form(""), library_id: str = Form(""),
         audience_id: str = Form(""), marketer_led: str = Form(""),
     ) -> Response:
-        """PAID (~$0.15). Classifies the ad, resolves the panel, debits nothing."""
+        """PAID (~$0.15) — but off the request thread, so the browser gets a
+        page that can say what is happening instead of a spinner it owns."""
         spec_path = (specs_dir / Path(audience_spec).name)
         if not spec_path.exists():
-            return _html(pages.error_page(
+            return _html(app_html.error_page(
                 "No such audience spec",
                 f"{audience_spec!r} is not in {specs_dir}.",
-            ), 400)
+                account=DEMO_ACCOUNT), 400)
 
         uploads_dir.mkdir(parents=True, exist_ok=True)
         # Never reuse the client-supplied name as a path: it is attacker- (or
@@ -224,9 +285,21 @@ def create_app(
         # for as long as the report can be re-rendered from it.
         suffix = Path(asset.filename or "").suffix.lower()
         if suffix not in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
-            return _html(pages.error_page(
-                "Unsupported image type",
-                f"{asset.filename!r} is not a .png / .jpg / .webp.",
+            # Back to the form with the rejection stated and the reason next to
+            # the drop target, rather than a dead-end error page — the design's
+            # state 4C, and the whole point of it is that the form does not
+            # clear what was already typed.
+            return _html(app_html.new_read_page(
+                account=DEMO_ACCOUNT,
+                categories=[(c, _humanise(c)) for c in sorted(
+                    p.stem for p in (REPO_ROOT / "packs").glob("*.py")
+                    if not p.stem.startswith("_"))],
+                audiences=sorted(p.name for p in specs_dir.glob("*.json")),
+                jobs=[(k, resolve_purpose(k).label) for k in PURPOSE_ORDER],
+                brands=sorted({r.brand_profile_id for r in discover_runs(
+                    runs_root, account=DEMO_ACCOUNT)}),
+                error="That's not a .png, .jpg or .webp.",
+                filename=asset.filename or "",
             ), 400)
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         dest = uploads_dir / f"{stamp}_{secrets.token_hex(3)}{suffix}"
@@ -239,87 +312,244 @@ def create_app(
         except ValueError:
             recorded = dest
 
+        label = asset_label or default_asset_label(asset.filename or dest.name)
         config = build_run_config(
-            asset_path=recorded,
-            asset_label=asset_label or default_asset_label(
-                asset.filename or dest.name),
+            asset_path=recorded, asset_label=label,
             audience_spec=spec_path, category=category,
-            account_id=account, brand_profile_id=brand_profile,
+            account_id=DEMO_ACCOUNT,
+            brand_profile_id=brand_profile or "default",
             library_id=library_id, audience_id=audience_id,
             declared_targeting=declared_targeting, purpose=purpose,
             marketer_led=bool(marketer_led),
             max_concurrent_agents=100,
         )
-        try:
-            prep = runner.prepare(config)
-        except (ValueError, FileNotFoundError) as exc:
-            return _html(pages.error_page("Could not prepare the run", str(exc)), 400)
+        token = runner.prepare_async(config)
+        _prepare_labels[token] = label
+        return RedirectResponse(f"/reads/preparing/{token}", status_code=303)
 
-        preset = resolve_purpose(config.creative_inputs.purpose)
-        return _html(pages.preparation_page(
-            prep,
-            scope_note=purpose_scope_note(config.creative_inputs.purpose),
-            purpose_label=preset.label, metric_label=preset.metric_label,
-            estimated=f"${prep.estimated_cost_usd:.2f}",
-            unvalidated_category=(
-                config.category if config.category not in VALIDATED_CATEGORIES
-                else None
-            ),
-        ))
+    @app.get("/reads/preparing/{token}", response_class=HTMLResponse)
+    def preparing(token: str) -> Response:
+        state = runner.preparation(token)
+        if state is None:
+            return _html(app_html.error_page(
+                "That preparation is gone",
+                "Preparations are held in memory, so a server restart loses "
+                "them. Nothing was charged beyond the classification itself. "
+                "Start the read again.", account=DEMO_ACCOUNT), 409)
+        if state.error is not None:
+            return _html(app_html.error_page(
+                "Could not prepare the read", state.error,
+                account=DEMO_ACCOUNT), 400)
+        if state.prep is not None:
+            return RedirectResponse(f"/reads/review/{state.prep.run_id}",
+                                    status_code=303)
+        return _html(app_html.preparing_page(
+            account=DEMO_ACCOUNT, label=_prepare_labels.get(token, "")))
 
-    @app.post("/runs/commit")
-    def commit_run(run_id: str = Form(...),
-                   acknowledge_mismatch: str = Form(""),
-                   acknowledge_unvalidated_category: str = Form("")) -> Response:
-        """PAID (~$4). Debits a credit and runs L1→L4 on a worker thread."""
+    @app.get("/reads/review/{run_id}", response_class=HTMLResponse)
+    def review(run_id: str) -> Response:
         prep = runner.take(run_id)
         if prep is None:
-            return _html(pages.error_page(
+            return _html(app_html.error_page(
                 "That prepared run is gone",
                 "Prepared runs are held in memory, so a server restart between "
                 "preparing and committing loses them. The preparation itself is "
                 "on disk under the run directory; prepare again to commit.",
-            ), 409)
-        # The CLI refuses to auto-commit through a gross demographic mismatch
-        # even with --yes. A click is cheaper than a flag, so the same refusal
-        # is enforced here rather than left to the form's `required` attribute,
-        # which any direct POST skips.
-        if prep.demographic_mismatch is not None and not acknowledge_mismatch:
-            return _html(pages.error_page(
-                "Gross demographic mismatch — not committed",
-                f"{prep.demographic_mismatch.message} No credit debited. Confirm "
-                "deliberately on the preparation screen if the mismatch is "
-                "intentional, or fix the declared audience or the creative.",
-            ), 409)
-        # The category gate is the MORE dangerous of the two: a mismatch
-        # produces a read of the wrong people, an unvalidated category produces
-        # a confident read of nobody — every persona lands "outside", and the
-        # output is fluent and wrong. Leaving it advisory while the weaker
-        # guardrail is a hard gate had it backwards.
-        if (prep.config.category not in VALIDATED_CATEGORIES
-                and not acknowledge_unvalidated_category):
-            return _html(pages.error_page(
-                "Unvalidated category — not committed",
-                f"{prep.config.category!r} has no hand-built, validated "
-                "disposition library. The engine will not fail gracefully: it "
-                "emits a confident, wrong read. No credit debited. Author the "
-                "library first, or tick the acknowledgement on the preparation "
-                "screen if this run is a deliberate experiment.",
-            ), 409)
+                account=DEMO_ACCOUNT), 409)
+        flags, stops = _prep_flags(prep)
+        tc = prep.target_classification
+        a = prep.audience_summary
+        chaos = ", ".join(f"{c['profile']} {c['weight'] * 100:.0f}%"
+                          for c in a["chaos_distribution"])
+        preset = resolve_purpose(prep.config.creative_inputs.purpose)
+        return _html(app_html.review_page(
+            account=DEMO_ACCOUNT, run_id=prep.run_id,
+            label=prep.config.asset.label,
+            meta=f"{preset.label} · {prep.config.brand_profile_id}",
+            inferred=tc.inferred_target_description,
+            # WHY it reads that way, not only what it reads as. The
+            # design has one paragraph here; the CLI prints both, and
+            # the reasoning is what lets an operator catch a
+            # misclassification while it is still free to catch.
+            reasoning=tc.target_reasoning,
+            dispositions=[(d.disposition_label, d.classification == "within")
+                          for d in tc.disposition_classifications],
+            panel_lines=[
+                f"{a['panel_size']} agents across "
+                f"{len(a['disposition_labels'])} dispositions × "
+                f"{len(a['context_envelope'])} contexts",
+                f"{a['n_segments']} segments ({a['segment_granularity']})",
+                f"chaos mix: {chaos}",
+            ],
+            panel_version=prep.panel_version,
+            cost=f"${prep.estimated_cost_usd:.2f}",
+            cores=prep.persona_cores_rendered,
+            flags=flags, stop_count=stops,
+        ))
 
+    def _prep_flags(prep) -> tuple[list[tuple[str, str, str, bool]], int]:
+        """Every warning `batch_run._print_preparation` prints, as flag rows.
+
+        Fidelity spec is that function, NOT the design's placeholder list: a
+        warning that exists in the engine and not here is a run committed
+        blind (memory: report_surface_fidelity). The design supplies the ROW,
+        this supplies WHICH rows.
+
+        The two `stop=True` rows used to be hard gates that refused the commit
+        without a ticked acknowledgement. They are advisory as of 2026-08-03 —
+        the user's explicit decision, taken after being shown that an
+        unvalidated category makes the engine answer confidently about nobody.
+        The flag is loud; the button is not blocked.
+        """
+        tc = prep.target_classification
+        rows: list[tuple[str, str, str, bool]] = []
+        scope = purpose_scope_note(prep.config.creative_inputs.purpose)
+        if scope:
+            rows.append(("SCOPE", "Launch scope", scope, False))
+        if tc.no_match_note:
+            rows.append(("NO MATCH", "No match", tc.no_match_note, False))
+        if tc.ambiguity_note:
+            rows.append(("TARGET", "Ambiguous target", tc.ambiguity_note, False))
+        if prep.coverage_warning is not None:
+            c = prep.coverage_warning
+            rows.append(("COVERAGE",
+                         f"Thin audience coverage — {c.eligible_count}/"
+                         f"{c.total_count} personas", c.message, False))
+        if prep.purpose_mismatch is not None:
+            pm = prep.purpose_mismatch
+            rows.append(("PURPOSE",
+                         f"Purpose mismatch — reads as {pm.apparent_label.upper()}, "
+                         f"grading as {pm.declared_label.upper()}",
+                         pm.message, False))
+        if prep.trust_ceiling_warning is not None:
+            rows.append(("TRUST",
+                         "Trust ceiling — a confident “ship it” is unreachable "
+                         "with this panel", prep.trust_ceiling_warning, False))
+        if prep.provisional_dispositions:
+            rows.append(("DISPOSITIONS", "Provisional dispositions",
+                         ", ".join(prep.provisional_dispositions)
+                         + " — awaiting team review; the report will carry the "
+                         "flag.", False))
+        stops = 0
+        if prep.demographic_mismatch is not None:
+            rows.append(("STOP", "Gross demographic mismatch",
+                         prep.demographic_mismatch.message
+                         + " Advisory, not a block. If this is deliberate (an "
+                         "off-demographic creative under test), carry on. "
+                         "Otherwise fix the declared audience, or check you "
+                         "uploaded the right creative.", True))
+            stops += 1
+        if prep.config.category not in VALIDATED_CATEGORIES:
+            rows.append(("STOP", "Unvalidated category",
+                         f"There is no hand-built, validated disposition library "
+                         f"for {prep.config.category!r}. The engine will not fail "
+                         "gracefully: every persona classifies “outside” and the "
+                         "read comes out confident and wrong.", True))
+            stops += 1
+        return rows, stops
+
+    @app.post("/reads/prepared/commit")
+    def commit_read(run_id: str = Form(...)) -> Response:
+        """PAID (~$4). Debits a credit and runs L1→L4 on a worker thread.
+
+        Nothing refuses here any more — see `_prep_flags`. The one refusal left
+        is a prepared run that is no longer in memory, which is not a judgement
+        about the run but the absence of one.
+        """
+        prep = runner.take(run_id)
+        if prep is None:
+            return _html(app_html.error_page(
+                "That prepared run is gone",
+                "Prepared runs are held in memory, so a server restart between "
+                "preparing and committing loses them. The preparation itself is "
+                "on disk under the run directory; prepare again to commit.",
+                account=DEMO_ACCOUNT), 409)
         job = runner.commit(prep)
-        return RedirectResponse(f"/runs/status/{job.key}", status_code=303)
+        return RedirectResponse(f"/reads/status/{job.key}", status_code=303)
 
-    @app.get("/runs/status/{account_id}/{brand_profile_id}/{run_id}",
+    @app.get("/reads/status/{account_id}/{brand_profile_id}/{run_id}",
              response_class=HTMLResponse)
-    def run_status(account_id: str, brand_profile_id: str,
-                   run_id: str) -> HTMLResponse:
+    def read_status(account_id: str, brand_profile_id: str,
+                    run_id: str) -> HTMLResponse:
         key = f"{account_id}/{brand_profile_id}/{run_id}"
-        return _html(pages.run_status_page(runner.status(runs_root, key)))
+        status = runner.status(runs_root, key)
+        progress = status.get("progress")
+        phases = phase_view(progress)
+        label = _run_label(runs_root, key) or run_id
+        stopped = next((p["key"] for p in phases if p["state"] == "running"), None)
 
-    @app.get("/runs/status.json/{account_id}/{brand_profile_id}/{run_id}")
-    def run_status_json(account_id: str, brand_profile_id: str,
-                        run_id: str) -> JSONResponse:
+        if status["status"] == "complete" or status["has_report"]:
+            health = status.get("panel_health") or {}
+            got, want = health.get("succeeded"), health.get("expected")
+            line = f"{got}/{want} agents" if want else "—"
+            degraded = ""
+            if health.get("degraded"):
+                line += " — DEGRADED"
+                missing = (want or 0) - (got or 0)
+                degraded = (f"{missing} agent{'' if missing == 1 else 's'} dropped "
+                            f"out mid-run. The read stands, on {got} responses "
+                            f"instead of {want}.")
+            return _html(app_html.complete_page(
+                account=DEMO_ACCOUNT, label=label, run_id=run_id, key=key,
+                decision=_run_decision(runs_root, key), health=line,
+                degraded=degraded))
+        if status["status"] == "failed":
+            return _html(app_html.failed_page(
+                account=DEMO_ACCOUNT, label=label, run_id=run_id,
+                error=status.get("error") or "", phases=phases,
+                stopped_at=stopped))
+        if status["status"] == "interrupted":
+            path = resolve_run(runs_root, key)
+            # Recoverable only if the expensive half actually landed: replay
+            # reads transcripts off disk, and without them there is nothing to
+            # replay and the button would spend money to fail.
+            recoverable = bool(path is not None and (
+                (path / "transcripts.json").exists()
+                or (path / "agent_calls").is_dir()))
+            return _html(app_html.interrupted_page(
+                account=DEMO_ACCOUNT, label=label, run_id=run_id, key=key,
+                command=f"replay_synthesis.py runs/{key}",
+                recoverable=recoverable,
+                cost_note=(
+                    "No credit is debited. It does re-run the analysis stage "
+                    "through the model, which costs real money — a fraction of "
+                    "a full run, because the panel is not re-asked."
+                    if recoverable else
+                    "The agent transcripts are not on disk, so there is nothing "
+                    "to replay. This run would have to be paid for again."),
+                phases=phases, stopped_at=stopped))
+        return _html(app_html.running_page(
+            account=DEMO_ACCOUNT, label=label, run_id=run_id, phases=phases,
+            elapsed=app_html.elapsed_clock(progress), waiting=progress is None))
+
+    @app.post("/reads/{account_id}/{brand_profile_id}/{run_id}/replay")
+    def replay_read(account_id: str, brand_profile_id: str,
+                    run_id: str) -> Response:
+        """SPENDS MONEY, debits no credit — the distinction the button states.
+
+        The 100 agent calls that dominate a run's bill are read back off disk;
+        only L2→L4 go through the model again. Refused when the transcripts are
+        not there, because then there is nothing to replay and the spend would
+        buy a failure.
+        """
+        key = f"{account_id}/{brand_profile_id}/{run_id}"
+        path = resolve_run(runs_root, key)
+        if path is None:
+            raise HTTPException(status_code=404, detail="No such run.")
+        if not ((path / "transcripts.json").exists()
+                or (path / "agent_calls").is_dir()):
+            return _html(app_html.error_page(
+                "Nothing to recover",
+                "This run has no agent transcripts on disk, so there is nothing "
+                "for the analysis stage to re-read. Recovering it would spend "
+                "money to reach the same place. The panel would have to be run "
+                "again from the start.", account=DEMO_ACCOUNT), 409)
+        runner.replay(path, key)
+        return RedirectResponse(f"/reads/status/{key}", status_code=303)
+
+    @app.get("/reads/status.json/{account_id}/{brand_profile_id}/{run_id}")
+    def read_status_json(account_id: str, brand_profile_id: str,
+                         run_id: str) -> JSONResponse:
         key = f"{account_id}/{brand_profile_id}/{run_id}"
         return JSONResponse(runner.status(runs_root, key))
 

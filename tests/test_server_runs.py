@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from html import escape
 from pathlib import Path
 
@@ -152,40 +153,73 @@ def _client(world: Path, launcher: Launcher) -> TestClient:
 
 # ---- the form ---------------------------------------------------------
 
+def _prepare(client: TestClient, **data):
+    """POST the form and follow the preparing page through to the review.
 
-def test_new_run_form_marks_unvalidated_categories(world) -> None:
-    """The category gate is the difference between a read and a confident
-    wrong answer. It has to be visible at the moment of choosing."""
+    The real flow is asynchronous — the POST starts a thread and redirects to
+    a page that says "preparing" until it finishes — so a test that just
+    POSTed and read the response would be reading the wrong screen. Polling
+    here rather than reaching into the launcher keeps the test on the same
+    path a browser takes, including the redirect that page issues when the
+    preparation lands.
+    """
+    files = data.pop("files", {"asset": ("a.png", b"x", "image/png")})
+    form = {"category": "health_wellness_nutrition",
+            "audience_spec": "hw_cold.json"}
+    form.update(data)
+    resp = client.post("/reads/new", files=files, data=form,
+                       follow_redirects=False)
+    if resp.status_code != 303:
+        return resp        # rejected before anything was started
+    where = resp.headers["location"]
+    for _ in range(200):
+        resp = client.get(where, follow_redirects=False)
+        if resp.status_code == 303:
+            where = resp.headers["location"]
+            continue
+        if "Preparing the read" not in resp.text:
+            return resp
+        time.sleep(0.01)
+    raise AssertionError("preparation never finished")
+
+
+
+
+def test_the_picker_offers_every_category_and_leads_with_the_validated_one(world) -> None:
+    """The picker stopped marking unvalidated categories on 2026-08-03 — the
+    user's explicit call, taken with the consequence in front of them. What
+    survives is the ORDER (the safe choice is first) and the warning itself,
+    which moved to the review screen and is asserted there by
+    `test_an_unvalidated_category_warns_loudly_and_commits_anyway`.
+
+    Pinned because a marker that quietly reappears, or an order that quietly
+    goes alphabetical, are both changes to a decision rather than to a style.
+    """
     client = _client(world, StubLauncher())
-    page = client.get("/runs/new").text
+    page = client.get("/reads/new").text
 
-    assert "health_wellness_nutrition" in page
-    assert "NOT VALIDATED" in page
-    # Every pack that is not on the validated list is marked.
-    unvalidated = [p.stem for p in (Path("packs")).glob("*.py")
-                   if not p.stem.startswith("_")
-                   and p.stem not in VALIDATED_CATEGORIES]
-    assert unvalidated, "fixture assumes at least one unvalidated pack exists"
-    for cat in unvalidated:
-        block = page.split(f'value="{cat}"')[1][:60]
-        assert "NOT VALIDATED" in block, f"{cat} not marked unvalidated"
-    # ...and the validated one is NOT marked.
-    validated_block = page.split('value="health_wellness_nutrition"')[1][:60]
-    assert "NOT VALIDATED" not in validated_block
-    print("  category gate visible on the picker ✓")
+    packs = [p.stem for p in Path("packs").glob("*.py")
+             if not p.stem.startswith("_")]
+    for cat in packs:
+        assert f'value="{cat}"' in page, f"{cat} missing from the picker"
+    assert "NOT VALIDATED" not in page
+
+    order = [c for c in
+             [page.split('value="')[i].split('"')[0]
+              for i in range(1, page.count('value="') + 1)] if c in packs]
+    assert order[0] in VALIDATED_CATEGORIES, (
+        f"picker leads with {order[0]!r}, which has no validated library")
+    print(f"  {len(packs)} categories offered, validated first, unmarked ✓")
 
 
 def test_prepare_builds_the_config_the_form_described(world) -> None:
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
-    resp = client.post("/runs/prepare", files={
-        "asset": ("client_ad.png", b"\x89PNG\r\n\x1a\n", "image/png"),
-    }, data={
-        "category": "health_wellness_nutrition",
-        "audience_spec": "hw_cold.json", "asset_label": "Q3 whey",
-        "declared_targeting": "adults 25-44, metro", "purpose": "direct_sell",
-        "account": "demo", "brand_profile": "hw", "marketer_led": "1",
-    })
+    resp = _prepare(
+        client,
+        files={"asset": ("client_ad.png", b"\x89PNG\r\n\x1a\n", "image/png")},
+        asset_label="Q3 whey", declared_targeting="adults 25-44, metro",
+        purpose="direct_sell", brand_profile="hw", marketer_led="1")
     assert resp.status_code == 200, resp.text
 
     config = launcher.prepared_configs[-1]
@@ -208,10 +242,7 @@ def test_marketer_led_is_off_when_the_box_is_unticked(world) -> None:
     silently change panel composition on every run."""
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
-    client.post("/runs/prepare",
-                files={"asset": ("a.png", b"x", "image/png")},
-                data={"category": "health_wellness_nutrition",
-                      "audience_spec": "hw_cold.json"})
+    _prepare(client)
     assert launcher.prepared_configs[-1].marketer_led is False
     print("  unticked marketer-led stays off ✓")
 
@@ -219,22 +250,21 @@ def test_marketer_led_is_off_when_the_box_is_unticked(world) -> None:
 def test_upload_rejects_a_non_image(world) -> None:
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
-    resp = client.post("/runs/prepare",
-                       files={"asset": ("payload.svg", b"<svg/>", "image/svg+xml")},
-                       data={"category": "health_wellness_nutrition",
-                             "audience_spec": "hw_cold.json"})
+    resp = _prepare(client,
+                    files={"asset": ("payload.svg", b"<svg/>", "image/svg+xml")})
     assert resp.status_code == 400
     assert not launcher.prepared_configs, "prepared (and paid) on a bad upload"
-    print("  non-image upload refused before any spend ✓")
+    # Back on the form with the reason, not a dead-end error page: the design's
+    # state 4C. A rejection that loses what was already typed is a re-type.
+    assert "Drop the ad creative here" in resp.text
+    assert "REJECTED" in resp.text and "payload.svg" in resp.text
+    print("  non-image upload refused before any spend, form kept ✓")
 
 
 def test_unknown_audience_spec_is_refused_before_spending(world) -> None:
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
-    resp = client.post("/runs/prepare",
-                       files={"asset": ("a.png", b"x", "image/png")},
-                       data={"category": "health_wellness_nutrition",
-                             "audience_spec": "../../etc/passwd"})
+    resp = _prepare(client, audience_spec="../../etc/passwd")
     assert resp.status_code == 400
     assert not launcher.prepared_configs
     print("  bad spec path refused before target_id fires ✓")
@@ -249,10 +279,7 @@ def test_confirmation_surface_carries_every_cli_warning(world) -> None:
     launcher = StubLauncher(_prep(world, mismatch=True,
                                   spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
-    page = client.post("/runs/prepare",
-                       files={"asset": ("a.png", b"x", "image/png")},
-                       data={"category": "health_wellness_nutrition",
-                             "audience_spec": "hw_cold.json"}).text
+    page = _prepare(client).text
 
     for fragment, what in (
         (MISMATCH_MSG, "gross demographic mismatch"),
@@ -278,77 +305,91 @@ def test_confirmation_surface_carries_every_cli_warning(world) -> None:
     print("  all 14 CLI warnings present on the confirm screen ✓")
 
 
-def test_commit_refuses_a_demographic_mismatch_without_acknowledgement(world) -> None:
-    """The CLI lets this one override --yes. In a browser the equivalent of
-    --yes is a click, so the refusal has to live in the route: the form's
-    `required` attribute does nothing to a direct POST."""
+def test_a_demographic_mismatch_warns_loudly_and_commits_anyway(world) -> None:
+    """Advisory as of 2026-08-03 — the user's explicit call, and it matches
+    what the guard was always documented to be (memory:
+    demographic_mismatch_guard, "never blocks").
+
+    What this pins is the half that still has to hold: the flag is RENDERED,
+    and it is rendered as a STOP row rather than folded in with the ordinary
+    warnings. Deleting the refusal without this test would leave nothing at all
+    asserting the operator was told.
+    """
     launcher = StubLauncher(_prep(world, mismatch=True,
                                   spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
-    client.post("/runs/prepare", files={"asset": ("a.png", b"x", "image/png")},
-                data={"category": "health_wellness_nutrition",
-                      "audience_spec": "hw_cold.json"})
+    page = _prepare(client).text
     run_id = launcher.stub_prep.run_id
 
-    blocked = client.post("/runs/commit", data={"run_id": run_id},
-                          follow_redirects=False)
-    assert blocked.status_code == 409
-    assert "No credit debited" in blocked.text
-    assert launcher.committed == [], "committed through a gross mismatch"
+    assert escape(MISMATCH_MSG, quote=True) in page, "the mismatch was not shown"
+    assert "Gross demographic mismatch" in page
+    assert "f--stop" in page, "shown, but not as a STOP row"
+    assert "marked STOP" in page, "the commit button does not point at the flag"
+    # No acknowledgement field is posted any more — the design's call, and a
+    # hidden one would be worse than none: a gate that looks present.
+    assert "acknowledge_mismatch" not in page
 
-    ok = client.post("/runs/commit",
-                     data={"run_id": run_id, "acknowledge_mismatch": "1"},
+    ok = client.post("/reads/prepared/commit", data={"run_id": run_id},
                      follow_redirects=False)
     assert ok.status_code == 303
     assert launcher.committed == [run_id]
     for job in launcher.jobs.values():
         job.thread.join(timeout=5)
-    print("  mismatch refused, then honoured on explicit acknowledgement ✓")
+    print("  mismatch shown as STOP, commit not blocked ✓")
 
 
-def test_commit_refuses_an_unvalidated_category_without_acknowledgement(world) -> None:
-    """The category gate is the MORE dangerous of the two guardrails and was
-    the one left advisory. A demographic mismatch reads the wrong people; an
-    unvalidated category reads nobody — every persona lands 'outside' and the
-    output is fluent, confident and wrong. Same enforcement as the mismatch:
-    server-side, because the form's `required` does nothing to a direct POST.
+def test_an_unvalidated_category_warns_loudly_and_commits_anyway(world) -> None:
+    """The more consequential of the two, so the wording is pinned, not just
+    the presence of a flag.
+
+    An unvalidated category does not degrade — every persona classifies
+    "outside" and the read comes out fluent, confident and wrong. This was a
+    hard gate until 2026-08-03; the user removed the block with that
+    consequence stated. The text that says so is now the entire guardrail,
+    which is exactly why it is asserted word by word here.
     """
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json",
                                   category="chocolate"))
     client = _client(world, launcher)
-    page = client.post("/runs/prepare",
-                       files={"asset": ("a.png", b"x", "image/png")},
-                       data={"category": "chocolate",
-                             "audience_spec": "hw_cold.json"}).text
-    assert "Unvalidated category" in page
-    assert "acknowledge_unvalidated_category" in page
+    page = _prepare(client, category="chocolate").text
     run_id = launcher.stub_prep.run_id
 
-    blocked = client.post("/runs/commit", data={"run_id": run_id},
-                          follow_redirects=False)
-    assert blocked.status_code == 409
-    assert "No credit debited" in blocked.text
-    assert launcher.committed == [], "committed into an unvalidated category"
+    assert "Unvalidated category" in page
+    assert "chocolate" in page
+    for phrase in ("will not fail gracefully", "confident and wrong"):
+        assert phrase in page, f"the consequence no longer says {phrase!r}"
+    assert "f--stop" in page, "shown, but not as a STOP row"
+    assert "acknowledge_unvalidated_category" not in page
 
-    ok = client.post("/runs/commit",
-                     data={"run_id": run_id,
-                           "acknowledge_unvalidated_category": "1"},
+    ok = client.post("/reads/prepared/commit", data={"run_id": run_id},
                      follow_redirects=False)
-    assert ok.status_code == 303
+    assert ok.status_code == 303, "the commit is not supposed to be blocked"
     for job in launcher.jobs.values():
         job.thread.join(timeout=5)
-    print("  unvalidated category refused until acknowledged ✓")
+    print("  unvalidated category shown as STOP with its consequence, "
+          "commit not blocked ✓")
+
+
+def test_both_stop_flags_render_in_one_stack(world) -> None:
+    """Six warnings and two STOPs — the design's worst case. One container,
+    hairline rows, one tag column: eight read as a list, not a wall."""
+    launcher = StubLauncher(_prep(world, mismatch=True, category="chocolate",
+                                  spec_name="specs/hw_cold.json"))
+    client = _client(world, launcher)
+    page = _prepare(client, category="chocolate").text
+
+    assert page.count('class="f f--stop"') == 2, "both STOPs should be marked"
+    assert page.count('<div class="flags">') == 1, "flags split across stacks"
+    assert "2 flags above are marked STOP" in page
+    print("  8 flags, 2 of them STOP, in one stack ✓")
 
 
 def test_a_validated_category_needs_no_category_tick(world) -> None:
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
-    page = client.post("/runs/prepare",
-                       files={"asset": ("a.png", b"x", "image/png")},
-                       data={"category": "health_wellness_nutrition",
-                             "audience_spec": "hw_cold.json"}).text
+    page = _prepare(client).text
     assert "Unvalidated category" not in page
-    print("  validated category asks for no extra tick ✓")
+    print("  a validated category raises no STOP flag ✓")
 
 
 def test_uploaded_creative_is_recorded_the_way_cli_runs_record_it(world) -> None:
@@ -356,9 +397,7 @@ def test_uploaded_creative_is_recorded_the_way_cli_runs_record_it(world) -> None
     would still render today but makes the run directory non-portable."""
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
-    client.post("/runs/prepare", files={"asset": ("a.png", b"x", "image/png")},
-                data={"category": "health_wellness_nutrition",
-                      "audience_spec": "hw_cold.json"})
+    _prepare(client)
     recorded = Path(launcher.prepared_configs[-1].asset.image_path)
     assert not recorded.is_absolute(), recorded
     assert (world / recorded).exists()
@@ -368,10 +407,8 @@ def test_uploaded_creative_is_recorded_the_way_cli_runs_record_it(world) -> None
 def test_commit_without_a_mismatch_needs_no_acknowledgement(world) -> None:
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
-    client.post("/runs/prepare", files={"asset": ("a.png", b"x", "image/png")},
-                data={"category": "health_wellness_nutrition",
-                      "audience_spec": "hw_cold.json"})
-    resp = client.post("/runs/commit",
+    _prepare(client)
+    resp = client.post("/reads/prepared/commit",
                        data={"run_id": launcher.stub_prep.run_id},
                        follow_redirects=False)
     assert resp.status_code == 303
@@ -383,7 +420,7 @@ def test_commit_without_a_mismatch_needs_no_acknowledgement(world) -> None:
 def test_committing_an_unknown_run_spends_nothing(world) -> None:
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
-    resp = client.post("/runs/commit", data={"run_id": "not_a_run"},
+    resp = client.post("/reads/prepared/commit", data={"run_id": "not_a_run"},
                        follow_redirects=False)
     assert resp.status_code == 409
     assert launcher.committed == []
@@ -477,19 +514,27 @@ def test_status_reads_the_phase_the_engine_already_persists(tmp_path) -> None:
     print("  status mirrors run.json's own phase ✓")
 
 
-def test_status_page_stops_refreshing_once_the_run_is_done(tmp_path) -> None:
-    from server import pages
-    running = pages.run_status_page({"key": "a/b/c", "run_id": "c",
-                                     "status": "committed", "running": True,
-                                     "error": None, "updated_at": "t",
-                                     "panel_health": None, "has_report": False})
-    done = pages.run_status_page({"key": "a/b/c", "run_id": "c",
-                                  "status": "complete", "running": False,
-                                  "error": None, "updated_at": "t",
-                                  "panel_health": None, "has_report": True})
-    assert "http-equiv=\"refresh\"" in running
-    assert "http-equiv=\"refresh\"" not in done
-    assert "/reads/a/b/c" in done, "finished run does not link to its read"
+def test_the_status_page_stops_refreshing_once_the_run_is_done(world) -> None:
+    """A finished run that keeps meta-refreshing re-fetches a whole read every
+    ten seconds forever, and looks like it is still working."""
+    runs_root = world / "runs"
+    for name, status, report in (("running", "committed", None),
+                                 ("done", "complete", {"decision":
+                                                       {"decision": "ITERATE"}})):
+        rd = runs_root / "demo" / "hw" / name
+        rd.mkdir(parents=True, exist_ok=True)
+        (rd / "run.json").write_text(json.dumps(
+            {"run_id": name, "status": status, "updated_at": "t",
+             "config": {"asset": {"label": "Q3 whey"}},
+             "report": report}))
+
+    client = _client(world, StubLauncher())
+    running = client.get("/reads/status/demo/hw/running").text
+    done = client.get("/reads/status/demo/hw/done").text
+
+    assert 'http-equiv="refresh"' in running
+    assert 'http-equiv="refresh"' not in done
+    assert "/reads/demo/hw/done" in done, "finished run does not link to its read"
     print("  status page polls while running, links the read when done ✓")
 
 
@@ -515,6 +560,14 @@ def test_interrupted_run_points_at_replay_not_a_rerun(tmp_path, monkeypatch) -> 
 
     status = launcher.status(tmp_path, "demo/hw/r1")
     assert status["status"] == "interrupted"
-    from server import pages
-    assert "replay_synthesis" in pages.run_status_page(status)
+
+    from server import app_html
+    from agent.progress import phase_view
+    page = app_html.interrupted_page(
+        account="demo", label="Q3 whey", run_id="r1", key="demo/hw/r1",
+        command="replay_synthesis.py runs/demo/hw/r1", recoverable=True,
+        cost_note="No credit is debited.",
+        phases=phase_view(status["progress"]), stopped_at=None)
+    assert "replay_synthesis" in page
+    assert "/reads/demo/hw/r1/replay" in page
     print("  interrupted run sends you to replay, not the checkout ✓")

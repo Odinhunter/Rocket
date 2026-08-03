@@ -132,6 +132,27 @@ def resolve_run(runs_root: Path, key: str) -> Path | None:
     return path
 
 
+def peek_run(runs_root: Path, key: str) -> tuple[str, str]:
+    """`(asset_label, decision)` for a run that may not have finished.
+
+    `discover_runs` deliberately skips runs with no Report, so the status page
+    — whose whole subject is a run that has not finished — cannot use it. This
+    reads the same file with no such requirement, and returns empty strings
+    rather than raising: every field it wants is one the engine writes later.
+    """
+    path = resolve_run(runs_root, key)
+    if path is None:
+        return "", ""
+    raw = _peek(path / "run.json") or {}
+    config = raw.get("config", {}) or {}
+    asset = config.get("asset", {}) or {}
+    report = raw.get("report") or {}
+    if not report:
+        report = _peek(path / "replay_report.json") or {}
+    decision = (report.get("decision") or {}).get("decision", "") if report else ""
+    return asset.get("label", "") or "", decision or ""
+
+
 def render_run(run_path: Path, *, base_dir: Path, full_document: bool = True) -> str:
     """The finished read as HTML — `build_read_model` then `render_html`, the
     same two calls `render_read.py` makes and nothing else.

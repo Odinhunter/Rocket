@@ -175,7 +175,7 @@ class Auth:
         }
 
 
-def safe_next(target: str | None, fallback: str = "/operator") -> str:
+def safe_next(target: str | None, fallback: str = "/reads") -> str:
     r"""Where to land after signing in — same-site only.
 
     `?next=` is attacker-suppliable, so a login page that honours it becomes an
@@ -205,7 +205,7 @@ def safe_next(target: str | None, fallback: str = "/operator") -> str:
 # deliberate edit to a list of five strings.
 
 # Exact matches only.
-PUBLIC_EXACT = frozenset({"/", "/login", "/logout", "/healthz"})
+PUBLIC_EXACT = frozenset({"/", "/signin", "/healthz"})
 # Prefixes. The trailing slash is not cosmetic: on "/static" a path like
 # "/static-secret" would also match.
 PUBLIC_PREFIXES = ("/static/",)
@@ -281,13 +281,13 @@ class RequireSignIn:
         if wants_json(path):
             response = JSONResponse({"detail": "Not signed in."}, status_code=401)
         else:
-            target = "/login"
+            target = "/signin"
             # Only a GET is worth returning to. Replaying a POST after login
             # would mean re-submitting a form the browser no longer holds —
             # and on /runs/commit that POST spends ~$4.
             if scope.get("method", "GET") in ("GET", "HEAD"):
                 query = scope.get("query_string", b"").decode("latin-1")
                 back = path + (f"?{query}" if query else "")
-                target = f"/login?next={quote(back, safe='')}"
+                target = f"/signin?next={quote(back, safe='')}"
             response = RedirectResponse(target, status_code=303)
         await response(scope, receive, send)

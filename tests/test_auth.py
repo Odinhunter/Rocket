@@ -38,7 +38,7 @@ from tests.helpers_auth import PASSWORD, demo_auth, sign_in
 # must get a 401 it can recognise, not a login page it reads as "no data".
 JSON_ROUTES = (
     "/sessions.json",
-    "/runs/status.json/demo/hw/r1",
+    "/reads/status.json/demo/hw/r1",
     "/sessions/abc/export",
 )
 
@@ -142,16 +142,16 @@ def test_next_only_accepts_a_local_path() -> None:
     for hostile in ("//evil.example", "https://evil.example", "\\\\evil.example",
                     "/\\evil.example", "/ok\nSet-Cookie: x=1", "", None,
                     "javascript:alert(1)", "evil.example"):
-        assert safe_next(hostile) == "/operator", f"followed {hostile!r}"
-    print("  9 hostile next targets fall back to /operator ✓")
+        assert safe_next(hostile) == "/reads", f"followed {hostile!r}"
+    print("  9 hostile next targets fall back to /reads ✓")
 
 
 def test_signing_in_returns_you_to_where_you_were_stopped(client) -> None:
     stopped = client.get("/operator", follow_redirects=False)
     assert stopped.status_code == 303
-    assert stopped.headers["location"] == "/login?next=%2Foperator"
+    assert stopped.headers["location"] == "/signin?next=%2Foperator"
 
-    landed = client.post("/login", data={"password": PASSWORD, "next": "/operator"},
+    landed = client.post("/signin", data={"password": PASSWORD, "next": "/operator"},
                          follow_redirects=False)
     assert landed.headers["location"] == "/operator"
     assert client.get("/operator").status_code == 200
@@ -163,17 +163,17 @@ def test_the_query_string_survives_the_round_trip(client) -> None:
     — and losing it silently drops the filter the user asked for."""
     stopped = client.get("/operator?brand=hw&sort=new", follow_redirects=False)
     assert stopped.headers["location"] == (
-        "/login?next=%2Foperator%3Fbrand%3Dhw%26sort%3Dnew")
+        "/signin?next=%2Foperator%3Fbrand%3Dhw%26sort%3Dnew")
     print("  query string preserved through the login ✓")
 
 
 def test_a_blocked_post_does_not_come_back_as_a_replay(client) -> None:
-    """/runs/commit spends ~$4. A `next` that replays a POST after signing in
-    is a way to spend it by accident."""
-    stopped = client.post("/runs/commit", data={"run_id": "x"},
+    """/reads/prepared/commit spends ~$4. A `next` that replays a POST after
+    signing in is a way to spend it by accident."""
+    stopped = client.post("/reads/prepared/commit", data={"run_id": "x"},
                           follow_redirects=False)
     assert stopped.status_code == 303
-    assert stopped.headers["location"] == "/login", "a POST was queued for replay"
+    assert stopped.headers["location"] == "/signin", "a POST was queued for replay"
     print("  a blocked POST is never replayed after login ✓")
 
 
@@ -184,7 +184,9 @@ def test_the_public_allowlist_is_exactly_this(tmp_path: Path) -> None:
     """Asserted against a literal, not against the constant the middleware
     reads. Deriving both sides from one constant means adding a path to it
     silently stays green — which is the entire failure mode."""
-    assert PUBLIC_EXACT == frozenset({"/", "/login", "/logout", "/healthz"})
+    # /signout is NOT here: it is a POST from a signed-in page, so it does not
+    # need to be public — and the enumeration test below therefore walks it.
+    assert PUBLIC_EXACT == frozenset({"/", "/signin", "/healthz"})
     assert PUBLIC_PREFIXES == ("/static/",)
     # The trailing slash is load-bearing: on "/static" this would be public.
     assert not is_public("/static-secret")
@@ -217,7 +219,7 @@ def test_every_route_outside_the_allowlist_refuses(tmp_path: Path) -> None:
         assert resp.status_code in (303, 401), (
             f"{method} {path} answered {resp.status_code} while signed out")
         if resp.status_code == 303:
-            assert resp.headers["location"].startswith("/login")
+            assert resp.headers["location"].startswith("/signin")
         checked.append(f"{method} {path}")
     assert len(checked) >= 15, f"only {len(checked)} routes walked — did the app build?"
     print(f"  {len(checked)} routes refuse while signed out ✓")
@@ -251,7 +253,7 @@ def test_the_landing_page_and_healthz_are_public(client) -> None:
 
 
 def test_a_wrong_password_issues_no_cookie_and_says_nothing(client) -> None:
-    resp = client.post("/login", data={"password": "wrong"},
+    resp = client.post("/signin", data={"password": "wrong"},
                        follow_redirects=False)
     assert resp.status_code == 401
     assert COOKIE_NAME not in resp.cookies
@@ -273,11 +275,11 @@ def test_a_failed_attempt_actually_costs_a_delay(tmp_path: Path) -> None:
     client = TestClient(_app(tmp_path, auth=auth))
 
     started = time.monotonic()
-    assert client.post("/login", data={"password": "no"}).status_code == 401
+    assert client.post("/signin", data={"password": "no"}).status_code == 401
     assert time.monotonic() - started >= 0.25, "a wrong password cost nothing"
 
     started = time.monotonic()
-    assert client.post("/login", data={"password": PASSWORD},
+    assert client.post("/signin", data={"password": PASSWORD},
                        follow_redirects=False).status_code == 303
     assert time.monotonic() - started < 0.25, "the delay is charged on success too"
     print("  a wrong password costs the delay; the right one does not ✓")
@@ -287,10 +289,10 @@ def test_signing_out_closes_the_door_behind_you(tmp_path: Path) -> None:
     client = sign_in(TestClient(_app(tmp_path)))
     assert client.get("/operator").status_code == 200
 
-    client.get("/logout", follow_redirects=False)
-    assert not client.cookies.get(COOKIE_NAME), "cookie survived /logout"
+    client.post("/signout", follow_redirects=False)
+    assert not client.cookies.get(COOKIE_NAME), "cookie survived /signout"
     assert client.get("/operator", follow_redirects=False).status_code == 303
-    print("  /logout clears the cookie and the console closes ✓")
+    print("  /signout clears the cookie and the console closes ✓")
 
 
 def test_an_unconfigured_server_refuses_to_open(tmp_path: Path) -> None:
@@ -298,12 +300,12 @@ def test_an_unconfigured_server_refuses_to_open(tmp_path: Path) -> None:
     and the login page must say why rather than looking broken."""
     client = TestClient(_app(tmp_path, auth=Auth(
         password=None, secret=b"s", failed_delay_seconds=0.0)))
-    page = client.get("/login")
+    page = client.get("/signin")
     assert page.status_code == 200
     assert "not configured" in page.text.lower()
 
     for attempt in ("", "password", PASSWORD):
-        resp = client.post("/login", data={"password": attempt},
+        resp = client.post("/signin", data={"password": attempt},
                            follow_redirects=False)
         assert resp.status_code == 401
         assert not client.cookies.get(COOKIE_NAME)
@@ -344,7 +346,7 @@ def test_the_gate_does_not_make_the_routes_async(tmp_path: Path) -> None:
     for route in app.routes:
         fn = getattr(route, "endpoint", None)
         if fn is None or not getattr(route, "path", "").startswith(
-                ("/runs", "/sessions", "/reads", "/operator", "/login")):
+                ("/runs", "/sessions", "/reads", "/operator", "/signin")):
             continue
         assert not inspect.iscoroutinefunction(fn), (
             f"{route.path} became async — see server/app.py's docstring")

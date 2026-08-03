@@ -287,66 +287,76 @@ def test_launcher_status_is_fine_with_no_progress_file(tmp_path):
     assert Launcher().status(runs_root, "acct/brand/run1")["progress"] is None
 
 
-def test_the_status_page_shows_the_phases_while_running(tmp_path):
-    from server import pages
+def _status_page(runs_root, key="acct/brand/run1") -> str:
+    """The real status route, signed in — not a renderer called directly.
 
+    These five tests are the P2 progress feature's guarantees, and after the
+    app shell landed the interesting half is which SCREEN the route picks: a
+    running run and an interrupted one differ by the branch taken, not by the
+    template. Calling a renderer directly would keep asserting the words while
+    the route quietly showed the wrong page.
+    """
+    from fastapi.testclient import TestClient
+
+    from server.app import create_app
+    from tests.helpers_auth import demo_auth, sign_in
+
+    client = sign_in(TestClient(create_app(
+        runs_root=runs_root, sessions_root=runs_root.parent / "sessions",
+        base_dir=runs_root.parent, auth=demo_auth())))
+    return client.get(f"/reads/status/{key}").text
+
+
+def test_the_status_page_shows_the_phases_while_running(tmp_path):
     runs_root, rd = _committed_run(tmp_path)
     w = ProgressWriter(rd, min_interval=0.0)
     w.phase("reactions", total=100)
     w.advance(63)
-    from server.launcher import Launcher
-    html = pages.run_status_page(Launcher().status(runs_root, "acct/brand/run1"))
+    html = _status_page(runs_root)
 
     assert "The panel is reacting" in html
-    assert "63" in html and "100" in html
+    assert "63 of 100" in html
     assert "Ranking the fixes" in html          # the phases still to come
+    # No invented motion: nothing claims a finish time.
+    assert "remaining" not in html.lower() or "No time remaining is shown" in html
 
 
 def test_the_status_page_does_not_show_phases_once_complete(tmp_path):
-    """Five ticks under the word 'Done.' say nothing the word does not, and a
+    """Five ticks under a finished read say nothing the read does not, and a
     stale running phase would contradict it."""
-    from server import pages
-    from server.launcher import Launcher
-
     runs_root, rd = _committed_run(tmp_path, status="complete")
     ProgressWriter(rd, min_interval=0.0).phase("reactions", total=100)
-    html = pages.run_status_page(Launcher().status(runs_root, "acct/brand/run1"))
+    html = _status_page(runs_root)
     assert "The panel is reacting" not in html
+    assert "READ COMPLETE" in html
 
 
 def test_a_dead_run_shows_where_it_stopped(tmp_path):
     """The launcher keeps progress on a failed run precisely so this page can
     say WHERE — it decides whether replay_synthesis can recover the run."""
-    from server import pages
-    from server.launcher import Launcher
-
     runs_root, rd = _committed_run(tmp_path, status="interrupted")
     ProgressWriter(rd, min_interval=0.0).phase("segments", total=15)
-    html = pages.run_status_page(Launcher().status(runs_root, "acct/brand/run1"))
+    html = _status_page(runs_root)
 
     assert "Grouping by buyer type" in html
-    assert "stopped here" in html
+    assert "STOPPED HERE" in html
+    assert "p--stop" in html
     # and it must not read as still in flight
-    assert 'class="running"' not in html
+    assert "RUN INTERRUPTED" in html
+    assert 'class="p p--on"' not in html
 
 
 def test_a_running_run_is_not_marked_stopped(tmp_path):
-    from server import pages
-    from server.launcher import Launcher
-
     runs_root, rd = _committed_run(tmp_path)
     ProgressWriter(rd, min_interval=0.0).phase("segments", total=15)
-    html = pages.run_status_page(Launcher().status(runs_root, "acct/brand/run1"))
-    assert "stopped here" not in html
-    assert 'class="running"' in html
+    html = _status_page(runs_root)
+    assert "STOPPED HERE" not in html
+    assert 'class="p p--on"' in html
 
 
 def test_the_status_page_says_so_when_nothing_has_reported_yet(tmp_path):
-    from server import pages
-    from server.launcher import Launcher
-
     runs_root, _ = _committed_run(tmp_path)
-    html = pages.run_status_page(Launcher().status(runs_root, "acct/brand/run1"))
+    html = _status_page(runs_root)
     assert "Waiting for the first phase" in html
 
 
