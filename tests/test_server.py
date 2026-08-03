@@ -31,6 +31,7 @@ from agent.schema import (
 from server.app import create_app
 from server.runs import blind_read_model, discover_runs, resolve_run
 from server.sessions import PredictionMissing, SessionStore
+from tests.helpers_auth import demo_auth, sign_in
 
 # The identifying strings planted in the fixture run. Each one is a real field
 # the renderer prints; the blinding test asserts every one is gone.
@@ -123,8 +124,8 @@ def env(tmp_path: Path):
                run_id="20260609_232052_seed71_proski_cereal", label=DECOY_LABEL,
                asset_rel="assets/creative.png")
     app = create_app(runs_root=runs_root, sessions_root=sessions_root,
-                     base_dir=tmp_path)
-    client = TestClient(app)
+                     base_dir=tmp_path, auth=demo_auth())
+    client = sign_in(TestClient(app))
     client.__dict__["runs_root"] = runs_root
     client.__dict__["sessions_root"] = sessions_root
     return client
@@ -351,7 +352,7 @@ def test_a_cross_category_decoy_is_refused(env) -> None:
 def test_the_picker_offers_a_category_for_each_read(env) -> None:
     """The server-side refusal is the mechanism; the form still has to let the
     operator pick a valid pair without guessing."""
-    page = env.get("/").text
+    page = env.get("/operator").text
     assert 'data-category="health_wellness_nutrition"' in page
     print("  picker carries the category per read ✓")
 
@@ -413,9 +414,10 @@ def test_report_route_refuses_a_run_with_no_read(tmp_path: Path) -> None:
     runs_root = tmp_path / "runs"
     _write_run(runs_root, account="a", brand="b", run_id="crashed",
                label="Crashed", status="committed")
-    client = TestClient(create_app(runs_root=runs_root,
-                                   sessions_root=tmp_path / "s",
-                                   base_dir=tmp_path))
+    client = sign_in(TestClient(create_app(runs_root=runs_root,
+                                           sessions_root=tmp_path / "s",
+                                           base_dir=tmp_path,
+                                           auth=demo_auth())))
     resp = client.get("/runs/a/b/crashed")
     assert resp.status_code == 409
     assert "replay_synthesis" in resp.text
@@ -534,3 +536,62 @@ def test_require_prediction_raises_the_typed_error() -> None:
     with pytest.raises(PredictionMissing):
         s.mark_revealed()
     print("  typed refusal, not a bare bool ✓")
+
+
+# ---- the route map (P3) -----------------------------------------------
+
+
+def test_a_read_answers_on_both_its_names(env) -> None:
+    """`/reads/...` is the name a client-facing read should have; `/runs/...`
+    stays because it is stored inside session records, sits in bookmarks, and
+    is what every existing caller sends.
+
+    Two registrations of one handler, not a redirect: a redirect would change
+    the status code and the body every one of those callers gets back.
+    """
+    key = f"demo/hw/{REAL_RUN_ID}"
+    new = env.get(f"/reads/{key}")
+    old = env.get(f"/runs/{key}")
+
+    assert new.status_code == old.status_code == 200
+    assert new.text == old.text, "the two names render differently"
+    assert REAL_LABEL in new.text
+    print("  /reads/... and /runs/... are byte-identical ✓")
+
+
+def test_the_product_surface_is_scoped_to_one_account(env) -> None:
+    """`internal/*` is our own smoke-test exhaust — 20 runs of `cmf_smoke` and
+    `default` on the real disk. In front of a brand manager that makes the
+    product look like a scratch pad, so the product list shows `demo` only.
+    """
+    runs_root = env.__dict__["runs_root"]
+    _write_run(runs_root, account="internal", brand="cmf_smoke",
+               run_id="20260101_000000_smoke", label="Smoke test 3")
+
+    everything = {r.key for r in discover_runs(runs_root)}
+    scoped = {r.key for r in discover_runs(runs_root, account="demo")}
+
+    assert "internal/cmf_smoke/20260101_000000_smoke" in everything
+    assert scoped and scoped < everything
+    assert not any(k.startswith("internal/") for k in scoped)
+    print(f"  {len(everything)} runs on disk, {len(scoped)} in the product list ✓")
+
+
+def test_scoping_is_filing_and_not_a_permission(env) -> None:
+    """The intended NON-guarantee, pinned so nobody later 'fixes' it into a
+    404 and calls that security.
+
+    One shared password means one trust level. A signed-in browser that types
+    an `internal/...` URL gets the read. If that ever needs to stop being
+    true, the answer is real per-account accounts, not a filter on a list.
+    """
+    runs_root = env.__dict__["runs_root"]
+    _write_run(runs_root, account="internal", brand="cmf_smoke",
+               run_id="20260101_000000_smoke", label="Smoke test 3")
+
+    listed = env.get("/operator").text
+    assert "Smoke test 3" in listed, "the operator console is not scoped"
+
+    direct = env.get("/reads/internal/cmf_smoke/20260101_000000_smoke")
+    assert direct.status_code == 200, "a signed-in reader was refused a read"
+    print("  scoping hides a run from a list, and gates nothing ✓")

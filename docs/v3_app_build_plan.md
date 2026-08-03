@@ -72,7 +72,9 @@ VPS. Decide the specific host at phase P6; nothing earlier depends on which one.
 
 ## 3. Route map
 
-`/` is currently the operator console. It moves.
+**BUILT in P3, 2026-08-03**, except the `/app/*` rows, which land with the shell design in P5.
+`/` was the operator console; it is now the landing placeholder and the console is on
+`/operator`.
 
 | route | who | what |
 |---|---|---|
@@ -112,6 +114,37 @@ list.** Brand profile is the only filing dimension the user sees.
 **`server/sessions.py` already means brand-manager session records.** A login session must not
 borrow the word. Use **auth** throughout: `server/auth.py`, cookie `rocket_auth`, functions
 `sign_in` / `require_signed_in`. "Session" stays reserved for the predict-then-reveal record.
+
+### What P3 built, and the four decisions inside it
+
+- **Default-deny, as a pure-ASGI middleware.** Everything is private unless it is in
+  `auth.PUBLIC_EXACT` / `PUBLIC_PREFIXES`. The alternative — a dependency per route — is one
+  forgotten decorator from a hole, and the forgotten one looks like every other route. **P5's
+  `/app/*` routes are therefore protected the moment they exist.** Not `BaseHTTPMiddleware`: it
+  re-wraps every response through a task group, and the response going through here is a
+  whole dashboard with the creative inlined — 941KB on a real read.
+- **JSON surfaces refuse in JSON.** `/sessions.json`, `/runs/status.json/...`,
+  `/sessions/{id}/export` answer **401 JSON**; everything else 303s to `/login?next=…`. A caller
+  parsing a login page where it expected a record reads it as "no data", not "not signed in".
+- **No password set = closed, not open.** There is no `auth_disabled` flag and no test bypass —
+  the offline suite POSTs the real password to the real `/login`. A disable switch is the kind
+  of thing that gets set to rescue a bad first deploy and then stays set.
+- **`/healthz` was leaking.** It returned `runs_root`, `sessions_root` and a count of finished
+  runs — a convenience on localhost, absolute filesystem paths and a client count once `/` is
+  public. Now `{"ok": true}`.
+
+⚠ **Account scoping is FILING, not permission.** `discover_runs(account="demo")` keeps
+`internal/*` smoke-test exhaust out of the product list; a signed-in browser that types
+`/reads/internal/...` still gets the read, and `test_scoping_is_filing_and_not_a_permission`
+pins that on purpose. One shared password is one trust level. If that must change, the answer is
+real per-account accounts, not a filter on a list.
+
+**Environment:** `ROCKET_APP_PASSWORD` (required to let anyone in), `ROCKET_AUTH_SECRET` (without
+it, cookies are signed with a per-process random key and every restart signs everyone out),
+`ROCKET_HTTPS=1` (adds `Secure` to the cookie — set it in P6, not before: a Secure cookie is
+silently dropped over plain http, which looks exactly like a wrong password),
+`ROCKET_CONTACT_EMAIL` (the landing `mailto:`; the link is omitted when unset). `serve.py` loads
+`.env` before importing the app.
 
 ---
 
@@ -200,7 +233,7 @@ they are the last minutes of a run.
 | **P0** | decisions + route map + naming — **this document** | — |
 | **P1** | ✅ **DONE** — the app-shell prompt + the landing playbook | P0 |
 | **P2** | ✅ **DONE** — engine progress reporting (`agent/progress.py`, wired through `run_service._commit_async` + `synthesize_report`, surfaced by `Launcher.status` and the status page). 26 tests, **12/12 mutations caught.** | — |
-| **P3** | `server/auth.py` + the route map + account scoping over `runs/{account}/...` | P0 |
+| **P3** | ✅ **DONE** — `server/auth.py` (HMAC-signed cookie + default-deny ASGI gate), the route map (`/` landing · `/operator` console · `/reads/...` with `/runs/...` kept as an alias), `/healthz` reduced to `{"ok": true}`, and `discover_runs(account=...)`. 24 tests. | P0 |
 | **P4** | wire the user's landing design + mount `/static` + **produce the anonymised hero screenshot for them** (§5 of the playbook — our task, not theirs) | the user's design |
 | **P5** | productionalize the app shell design | P1, P2, P3 |
 | **P6** | hosting: pick the host, persistent volume, secrets, HTTPS, deploy | P3–P5 |

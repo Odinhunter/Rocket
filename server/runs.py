@@ -71,12 +71,23 @@ def _ref(path: Path, raw: dict, source: str) -> RunRef:
     )
 
 
-def discover_runs(runs_root: Path) -> list[RunRef]:
+def discover_runs(runs_root: Path, *, account: str | None = None) -> list[RunRef]:
     """Every renderable run under runs/<account>/<brand>/<run_id>/, newest first.
 
     A run qualifies when a Report is reachable: either persisted in run.json at
     status='complete', or recovered into replay_report.json. Anything else is
     omitted rather than offered and then failing at render time.
+
+    `account` narrows the list to one account. It is a FILING decision, not an
+    access control: the product surface shows `demo` because `internal/*` is
+    our own smoke-test exhaust and putting it in front of a brand manager makes
+    the product look like a scratch pad. A signed-in browser that types an
+    `internal/...` read URL still gets the read, and that is intended — one
+    shared password means one trust level, and a filter that pretends
+    otherwise would be a permission system that nothing enforces.
+
+    The filter is on `RunRef.account_id`, the same field the URL key is built
+    from, so what the list shows and what its links resolve to cannot drift.
     """
     out: list[RunRef] = []
     if not runs_root.is_dir():
@@ -89,9 +100,14 @@ def discover_runs(runs_root: Path) -> list[RunRef]:
         if raw is None:
             continue
         if raw.get("report"):
-            out.append(_ref(path, raw, "run.json"))
+            ref = _ref(path, raw, "run.json")
         elif (path / "replay_report.json").exists():
-            out.append(_ref(path, raw, "replay_report.json"))
+            ref = _ref(path, raw, "replay_report.json")
+        else:
+            continue
+        if account is not None and ref.account_id != account:
+            continue
+        out.append(ref)
     out.sort(key=lambda r: (r.updated_at, r.run_id), reverse=True)
     return out
 

@@ -27,7 +27,7 @@ a{color:var(--accent-ink);}
 .card h3{margin:0 0 4px;font-size:16px;font-weight:700;}
 label{display:block;margin-top:16px;font-size:14px;color:var(--ink);font-weight:600;}
 label .hint{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:2px;}
-input[type=text],textarea,select{width:100%;margin-top:7px;padding:10px 12px;font:inherit;
+input[type=text],input[type=password],textarea,select{width:100%;margin-top:7px;padding:10px 12px;font:inherit;
   font-size:15px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);
   border-radius:9px;}
 textarea{min-height:76px;resize:vertical;}
@@ -178,7 +178,7 @@ def console(sessions: list[Session], runs: list[RunRef]) -> str:
     run_rows = "".join(
         f"<tr><td><b>{_e(r.asset_label)}</b></td><td>{_e(r.decision)}</td>"
         f"<td>{_e(r.brand_profile_id)}</td>"
-        f'<td><a href="/runs/{_e(r.key)}">view read</a></td></tr>'
+        f'<td><a href="/reads/{_e(r.key)}">view read</a></td></tr>'
         for r in runs[:40]
     ) or '<tr><td colspan="4">None.</td></tr>'
 
@@ -196,6 +196,7 @@ def console(sessions: list[Session], runs: list[RunRef]) -> str:
     <a class="slot" href="/runs/new"><b>Run a new ad</b>
       <span>Paid — prepare (~$0.15), then confirm the full run</span></a>
   </div></section>
+<p style="margin-top:20px"><a href="/logout">Sign out</a></p>
 """)
 
 
@@ -233,7 +234,7 @@ def session_page(session: Session) -> str:
 {_steps(session)}
 <section><h2>Next</h2><div class="slots">{nxt}</div></section>
 {summary}
-<section><h2></h2><p><a href="/">← all sessions</a></p></section>
+<section><h2></h2><p><a href="/operator">← all sessions</a></p></section>
 """)
 
 
@@ -351,7 +352,66 @@ def error_page(heading: str, message: str) -> str:
     return shell(heading, f"""
 {_head("Rocket · operator", heading)}
 <div class="card"><p>{_e(message)}</p></div>
-<p style="margin-top:18px"><a href="/">← operator console</a></p>
+<p style="margin-top:18px"><a href="/operator">← operator console</a></p>
+""")
+
+
+# ---- public: the landing placeholder and the login ---------------------
+
+
+def landing_page(contact_email: str = "") -> str:
+    """A holding page until the user's own landing design lands (P4).
+
+    It lists nothing. `/` is the one route served to anyone who finds the
+    address, and a helpful "recent reads" strip here would publish a named
+    client's unreleased creative to the open internet. Sign in, and a way to
+    reach a human. That is the whole page.
+
+    No category is named, on the user's explicit call: the engine is validated
+    on one category today and marketing that fact narrows the product to it.
+    """
+    mail = (
+        f'<a class="slot" href="mailto:{_e(contact_email)}"><b>Talk to us</b>'
+        "<span>There is no signup — this is how you reach us</span></a>"
+        if contact_email else ""
+    )
+    return shell("Rocket", f"""
+{_head("Rocket", "See how an ad lands before you spend on it.",
+       "A panel of simulated buyers reacts to your creative, and you get back "
+       "what stopped them, what lost them, and what to change.")}
+<section><div class="slots">
+  <a class="slot" href="/login"><b>Sign in</b><span>For accounts we have set up</span></a>
+  {mail}
+</div></section>
+""")
+
+
+def login_page(*, error: str = "", next_url: str = "",
+               configured: bool = True) -> str:
+    """The sign-in form.
+
+    One field, because there is one shared password and no user table. The
+    failure text never distinguishes "wrong password" from anything else.
+    """
+    if not configured:
+        return shell("Sign in", f"""
+{_head("Rocket", "Sign-in is not configured")}
+<div class="warn"><b>No password is set on this server</b>ROCKET_APP_PASSWORD
+  is empty, so no sign-in can succeed and every page behind it stays closed.
+  That is deliberate — an unconfigured server does not fall open.</div>
+""")
+    hidden = (f'<input type="hidden" name="next" value="{_e(next_url)}">'
+              if next_url else "")
+    warn = f'<div class="warn"><b>Try again</b>{_e(error)}</div>' if error else ""
+    return shell("Sign in", f"""
+{_head("Rocket", "Sign in")}
+{warn}
+<form class="card" method="post" action="/login">
+  {hidden}
+  <label>Password<input type="password" name="password" required autofocus
+    autocomplete="current-password"></label>
+  <button type="submit">Sign in</button>
+</form>
 """)
 
 
@@ -505,7 +565,7 @@ def preparation_page(prep, *, scope_note: str | None, purpose_label: str,
     {confirm}
     <button type="submit">Commit and run</button>
   </form>
-  <p style="margin-top:14px"><a href="/">← cancel (no credit debited)</a></p>
+  <p style="margin-top:14px"><a href="/operator">← cancel (no credit debited)</a></p>
 </section>
 """)
 
@@ -585,7 +645,7 @@ def run_status_page(status: dict, *, poll: bool = True) -> str:
                   f"{' — DEGRADED' if ph.get('degraded') else ''}</div></div></div>")
     if done and status.get("has_report"):
         extra += (f'<section><h2>The read</h2><div class="slots">'
-                  f'<a class="slot" href="/runs/{_e(status["key"])}">'
+                  f'<a class="slot" href="/reads/{_e(status["key"])}">'
                   f"<b>Open the Creative Read</b><span>{_e(status['run_id'])}"
                   f"</span></a></div></section>")
 
@@ -594,5 +654,5 @@ def run_status_page(status: dict, *, poll: bool = True) -> str:
 <div class="kv"><div><b>run:</b> {_e(status['run_id'])}</div>
   <div><b>updated:</b> {_e(status['updated_at'] or '—')}</div></div>
 {extra}
-<p style="margin-top:20px"><a href="/">← operator console</a></p>
+<p style="margin-top:20px"><a href="/operator">← operator console</a></p>
 """)

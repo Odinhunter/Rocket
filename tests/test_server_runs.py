@@ -35,6 +35,7 @@ from agent.synthesis_types import (
 )
 from server.app import create_app
 from server.launcher import VALIDATED_CATEGORIES, Launcher
+from tests.helpers_auth import demo_auth, sign_in
 
 # Fragments of every warning the CLI confirmation surface prints. Kept as data
 # so a new guardrail added to _print_preparation shows up as a failing name
@@ -142,11 +143,11 @@ def world(tmp_path: Path):
 
 
 def _client(world: Path, launcher: Launcher) -> TestClient:
-    return TestClient(create_app(
+    return sign_in(TestClient(create_app(
         runs_root=world / "runs", sessions_root=world / "sessions",
         base_dir=world, specs_dir=world / "specs",
-        uploads_dir=world / "uploads", launcher=launcher,
-    ))
+        uploads_dir=world / "uploads", launcher=launcher, auth=demo_auth(),
+    )))
 
 
 # ---- the form ---------------------------------------------------------
@@ -488,7 +489,7 @@ def test_status_page_stops_refreshing_once_the_run_is_done(tmp_path) -> None:
                                   "panel_health": None, "has_report": True})
     assert "http-equiv=\"refresh\"" in running
     assert "http-equiv=\"refresh\"" not in done
-    assert "/runs/a/b/c" in done, "finished run does not link to its read"
+    assert "/reads/a/b/c" in done, "finished run does not link to its read"
     print("  status page polls while running, links the read when done ✓")
 
 

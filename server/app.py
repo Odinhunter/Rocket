@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -25,6 +26,7 @@ from agent.config import build_run_config, default_asset_label
 from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER, resolve_purpose
 from agent.read_model import build_read_model, purpose_scope_note
 from server import pages
+from server.auth import COOKIE_NAME, DEMO_ACCOUNT, Auth, RequireSignIn, safe_next
 from server.launcher import VALIDATED_CATEGORIES, Launcher
 from server.runs import discover_runs, render_blinded, render_run, resolve_run
 from server.sessions import SLOTS, PredictionMissing, SessionError, SessionStore
@@ -40,12 +42,19 @@ def create_app(
     specs_dir: Path | None = None,
     uploads_dir: Path | None = None,
     launcher: Launcher | None = None,
+    auth: Auth | None = None,
+    contact_email: str | None = None,
 ) -> FastAPI:
     """Build the app against explicit roots.
 
     Everything is injected rather than read from module globals so the tests
     can point the whole server at a temp directory — and so `runs/` (real
     money, real client data) is never touched by a test run.
+
+    `auth` is injected the same way, and for the same reason with one
+    addition: a test builds an Auth with a known password and signs in through
+    the real `/login`. There is no test-only bypass, because a bypass is a
+    thing that can be switched on in production.
     """
     runs_root = Path(runs_root or REPO_ROOT / "runs")
     sessions_root = Path(
@@ -64,6 +73,13 @@ def create_app(
     # Injected so tests can drive the run flow without ever calling the paid
     # engine. Nothing in the offline suite may reach RunService.
     runner = launcher or Launcher()
+    auth = auth or Auth.from_env()
+    contact = (contact_email if contact_email is not None
+               else os.environ.get("ROCKET_CONTACT_EMAIL", "").strip())
+
+    # Default-deny, and outermost: it sees the request before routing, so a
+    # route added later is protected without anyone remembering to protect it.
+    app.add_middleware(RequireSignIn, auth=auth)
 
     # ---- helpers ----
 
@@ -79,23 +95,82 @@ def create_app(
     def _html(body: str, status: int = 200) -> HTMLResponse:
         return HTMLResponse(body, status_code=status)
 
-    # ---- console ----
+    # ---- public ----
 
     @app.get("/", response_class=HTMLResponse)
-    def console() -> HTMLResponse:
-        return _html(pages.console(store.list(), discover_runs(runs_root)))
+    def landing() -> HTMLResponse:
+        """The only page served to whoever finds the address.
+
+        It reads nothing off disk. P4 replaces it with the user's own design.
+        """
+        return _html(pages.landing_page(contact))
 
     @app.get("/healthz")
     def healthz() -> JSONResponse:
-        return JSONResponse({
-            "ok": True,
-            "runs_root": str(runs_root),
-            "sessions_root": str(sessions_root),
-            "finished_runs": len(discover_runs(runs_root)),
-        })
+        """Public, so it says only whether the process is up.
+
+        It used to return runs_root, sessions_root and a count of finished
+        runs. On localhost that was a convenience; on a public address it is
+        absolute filesystem paths and a client count, handed to anyone.
+        """
+        return JSONResponse({"ok": True})
+
+    @app.get("/login", response_class=HTMLResponse)
+    def login_form(next: str = "") -> HTMLResponse:
+        return _html(pages.login_page(
+            next_url=safe_next(next), configured=auth.configured))
+
+    @app.post("/login")
+    def sign_in(password: str = Form(""), next: str = Form("")) -> Response:
+        """`Form("")` rather than `Form(...)`: a required field turns a missing
+        or empty password into a 422 validation page, which is a different and
+        chattier answer than a wrong one. Every failed sign-in should look
+        identical and cost the same second."""
+        target = safe_next(next)
+        if not auth.check_password(password):
+            # A flat delay on failure. Online guessing against a single shared
+            # password is the whole threat model here, and a second per attempt
+            # ends it. Not a lockout — see Auth.failed_delay_seconds.
+            time.sleep(auth.failed_delay_seconds)
+            return _html(pages.login_page(
+                error=("That password is not right."
+                       if auth.configured else "Sign-in is not configured."),
+                next_url=target, configured=auth.configured,
+            ), 401)
+        response = RedirectResponse(target, status_code=303)
+        response.set_cookie(COOKIE_NAME, auth.issue(DEMO_ACCOUNT),
+                            **auth.cookie_kwargs())
+        return response
+
+    @app.get("/logout")
+    def sign_out() -> Response:
+        response = RedirectResponse("/", status_code=303)
+        # Deleted with the same path the cookie was set on. A delete_cookie
+        # whose path does not match leaves the cookie in place and the browser
+        # signed in, silently.
+        response.delete_cookie(COOKIE_NAME, path="/")
+        return response
+
+    # ---- console ----
+
+    @app.get("/operator", response_class=HTMLResponse)
+    def console() -> HTMLResponse:
+        """The brand-manager session instrument, off `/` as of P3.
+
+        It shows every account, `internal/*` included — this is our own
+        surface. The product surface (P5's `/app`) is scoped; this is not.
+        """
+        return _html(pages.console(store.list(), discover_runs(runs_root)))
 
     # ---- reports, outside a session (operator's own view) ----
 
+    # Registered twice on purpose. `/reads/...` is the name a client-facing
+    # read should have had all along; `/runs/...` stays because it is in
+    # session records, in bookmarks and across the tests. Two registrations of
+    # one handler rather than a redirect: a redirect would change the status
+    # code and the response body of every existing caller.
+    @app.get("/reads/{account_id}/{brand_profile_id}/{run_id}",
+             response_class=HTMLResponse)
     @app.get("/runs/{account_id}/{brand_profile_id}/{run_id}",
              response_class=HTMLResponse)
     def run_report(account_id: str, brand_profile_id: str,
