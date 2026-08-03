@@ -16,7 +16,9 @@ Three properties the design does not carry on its own, and this module must:
     `_FONT_STACK`). `tests/test_dashboard_html.py` pins this.
   * **Zero JavaScript.** Expanding a problem card is `<details>/<summary>`,
     not a click handler. The design's lightbox modal becomes an inline
-    `<details>` for the same reason. A script tag would break the
+    `<details>` for the same reason, and so does every card in the problem map
+    (`_map_card`) — opening one lifts the two-line clamp on its lead and adds
+    the rest of the pain underneath. A script tag would break the
     self-contained guarantee and the print/export path with it.
   * **Every guardrail.** The client artifact may curate which FINDINGS it
     shows; it may never drop a GUARDRAIL. The design has no slot for several,
@@ -354,10 +356,20 @@ body{{margin:0;background:#edebe6}}
   padding:6px 0;text-align:center;box-shadow:var(--shadow)}}
 .rk-pill.clear{{background:var(--card2);border-style:dashed;padding:5px 0;box-shadow:none}}
 .rk-spur{{width:16px;height:2px;background:var(--spine);flex:none}}
-.rk-pcard{{border-radius:9px;padding:8px 10px}}
+.rk-pcard{{border-radius:9px;padding:8px 10px;overflow:hidden}}
+.rk-pcard>summary{{list-style:none;cursor:pointer}}
+.rk-pcard>summary::-webkit-details-marker{{display:none}}
 .rk-clamp{{margin-top:4px;font-size:11px;line-height:1.4;max-height:2.8em;overflow:hidden;
   -webkit-mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%);
   mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 96%)}}
+/* Opening a map card has to LIFT the clamp, not just reveal a second block.
+   Every authored lead on disk runs past two lines (shortest is 121 chars), so
+   without this the card expands and its first sentence is still cut off — a
+   half-fix that a test asserting only "the card is a <details>" would pass. */
+details[open]>summary .rk-clamp{{max-height:none;
+  -webkit-mask-image:none;mask-image:none}}
+.rk-pcard .detail{{margin-top:7px;padding-top:7px;border-top:1px solid var(--pillbd);
+  font-size:10.5px;line-height:1.5;color:var(--soft);text-wrap:pretty}}
 .rk-maplegend{{display:flex;gap:18px;margin-top:14px;font-size:11px;color:var(--muted);
   align-items:center;flex-wrap:wrap}}
 .rk-maplegend span{{display:inline-flex;align-items:center;gap:6px}}
@@ -779,16 +791,26 @@ def _map_card(p, load_bearing: str, small: bool) -> str:
     lb = ('<span class="rk-chip" style="color:var(--onload);background:var(--loadring);'
           'font-size:9px;padding:1px 7px">LOAD-BEARING</span>'
           if p.id == load_bearing else "")
-    lead, _ = _split_lead(client_pain_text(p.pain))
+    lead, rest = _split_lead(client_pain_text(p.pain))
+    # 17 of the 99 authored pains on disk are a single sentence. Those cards
+    # still open — the lead itself is clamped to two lines and every lead is
+    # longer than that — but they must not emit an empty detail block, which
+    # renders as a visible empty box under a rule and a bare separator.
+    detail = f'<div class="detail">{_e(rest)}</div>' if rest.strip() else ""
     return (
-        f'<div class="rk-pcard" style="border:{border};background:{mk["card_bg"]}">'
+        f'<details class="rk-pcard" style="border:{border};'
+        f'background:{mk["card_bg"]}"><summary>'
         f'<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">'
         f'<span class="rk-id" style="font-size:10px;padding:1px 5px">{_e(p.id)}</span>'
         f'<span class="rk-chip" style="color:{mk["sev_col"]};background:{mk["sev_bg"]};'
         f'font-size:9px;padding:1px 7px">{_e(mk["sev_label"])}</span>{lb}'
-        f'<span style="font-size:9.5px;color:var(--faint)">{_e(mk["types"])}</span></div>'
+        f'<span style="font-size:9.5px;color:var(--faint)">{_e(mk["types"])}</span>'
+        f'<span class="rk-more" style="margin-left:auto;font-size:9.5px">'
+        f'<span class="shut">More ▾</span>'
+        f'<span class="opened">Less ▴</span></span></div>'
         f'<div class="rk-clamp" style="font-size:{"10.5px" if small else "11px"};'
-        f'color:{"var(--muted)" if small else "var(--txt)"}">{_e(lead)}</div></div>'
+        f'color:{"var(--muted)" if small else "var(--txt)"}">{_e(lead)}</div>'
+        f'</summary>{detail}</details>'
     )
 
 

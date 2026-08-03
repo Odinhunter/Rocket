@@ -673,6 +673,70 @@ def test_problem_map_counts_and_never_loses_a_funnel_stage() -> None:
     print("  the map counts, keeps every stage, marks the load-bearing one ✓")
 
 
+def test_every_map_card_opens_and_opening_lifts_the_clamp() -> None:
+    """A map card shows two clamped lines of a pain whose shortest authored
+    lead on disk is 121 characters — so every card is hiding text, and a card
+    that cannot be opened is a dead end the reader can see into but not reach.
+
+    Two halves, and the second is the one that rots: making the card a
+    `<details>` is not enough on its own. If the clamp survives the open state
+    the card expands and its first sentence stays cut off — a half-fix that a
+    test asserting only "it is a details element" passes happily.
+    """
+    from agent.dashboard_html import _CSS
+
+    long_lead = ("The creative reads its own audience as someone other than "
+                 "the viewer, and within-target buyers slot it as adjacent "
+                 "rather than for-me at the attention seam.")
+    rest = "The packaging already speaks their language."
+    rep = _report()
+    rep.pain_map = [
+        Pain(id="P1", pain=f"{long_lead} {rest}", funnel_stage="attention",
+             severity="execution", within_target=True, cited_by=["a", "b"]),
+        # Single sentence: 17 of 99 authored pains have no remainder. It must
+        # still open (the lead alone overflows) but emit no empty detail box.
+        Pain(id="P2", pain=long_lead, funnel_stage="recall",
+             severity="structural", within_target=False),
+    ]
+    html = _html(rep)
+    # Scoped to the map section. `<div class="detail">` is also what the full
+    # problem cards below emit, so counting it page-wide measures those too —
+    # the assert-on-a-pattern-that-appears-twice trap this repo keeps hitting.
+    mapped = html[html.index(_MAP):html.index(_PROBLEMS)]
+    assert _MAP not in mapped[len(_MAP):] and len(mapped) < len(html), \
+        "the slice did not isolate the map — the rest of this proves nothing"
+
+    assert mapped.count('<details class="rk-pcard"') == 2, \
+        "a map card that is not a <details> cannot be opened without JavaScript"
+    # The exact structure, not just the words. The open/shut labels are hidden
+    # by the stylesheet's `details[open]>summary .shut` pair, so a card that
+    # kept the text but lost the `shut`/`opened` classes would show "More ▾"
+    # and "Less ▴" side by side — which is how this same affordance was broken
+    # once already, and counting the strings cannot see it.
+    affordance = ('<span class="rk-more" style="margin-left:auto;font-size:9.5px">'
+                  '<span class="shut">More ▾</span>'
+                  '<span class="opened">Less ▴</span></span>')
+    assert mapped.count(affordance) == 2, \
+        "the card must say it can be opened, with one label showing at a time"
+    for rule in ("details[open]>summary .shut{display:none}",
+                 "details:not([open])>summary .opened{display:none}"):
+        assert rule in _CSS, f"nothing hides the other label: {rule}"
+
+    # Half two: the open state has to remove the clamp, mask and all.
+    rule = "details[open]>summary .rk-clamp{max-height:none"
+    assert rule in _CSS, \
+        "opening a card leaves its lead clamped — it expands but stays cut off"
+    unclamp = _CSS[_CSS.index(rule):_CSS.index(rule) + 120]
+    assert "mask-image:none" in unclamp, \
+        "max-height alone leaves the fade-out mask over the last line"
+
+    # The remainder travels with the card, and only when there is one.
+    assert mapped.count('<div class="detail">') == 1, \
+        "P2 has no second sentence and must not render an empty detail block"
+    assert html_escape(rest) in mapped, "the remainder never reached the map card"
+    print("  2 map cards open, the clamp lifts, and the empty one stays empty ✓")
+
+
 # ---- the panel table ---------------------------------------------------
 
 
