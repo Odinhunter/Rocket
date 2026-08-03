@@ -19,6 +19,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from agent.dashboard_html import render_html
+from agent.entities import AudienceSpec
 from agent.read_model import ReadModel, build_read_model
 
 
@@ -109,6 +110,38 @@ def discover_runs(runs_root: Path, *, account: str | None = None) -> list[RunRef
             continue
         out.append(ref)
     out.sort(key=lambda r: (r.updated_at, r.run_id), reverse=True)
+    return out
+
+
+def discover_specs(specs_dir: Path) -> list[str]:
+    """The audience specs that would actually survive being run.
+
+    `specs/` holds two unrelated kinds of file. An **audience spec** describes
+    who the panel is (`demographics`, `disposition_labels`, …). A
+    **baseline-funnel** file is four numbers — `{stop_rate, click_rate,
+    visit_rate, convert_rate}` — that the CLI takes through `--baseline-funnel`
+    and that has nothing to do with audiences. Five of the eleven files on disk
+    are the second kind, and they are named `*_baseline.json`.
+
+    Globbing `*.json` therefore offered a picker where nearly half the options
+    could not be chosen: `RunService.prepare` validates the spec on its first
+    lines and dies with "demographics must have >= 1 point". This is the same
+    rule `discover_runs` follows one function up — **listing something that is
+    guaranteed to fail is worse than not listing it**, because the failure
+    happens after the operator has filled in the whole form.
+
+    Filtered by the engine's OWN predicate (`AudienceSpec.validate`) rather
+    than by a filename pattern, so a `*_baseline.json` that grows into a real
+    spec starts being offered, and a malformed real spec stops being.
+    """
+    out: list[str] = []
+    for path in sorted(specs_dir.glob("*.json")):
+        try:
+            spec = AudienceSpec.from_dict(json.loads(path.read_text()))
+            spec.validate()
+        except Exception:  # noqa: BLE001 — any failure means "do not offer it"
+            continue
+        out.append(path.name)
     return out
 
 

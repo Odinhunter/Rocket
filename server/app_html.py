@@ -578,11 +578,24 @@ def with_back_bar(document: str) -> str:
     return document[:cut] + "\n" + _BACK_BAR + document[cut:]
 
 
-def error_page(heading: str, message: str, *, account: str = "demo") -> str:
+def error_page(heading: str, message: str, *, account: str = "demo",
+               detail: str = "", note: str = "") -> str:
+    """A refusal, in that order: what happened, the engine's own words, and
+    what it cost.
+
+    `note` is the money answer and it is not optional decoration — every
+    failure screen in this app is read by someone whose first question is
+    whether they have just been charged. Leaving them to guess is the same
+    failure as an unlabelled progress bar.
+    """
     return shell(heading, active="", account=account, body=f"""
 <h1>{_e(heading)}</h1>
 <div class="card" style="margin-top:18px;max-width:700px">
-  <p class="quiet" style="font-size:14px;line-height:1.6">{_e(message)}</p>
+  <p style="font-size:14px;line-height:1.6;color:var(--ink)">{_e(message)}</p>
+  {f'<div class="k" style="margin-top:16px">WHAT THE ENGINE SAID</div>'
+     f'<div class="mono">{_e(detail)}</div>' if detail else ""}
+  {f'<div class="charged"><div class="k" style="color:var(--ink)">WERE YOU '
+     f'CHARGED</div><p>{_e(note)}</p></div>' if note else ""}
   <div style="margin-top:18px"><a href="/reads">← Back to reads</a></div>
 </div>""")
 
@@ -604,6 +617,22 @@ def new_read_page(*, account: str, categories: list[tuple[str, str]],
     # value = the pack stem the engine needs, label = the human one. Two
     # separate things: the option text is for the operator, the value is what
     # `build_run_config` resolves a disposition library from.
+    if not audiences:
+        # Better than a select with no options, which looks fine and then
+        # fails on submit with a validation error about a field the operator
+        # was never able to fill in.
+        return shell("New read", active="/reads/new", account=account, body="""
+<h1>New read</h1>
+<div class="card" style="margin-top:18px;max-width:700px">
+  <p style="font-size:14px;line-height:1.6;color:var(--ink)">There is no usable
+    audience spec on disk, so a read cannot be started.</p>
+  <p class="quiet" style="margin-top:10px;line-height:1.6">An audience spec
+    describes who the panel is. The files in <span class="mono"
+    style="display:inline;padding:2px 5px">specs/</span> named
+    <span class="mono" style="display:inline;padding:2px 5px">*_baseline.json</span>
+    are not specs — they are funnel baselines, and they are not offered here.</p>
+</div>""")
+
     cat_opts = "".join(f'<option value="{_e(v)}">{_e(label)}</option>'
                        for v, label in categories)
     aud_opts = "".join(f"<option>{_e(a)}</option>" for a in audiences)

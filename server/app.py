@@ -31,7 +31,8 @@ from server import app_html, pages
 from server.auth import COOKIE_NAME, DEMO_ACCOUNT, Auth, RequireSignIn, safe_next
 from server.launcher import VALIDATED_CATEGORIES, Launcher
 from server.runs import (
-    discover_runs, peek_run, render_blinded, render_run, resolve_run,
+    discover_runs, discover_specs, peek_run, render_blinded, render_run,
+    resolve_run,
 )
 from server.sessions import SLOTS, PredictionMissing, SessionError, SessionStore
 
@@ -263,7 +264,7 @@ def create_app(
 
     @app.get("/reads/new", response_class=HTMLResponse)
     def new_read() -> HTMLResponse:
-        specs = sorted(p.name for p in specs_dir.glob("*.json"))
+        specs = discover_specs(specs_dir)
         cats = sorted(p.stem for p in (REPO_ROOT / "packs").glob("*.py")
                       if not p.stem.startswith("_"))
         # Validated first — the picker still leads with the safe choice even
@@ -314,7 +315,7 @@ def create_app(
                 categories=[(c, _humanise(c)) for c in sorted(
                     p.stem for p in (REPO_ROOT / "packs").glob("*.py")
                     if not p.stem.startswith("_"))],
-                audiences=sorted(p.name for p in specs_dir.glob("*.json")),
+                audiences=discover_specs(specs_dir),
                 jobs=[(k, resolve_purpose(k).label) for k in PURPOSE_ORDER],
                 brands=sorted({r.brand_profile_id for r in discover_runs(
                     runs_root, account=DEMO_ACCOUNT)}),
@@ -358,7 +359,13 @@ def create_app(
                 "Start the read again.", account=DEMO_ACCOUNT), 409)
         if state.error is not None:
             return _html(app_html.error_page(
-                "Could not prepare the read", state.error,
+                "Could not prepare the read",
+                "The run was refused before it started, so there is nothing to "
+                "review and nothing to commit.",
+                detail=state.error,
+                note="No credit was debited — a credit is only debited when you "
+                     "commit a run. If the classifier had already run before "
+                     "this failed, that step (about $0.15) is spent.",
                 account=DEMO_ACCOUNT), 400)
         if state.prep is not None:
             return RedirectResponse(f"/reads/review/{state.prep.run_id}",

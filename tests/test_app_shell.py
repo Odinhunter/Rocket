@@ -320,3 +320,85 @@ def test_recovery_is_offered_only_when_there_is_something_to_replay(client) -> N
     assert refused.status_code == 409, "the route itself must refuse too"
     assert "Nothing to recover" in refused.text
     print("  recovery offered only when transcripts exist, and priced honestly ✓")
+
+
+# ---- the pickers only offer things that work --------------------------
+
+
+def test_the_audience_picker_hides_files_that_are_not_audience_specs(tmp_path: Path) -> None:
+    """`specs/` holds two unrelated kinds of file, and five of the eleven real
+    ones are the wrong kind.
+
+    A `*_baseline.json` is four funnel numbers for the CLI's --baseline-funnel
+    flag, not an audience. Offering one meant a picker where nearly half the
+    options failed AFTER the whole form was filled in, with
+    "AudienceSpec.demographics must have >= 1 point" — which is what the user
+    hit on the first real run through the app.
+    """
+    from server.runs import discover_specs
+
+    specs = tmp_path / "specs"
+    specs.mkdir()
+    # A REAL spec, copied rather than hand-written. AudienceSpec.validate
+    # checks six separate things (demographics, dispositions, the context
+    # envelope, chaos, panel size); a hand-rolled one that misses any of them
+    # would make this test pass for the wrong reason — the first draft did.
+    (specs / "real_cold_traffic.json").write_text(
+        Path("specs/health_wellness_cold_traffic.json").read_text())
+    # The real shape of the five files on disk that broke it.
+    (specs / "real_baseline.json").write_text(json.dumps(
+        {"stop_rate": 0.11, "click_rate": 0.02,
+         "visit_rate": 0.012, "convert_rate": 0.006}))
+    (specs / "empty_demographics.json").write_text(json.dumps(
+        {"demographics": [], "disposition_labels": ["x"]}))
+    (specs / "not_even_json.json").write_text("{oh dear")
+
+    offered = discover_specs(specs)
+    assert offered == ["real_cold_traffic.json"], offered
+
+    # The predicate is the ENGINE's, not a filename pattern: a file named
+    # *_baseline that is a valid spec would be offered, and this is what keeps
+    # the filter and the failure from drifting apart.
+    (specs / "late_baseline.json").write_text(
+        (specs / "real_cold_traffic.json").read_text())
+    assert "late_baseline.json" in discover_specs(specs)
+    print("  only real, valid audience specs are offered ✓")
+
+
+def test_the_repo_s_own_specs_are_all_runnable_as_offered() -> None:
+    """The picker against the real specs/ directory. Not a unit test with
+    fixtures: the bug was about the actual files on disk."""
+    from agent.entities import AudienceSpec
+    from server.runs import discover_specs
+
+    offered = discover_specs(Path("specs"))
+    assert offered, "no audience spec on disk is offerable"
+    for name in offered:
+        spec = AudienceSpec.from_dict(json.loads(Path("specs", name).read_text()))
+        spec.validate()          # the exact call prepare makes
+    assert not any(n.endswith("_baseline.json") for n in offered)
+    print(f"  {len(offered)} real specs offered, every one of them runnable ✓")
+
+
+def test_a_form_with_no_usable_spec_says_so_instead_of_an_empty_picker(
+        tmp_path: Path) -> None:
+    c = sign_in(TestClient(create_app(
+        runs_root=tmp_path / "runs", sessions_root=tmp_path / "s",
+        base_dir=tmp_path, specs_dir=tmp_path / "none", auth=demo_auth())))
+    page = c.get("/reads/new").text
+    assert "no usable audience spec" in _flat(page)
+    assert "<select" not in page, "an unusable form still offered a submit path"
+    print("  no specs on disk: says so rather than failing on submit ✓")
+
+
+def test_a_refused_preparation_answers_whether_it_was_charged() -> None:
+    page = app_html.error_page(
+        "Could not prepare the read", "The run was refused before it started.",
+        detail="ValueError: AudienceSpec.demographics must have >= 1 point",
+        note="No credit was debited.")
+    assert "WERE YOU CHARGED" in page
+    assert "No credit was debited" in _flat(page)
+    # The engine's own words survive, framed rather than raw.
+    assert "must have &gt;= 1 point" in page
+    assert "WHAT THE ENGINE SAID" in page
+    print("  a refusal says what happened, what the engine said, and the cost ✓")
