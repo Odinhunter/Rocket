@@ -48,6 +48,7 @@ from agent.artifact_pack import load_pack
 from agent.config import RunConfig
 from agent.entities import DispositionLibrary
 from agent.panel import PanelAgent, build_panel, compute_panel_version
+from agent.progress import ProgressWriter
 from agent.projection_l35 import project_funnel
 from agent.render import RENDER_PROMPT_VERSION, render_persona_core
 from agent.runtime import REACTION_PROTOCOL_VERSION, run_agent_async
@@ -507,13 +508,22 @@ class RunService:
         # ---- L1: bundled-agent fan-out ----
         l1_t0 = time.time()
         sem = asyncio.Semaphore(config.max_concurrent_agents)
+        # The run's only report of life between 'committed' and 'complete'.
+        # Advancing in `finally` counts an agent that RAISED as processed, which
+        # is right: the denominator is work attempted, and a panel that loses
+        # agents must not leave the counter stuck short of its total forever.
+        progress = ProgressWriter(rd)
+        progress.phase("reactions", total=len(prep.panel))
 
         async def _bounded(agent: PanelAgent) -> AgentTranscript:
             async with sem:
-                return await run_agent_async(
-                    agent, config, pack, run_id=prep.run_id,
-                    render_cache_dir=cache_dir,
-                )
+                try:
+                    return await run_agent_async(
+                        agent, config, pack, run_id=prep.run_id,
+                        render_cache_dir=cache_dir,
+                    )
+                finally:
+                    progress.advance()
 
         results = await asyncio.gather(
             *[_bounded(a) for a in prep.panel], return_exceptions=True
@@ -553,9 +563,13 @@ class RunService:
 
         async def _bounded_l2(label: str, ts: list[AgentTranscript]):
             async with l2_sem:
-                return await synthesize_segment_async(label, ts, config)
+                try:
+                    return await synthesize_segment_async(label, ts, config)
+                finally:
+                    progress.advance()
 
         l2_labels = [label for label, _ in sorted(by_segment.items())]
+        progress.phase("segments", total=len(l2_labels))
         l2_coros = [
             _bounded_l2(label, ts) for label, ts in sorted(by_segment.items())
         ]
@@ -589,6 +603,7 @@ class RunService:
         )
 
         # ---- L3: population synthesis ----
+        progress.phase("population")
         l3 = await asyncio.to_thread(
             synthesize_population, l2_summaries,
             prep.target_classification, config,
@@ -612,10 +627,13 @@ class RunService:
         report_projection = projection if config.funnel_enabled else None
 
         # ---- L4: assess (raw corpus -> PainMap) -> prescribe (from PainMap) ----
+        # on_phase fires from inside the to_thread worker, which is why
+        # ProgressWriter locks with a threading.Lock and not an asyncio one.
         report = await asyncio.to_thread(
             synthesize_report, transcripts, l3, prep.target_classification,
             report_projection, config,
             provisional_dispositions=prep.provisional_dispositions,
+            on_phase=progress.phase,
         )
         # The PainMap is a first-class, standalone brand-manager deliverable.
         _persist_json(rd / "painmap.json", frozen_painmap_from_report(report))
@@ -624,6 +642,7 @@ class RunService:
             report.verdict, report.confidence, len(report.pain_map),
             len(report.bet_ranking),
         )
+        progress.finish()
         return report, panel_health
 
     @staticmethod

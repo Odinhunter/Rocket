@@ -28,6 +28,7 @@ import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from agent.progress import read_progress
 from agent.run_service import RunPreparation, RunService
 from agent.telemetry import run_dir
 
@@ -153,6 +154,11 @@ class Launcher:
             "updated_at": raw.get("updated_at", ""),
             "panel_health": raw.get("panel_health"),
             "has_report": bool(raw.get("report")),
+            # The middle of the run — the only thing that moves during the
+            # minutes run.json says nothing about. None until the first phase
+            # lands, and left as-is on a failed run so the status page can say
+            # WHERE it stopped rather than only that it did.
+            "progress": read_progress(rd),
         }
 
 

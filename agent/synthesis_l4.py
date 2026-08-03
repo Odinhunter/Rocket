@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import Callable
 from typing import Any
 
 import anthropic
@@ -418,6 +419,7 @@ def synthesize_report(
     config: RunConfig,
     *,
     provisional_dispositions: list[str] | None = None,
+    on_phase: Callable[[str], None] | None = None,
 ) -> Report:
     """rocket-2.2.0 orchestrator. Pass A (assess) reads the raw reaction corpus
     -> PainMap + verdict; Pass B (prescribe) reads only the frozen PainMap ->
@@ -425,7 +427,13 @@ def synthesize_report(
 
     Replaces the single-call synthesize_memo below (kept for reference). The
     funnel_projection and audience_match are attached deterministically; the
-    model never touches a funnel rate."""
+    model never touches a funnel rate.
+
+    `on_phase` is an optional progress hook (agent/progress.py). The two passes
+    are separately reportable only from in here — from the caller's side this
+    is one `to_thread` call — and together they are the last several minutes of
+    a run, so a status page without them sits on 'Building the population
+    picture' until the report appears."""
     provisional = list(provisional_dispositions or [])
     audience_match = None
     if config.audience_spec is not None and config.audience_spec.demographics:
@@ -433,10 +441,14 @@ def synthesize_report(
             config.audience_spec.demographics,
             target_classification.inferred_audience,
         )
+    if on_phase is not None:
+        on_phase("diagnosis")
     assess = assess_reactions(
         transcripts, target_classification, l3_summary.confidence_signals,
         config, provisional_dispositions=provisional,
     )
+    if on_phase is not None:
+        on_phase("prescription")
     prescription = prescribe_from_painmap(
         assess.to_frozen_painmap(), funnel_projection, audience_match,
         target_classification, config,

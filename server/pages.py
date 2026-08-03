@@ -13,6 +13,7 @@ from __future__ import annotations
 import html
 
 from agent.dashboard_html import PAGE_CSS
+from agent.progress import phase_view
 from server.runs import RunRef
 from server.sessions import SLOTS, Session
 
@@ -52,6 +53,16 @@ table.rows th{text-align:left;font-family:var(--font-mono);font-size:11px;
 table.rows td{padding:8px 10px 8px 0;border-bottom:1px solid var(--line);color:var(--muted);
   vertical-align:top;}
 table.rows td b{color:var(--ink);font-weight:600;}
+.phases div{padding:7px 0;color:var(--faint);font-size:15px;}
+.phases div+div{border-top:1px solid var(--line);}
+.phases .mark{display:inline-block;width:18px;font-family:var(--font-mono);}
+.phases .done{color:var(--muted);}
+.phases .done .mark{color:var(--good);}
+.phases .running{color:var(--ink);font-weight:650;}
+.phases .running .mark{color:var(--accent);}
+.phases .stopped{color:var(--ink);font-weight:650;}
+.phases .stopped .mark{color:var(--leak);}
+.phases b{font-family:var(--font-mono);font-weight:650;}
 .kv{margin-top:10px;font-size:14px;}
 .kv div{padding:5px 0;border-bottom:1px solid var(--line);}
 .kv b{color:var(--ink);}
@@ -499,6 +510,47 @@ def preparation_page(prep, *, scope_note: str | None, purpose_label: str,
 """)
 
 
+def _phase_list(progress: dict | None, *, stopped: bool = False) -> str:
+    """The five phases, with the running one counted where a count exists.
+
+    `stopped` renders the same list for a run that died: the phase it was in
+    becomes WHERE IT STOPPED rather than something still in flight. That is the
+    most useful thing this page can say on an interrupted run, because it is
+    what decides whether `replay_synthesis` can recover it — a run that died in
+    'Ranking the fixes' has all its transcripts, one that died in 'The panel is
+    reacting' does not.
+
+    Deliberately plain: this is the operator's page, and the designed version
+    of this surface is State 7 of the app shell. What must survive that
+    redesign is the honesty — no interpolated bar, and no estimated time
+    remaining, because neither can be computed from what the engine reports.
+    """
+    rows = []
+    for entry in phase_view(progress):
+        state = entry["state"]
+        if state == "running" and stopped:
+            state = "stopped"
+        mark = {"done": "✓", "running": "▸", "stopped": "✕",
+                "pending": "·"}[state]
+        count = ""
+        if "total" in entry:
+            count = f' <b>{_e(entry["done"])} of {_e(entry["total"])}</b>'
+        suffix = ' — stopped here' if state == "stopped" else ""
+        cls = f' class="{state}"' if state != "pending" else ""
+        rows.append(
+            f'<div{cls}><span class="mark">{mark}</span> '
+            f'{_e(entry["label"])}{count}{suffix}</div>'
+        )
+    waiting = ""
+    if progress is None:
+        waiting = (
+            '<p class="sub">Stopped before any phase reported.</p>' if stopped
+            else '<p class="sub">Committed. Waiting for the first phase to '
+                 "report.</p>"
+        )
+    return f'<div class="card phases">{"".join(rows)}{waiting}</div>'
+
+
 def run_status_page(status: dict, *, poll: bool = True) -> str:
     done = status["status"] == "complete"
     bad = status["status"] in ("failed", "interrupted")
@@ -517,6 +569,13 @@ def run_status_page(status: dict, *, poll: bool = True) -> str:
     }.get(status["status"], status["status"])
 
     extra = ""
+    # Shown while a run is in flight, and on a run that died — on the dead one
+    # WHERE it stopped is the whole question, because it decides whether
+    # replay_synthesis can recover it. Omitted on 'complete' (five ticks say
+    # nothing the "Done." above them has not) and on 'prepared'/'unknown',
+    # where it would imply work is happening.
+    if status["status"] in ("committed", "failed", "interrupted"):
+        extra += _phase_list(status.get("progress"), stopped=bad)
     if status.get("error"):
         extra += f'<div class="warn"><b>Error</b>{_e(status["error"])}</div>'
     if status.get("panel_health"):
