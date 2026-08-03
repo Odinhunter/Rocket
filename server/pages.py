@@ -13,7 +13,6 @@ from __future__ import annotations
 import html
 
 from agent.dashboard_html import PAGE_CSS
-from agent.progress import phase_view
 from server.runs import RunRef
 from server.sessions import SLOTS, Session
 

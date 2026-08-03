@@ -101,12 +101,35 @@ def test_every_app_page_carries_the_same_shell(client) -> None:
 
 
 def test_the_current_page_is_marked_in_the_nav(client) -> None:
-    for path in APP_PAGES:
+    """Equality, not prefix matching.
+
+    A `startswith` check here passes when /reads/new marks *Reads* as current,
+    which is exactly the confusion available: the review and status screens
+    deliberately claim a nav item that is not their own URL, and which one they
+    claim is a decision worth pinning rather than a coincidence to tolerate.
+    """
+    runs_root = client.__dict__["runs_root"]
+    rd = runs_root / "demo" / "hw" / "live"
+    rd.mkdir(parents=True)
+    (rd / "run.json").write_text(json.dumps(
+        {"run_id": "live", "status": "committed", "updated_at": "t",
+         "config": {"asset": {"label": "Q3 whey"}}}))
+
+    expected = {
+        "/reads": "/reads",
+        "/reads/new": "/reads/new",
+        "/profiles": "/profiles",
+        "/settings": "/settings",
+        # A run in flight belongs to the list it will appear in, not to the
+        # form that started it.
+        "/reads/status/demo/hw/live": "/reads",
+    }
+    for path, want in expected.items():
         page = client.get(path).text
-        marked = page.split('aria-current="page"')[0].rsplit('href="', 1)[-1]
-        assert marked.startswith(path.rstrip("/")) or path.startswith(marked), (
-            f"{path} marks {marked!r} as the current page")
-    print("  each page marks itself in the nav ✓")
+        marked = (page.split('aria-current="page"')[0]
+                  .rsplit('href="', 1)[-1].split('"')[0])
+        assert marked == want, f"{path} marks {marked!r}, expected {want!r}"
+    print(f"  {len(expected)} screens mark the right nav item ✓")
 
 
 # ---- the reads list ---------------------------------------------------

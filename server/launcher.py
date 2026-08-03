@@ -104,6 +104,17 @@ class Launcher:
         The thread is a daemon, unlike `commit`'s: no credit has been debited,
         so losing a prepare to a shutdown costs ~$0.15 and a retry, where
         losing a commit costs the run.
+
+        ⚠ A bare `threading.Thread` starts with an EMPTY context, where the
+        Starlette threadpool this replaced copied the caller's. That is safe
+        here for one specific reason, checked rather than assumed:
+        `RunService.prepare` calls `_set_context_vars` itself on its first
+        lines and passes account/brand explicitly to `run_dir`
+        (`run_service.py:345-349`), so it establishes its own telemetry context
+        instead of inheriting one. Anything moved onto this thread that instead
+        READS those vars ambiently would write to `runs/<run_id>/` — the flat
+        fallback — and the symptom is a run that silently files itself outside
+        its account.
         """
         token = secrets.token_urlsafe(8)
         state = Preparing(token=token, thread=threading.Thread(target=lambda: None))
