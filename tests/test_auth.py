@@ -204,6 +204,11 @@ def test_every_route_outside_the_allowlist_refuses(tmp_path: Path) -> None:
         methods = getattr(route, "methods", None) or set()
         if path is None or path in PUBLIC_EXACT:
             continue
+        if not methods:
+            # A Mount (P4 adds `/static`) or a WebSocket route has none, and
+            # `sorted(set())[0]` would take this test down with an IndexError
+            # at exactly the moment it is meant to give a verdict.
+            continue
         method = "GET" if "GET" in methods else sorted(methods)[0]
         # Concrete values for the path params; the middleware answers before
         # routing, so nothing here needs to resolve to a real run.
@@ -229,7 +234,10 @@ def test_the_json_surfaces_refuse_in_json(client) -> None:
     print(f"  {len(JSON_ROUTES)} JSON routes answer 401 JSON, not a redirect ✓")
 
 
-def test_the_landing_page_and_healthz_are_public_and_say_nothing(client) -> None:
+def test_the_landing_page_and_healthz_are_public(client) -> None:
+    """Reachable signed out. That the landing page DISCLOSES nothing is a
+    separate test, in test_server.py — it needs runs on disk to be worth
+    anything, and this fixture's runs_root is empty."""
     landing = client.get("/")
     assert landing.status_code == 200
     assert "Sign in" in landing.text
@@ -239,7 +247,7 @@ def test_the_landing_page_and_healthz_are_public_and_say_nothing(client) -> None
     # Not a subset check: the point is that nothing ELSE is in the body. It
     # used to return absolute filesystem paths and a count of client runs.
     assert health.json() == {"ok": True}
-    print("  / and /healthz are public and disclose nothing ✓")
+    print("  / and /healthz answer while signed out ✓")
 
 
 def test_a_wrong_password_issues_no_cookie_and_says_nothing(client) -> None:

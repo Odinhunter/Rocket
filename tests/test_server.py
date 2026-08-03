@@ -595,3 +595,29 @@ def test_scoping_is_filing_and_not_a_permission(env) -> None:
     direct = env.get("/reads/internal/cmf_smoke/20260101_000000_smoke")
     assert direct.status_code == 200, "a signed-in reader was refused a read"
     print("  scoping hides a run from a list, and gates nothing ✓")
+
+
+def test_the_landing_page_publishes_nothing_off_disk(env) -> None:
+    """`/` is the one route served to anyone who finds the address, and this
+    fixture has two finished client reads on disk while it answers.
+
+    Written against a populated runs_root on purpose. The same assertions
+    against an empty one pass because there was never anything to leak — the
+    exact shape of vacuous test this codebase has now been bitten by twice.
+    The `/operator` half is the positive control: it proves those labels are
+    genuinely reachable from this server, so their absence on `/` is the page
+    withholding them rather than the fixture being empty.
+    """
+    landing = env.get("/")
+    assert landing.status_code == 200
+    assert "Sign in" in landing.text
+    for leak in (REAL_LABEL, DECOY_LABEL, REAL_RUN_ID, REAL_TARGETING,
+                 "muscleblaze", "proski", "ITERATE"):
+        assert leak.lower() not in landing.text.lower(), (
+            f"the public landing page leaks {leak!r}")
+
+    signed_in = env.get("/operator").text
+    assert REAL_LABEL in signed_in and REAL_RUN_ID in signed_in, (
+        "positive control failed — the reads are not on this server at all, "
+        "so the assertions above proved nothing")
+    print("  2 client reads on disk, 0 of them on the public page ✓")
