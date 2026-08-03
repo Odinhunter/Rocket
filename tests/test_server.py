@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from pathlib import Path
 
 import pytest
@@ -621,3 +622,41 @@ def test_the_landing_page_publishes_nothing_off_disk(env) -> None:
         "positive control failed — the reads are not on this server at all, "
         "so the assertions above proved nothing")
     print("  2 client reads on disk, 0 of them on the public page ✓")
+
+
+def test_the_contact_address_comes_only_from_the_environment(
+        tmp_path: Path) -> None:
+    """`/` is the one page the open internet sees, and the contact link is a
+    real person's inbox on it.
+
+    So the address is configuration, never a literal in the source: with
+    `ROCKET_CONTACT_EMAIL` unset the page ships with NO mailto at all rather
+    than falling back to whichever address someone once typed into the code.
+    A default is the failure mode this pins — it would publish an inbox that
+    nobody chose to publish, and it would look completely normal.
+    """
+    def landing_with(contact: str) -> str:
+        app = create_app(runs_root=tmp_path / "runs",
+                         sessions_root=tmp_path / "sessions",
+                         base_dir=tmp_path, auth=demo_auth(),
+                         contact_email=contact)
+        resp = TestClient(app).get("/")
+        assert resp.status_code == 200
+        return resp.text
+
+    configured = landing_with("someone@example.test")
+    assert 'href="mailto:someone@example.test"' in configured
+    assert "Talk to us" in configured
+
+    # The load-bearing half. "no mailto:" is the assertion; the sweep for an
+    # address-shaped string catches one written as plain text beside the link
+    # instead of inside it. Shaped, not bare "@" — the embedded font brings
+    # @font-face and @media with it.
+    unset = landing_with("")
+    assert "mailto:" not in unset, "an address is hardcoded in the landing page"
+    found = re.findall(r"[\w.+-]+@[\w-]+\.[\w.-]+", unset)
+    assert not found, f"the page shows {found} with no contact configured"
+    assert "Sign in" in unset, (
+        "positive control failed — the page did not render at all, so the "
+        "absence of an address above proved nothing")
+    print("  address set → mailto; address unset → no address anywhere ✓")

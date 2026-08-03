@@ -1,0 +1,3 @@
+# The landing page's assets live here: hero.mp4, hero-poster.jpg, images.
+# Served publicly at /static/ by a StaticFiles mount in server/app.py.
+# This file only keeps the directory in git while it is otherwise empty.
