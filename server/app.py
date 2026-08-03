@@ -14,10 +14,11 @@ from __future__ import annotations
 import os
 import secrets
 import time
+from urllib.parse import quote
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import (
     HTMLResponse, JSONResponse, RedirectResponse, Response,
 )
@@ -130,9 +131,28 @@ def create_app(
         return JSONResponse({"ok": True})
 
     @app.get("/signin", response_class=HTMLResponse)
-    def signin_form(next: str = "") -> HTMLResponse:
+    def signin_form(request: Request, next: str = "") -> Response:
+        # Already signed in: send them where they were going rather than
+        # showing a password box to someone who has already used it.
+        if auth.verify(request.cookies.get(COOKIE_NAME)) is not None:
+            return RedirectResponse(safe_next(next), status_code=303)
         return _html(app_html.signin_page(
             next_url=safe_next(next, ""), configured=auth.configured))
+
+    @app.get("/login", include_in_schema=False)
+    def login_alias(next: str = "") -> Response:
+        """The sign-in page was `/login` until 2026-08-03."""
+        keep = safe_next(next, "")
+        return RedirectResponse(
+            f"/signin?next={quote(keep, safe='')}" if keep else "/signin",
+            status_code=303)
+
+    @app.get("/logout", include_in_schema=False)
+    def logout_alias() -> Response:
+        """Signing out is a POST now, so this cannot do it — it lands on the
+        page that has the button. A GET that cleared the cookie would be
+        triggerable by any <img> tag on any page."""
+        return RedirectResponse("/settings", status_code=303)
 
     @app.post("/signin")
     def sign_in(password: str = Form(""), next: str = Form("")) -> Response:

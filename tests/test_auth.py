@@ -186,7 +186,9 @@ def test_the_public_allowlist_is_exactly_this(tmp_path: Path) -> None:
     silently stays green — which is the entire failure mode."""
     # /signout is NOT here: it is a POST from a signed-in page, so it does not
     # need to be public — and the enumeration test below therefore walks it.
-    assert PUBLIC_EXACT == frozenset({"/", "/signin", "/healthz"})
+    # /login and /logout are the old names, kept as public redirects.
+    assert PUBLIC_EXACT == frozenset({"/", "/signin", "/healthz",
+                                      "/login", "/logout"})
     assert PUBLIC_PREFIXES == ("/static/",)
     # The trailing slash is load-bearing: on "/static" this would be public.
     assert not is_public("/static-secret")
@@ -351,3 +353,38 @@ def test_the_gate_does_not_make_the_routes_async(tmp_path: Path) -> None:
         assert not inspect.iscoroutinefunction(fn), (
             f"{route.path} became async — see server/app.py's docstring")
     print("  every app route is still a plain def ✓")
+
+
+def test_the_old_urls_still_go_somewhere(client) -> None:
+    """`/login` and `/logout` were the names until 2026-08-03, and they are in
+    browser histories. A URL someone types from memory landing on a raw 404
+    reads as a broken server, not as a renamed route."""
+    to_signin = client.get("/login", follow_redirects=False)
+    assert to_signin.status_code == 303
+    assert to_signin.headers["location"] == "/signin"
+    assert client.get("/login?next=%2Fprofiles",
+                      follow_redirects=False).headers["location"] == (
+        "/signin?next=%2Fprofiles")
+
+    # /logout cannot sign anyone out: that is a POST now, because a GET which
+    # cleared the cookie is triggerable by any <img> on any page. It lands on
+    # the page that has the button.
+    out = client.get("/logout", follow_redirects=False)
+    assert out.status_code == 303 and out.headers["location"] == "/settings"
+    assert COOKIE_NAME not in out.cookies
+    print("  /login and /logout still land somewhere sensible ✓")
+
+
+def test_signing_in_twice_does_not_show_a_password_box(tmp_path: Path) -> None:
+    """A signed-in browser hitting /signin — from a bookmark, or from the
+    /login alias — should carry on, not be asked to prove it again."""
+    client = sign_in(TestClient(_app(tmp_path)))
+    resp = client.get("/signin", follow_redirects=False)
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/reads"
+
+    # ...and the old URL chains through to the same place.
+    chained = client.get("/login")
+    assert chained.status_code == 200
+    assert "PASSWORD" not in chained.text
+    print("  an already-signed-in visitor is not re-asked ✓")

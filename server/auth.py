@@ -204,8 +204,11 @@ def safe_next(target: str | None, fallback: str = "/reads") -> str:
 # route is private the moment it exists, and making something public is a
 # deliberate edit to a list of five strings.
 
-# Exact matches only.
-PUBLIC_EXACT = frozenset({"/", "/signin", "/healthz"})
+# Exact matches only. `/login` and `/logout` are the pre-2026-08-03 names,
+# kept as redirects because they are in browser histories and in things we
+# already told people — a dead URL that someone typed from memory looks like a
+# broken server, not a renamed route. They carry no data and set no cookie.
+PUBLIC_EXACT = frozenset({"/", "/signin", "/healthz", "/login", "/logout"})
 # Prefixes. The trailing slash is not cosmetic: on "/static" a path like
 # "/static-secret" would also match.
 PUBLIC_PREFIXES = ("/static/",)
