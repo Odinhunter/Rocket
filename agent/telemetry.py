@@ -26,6 +26,7 @@ from __future__ import annotations
 import contextvars
 import json
 import logging
+import os
 import re
 import time
 from datetime import datetime
@@ -34,7 +35,35 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
-RUNS_DIR = Path("runs")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def runs_root() -> Path:
+    """Where runs live. ABSOLUTE, and resolved fresh on every call.
+
+    This was `RUNS_DIR = Path("runs")` — relative, and therefore resolved
+    against the current working directory. Two things went wrong with that,
+    and the second one costs money:
+
+      1. The offline test suite runs from the repo root, so a test that
+         reached the engine wrote into the REAL runs/ directory no matter what
+         `create_app(runs_root=tmp_path)` had been told. That is how a phantom
+         `demo/default/...` run appeared among real client work.
+      2. ⚠ Start uvicorn from anywhere other than the repo root — which is
+         exactly what a container does — and the ENGINE writes a finished run
+         to `<cwd>/runs` while the SERVER reads `REPO_ROOT/runs`. The run
+         completes, the money is spent, and it never appears in the app.
+
+    A function rather than a module constant on purpose: three modules used to
+    do `from agent.telemetry import RUNS_DIR`, which binds the value at import
+    time, so rebinding the attribute here would have fixed some call sites and
+    silently missed those. There is no `RUNS_DIR` left to import.
+
+    `ROCKET_RUNS_DIR` overrides it — P6 needs the runs on a mounted volume
+    rather than inside the container image.
+    """
+    override = os.environ.get("ROCKET_RUNS_DIR", "").strip()
+    return Path(override).expanduser().resolve() if override else REPO_ROOT / "runs"
 
 current_run_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "current_run_id", default=None,
@@ -73,9 +102,10 @@ def run_dir(
     """
     aid = account_id if account_id is not None else current_account_id.get()
     bpid = brand_profile_id if brand_profile_id is not None else current_brand_profile_id.get()
+    root = runs_root()
     if aid is not None and bpid is not None:
-        return RUNS_DIR / aid / bpid / run_id
-    return RUNS_DIR / run_id
+        return root / aid / bpid / run_id
+    return root / run_id
 
 
 def record_telemetry(

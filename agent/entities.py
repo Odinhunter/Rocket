@@ -22,7 +22,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from agent.telemetry import RUNS_DIR
+from agent.telemetry import runs_root
 from agent.vectors import (
     ChaosDistribution,
     DemographicPoint,
@@ -47,11 +47,11 @@ _PANEL_SIZE_CEILING = 200
 
 
 def _account_dir(account_id: str) -> Path:
-    return RUNS_DIR / account_id
+    return runs_root() / account_id
 
 
 def _entities_dir(account_id: str, brand_profile_id: str) -> Path:
-    return RUNS_DIR / account_id / brand_profile_id / "entities"
+    return runs_root() / account_id / brand_profile_id / "entities"
 
 
 def _persist_json(path: Path, payload: object) -> None:

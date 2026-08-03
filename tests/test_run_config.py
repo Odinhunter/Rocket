@@ -20,6 +20,7 @@ from agent.config import (
 )
 from agent.telemetry import (
     run_dir,
+    runs_root,
     current_account_id,
     current_brand_profile_id,
 )
@@ -132,7 +133,8 @@ def test_multi_tenant_run_dir() -> None:
     current_account_id.set("internal")
     current_brand_profile_id.set("boat")
     p = run_dir("20260512_abc")
-    assert p == Path("runs/internal/boat/20260512_abc"), f"unexpected {p}"
+    assert p == runs_root() / "internal" / "boat" / "20260512_abc", f"unexpected {p}"
+    assert p.is_absolute(), "a cwd-relative run dir is how the suite wrote into real runs/"
     print(f"  OK  multi-tenant run_dir: {p}")
 
 
@@ -140,7 +142,7 @@ def test_explicit_args_override_context_vars() -> None:
     current_account_id.set("internal")
     current_brand_profile_id.set("boat")
     p = run_dir("rid", account_id="acme", brand_profile_id="prod1")
-    assert p == Path("runs/acme/prod1/rid"), f"unexpected {p}"
+    assert p == runs_root() / "acme" / "prod1" / "rid", f"unexpected {p}"
     print(f"  OK  explicit override: {p}")
 
 
@@ -148,7 +150,7 @@ def test_flat_fallback_when_unset() -> None:
     current_account_id.set(None)
     current_brand_profile_id.set(None)
     p = run_dir("rid")
-    assert p == Path("runs/rid"), f"unexpected {p}"
+    assert p == runs_root() / "rid", f"unexpected {p}"
     print(f"  OK  flat fallback: {p}")
 
 

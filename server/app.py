@@ -22,11 +22,13 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import (
     HTMLResponse, JSONResponse, RedirectResponse, Response,
 )
+from fastapi.staticfiles import StaticFiles
 
 from agent.config import build_run_config, default_asset_label
 from agent.progress import phase_view
 from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER, resolve_purpose
 from agent.read_model import build_read_model, purpose_scope_note
+from agent.telemetry import runs_root as engine_runs_root
 from server import app_html, pages
 from server.auth import COOKIE_NAME, DEMO_ACCOUNT, Auth, RequireSignIn, safe_next
 from server.launcher import VALIDATED_CATEGORIES, Launcher
@@ -46,6 +48,7 @@ def create_app(
     base_dir: Path | None = None,
     specs_dir: Path | None = None,
     uploads_dir: Path | None = None,
+    static_dir: Path | None = None,
     launcher: Launcher | None = None,
     auth: Auth | None = None,
     contact_email: str | None = None,
@@ -61,7 +64,12 @@ def create_app(
     the real `/login`. There is no test-only bypass, because a bypass is a
     thing that can be switched on in production.
     """
-    runs_root = Path(runs_root or REPO_ROOT / "runs")
+    # ⚠ The SAME expression the engine writes through (agent.telemetry.
+    # runs_root), never a second spelling of it. These were two: the server
+    # read REPO_ROOT/"runs" while the engine wrote cwd-relative "runs". Start
+    # uvicorn from anywhere but the repo root and a ~$4 run completes into a
+    # directory this server never looks at — spent, finished, and invisible.
+    runs_root = Path(runs_root or engine_runs_root())
     sessions_root = Path(
         sessions_root or os.environ.get("ROCKET_SESSIONS_DIR")
         or REPO_ROOT / "sessions"
@@ -72,6 +80,14 @@ def create_app(
     base_dir = Path(base_dir or REPO_ROOT)
     specs_dir = Path(specs_dir or REPO_ROOT / "specs")
     uploads_dir = Path(uploads_dir or REPO_ROOT / "uploads")
+    # REPO_ROOT, not cwd, for the same reason as base_dir above.
+    static_dir = Path(static_dir or REPO_ROOT / "static")
+    # Created, not required. An empty static/ is a legitimate state — the
+    # landing page is required to look finished with its video absent — and
+    # StaticFiles re-checks the directory on the FIRST REQUEST as well as at
+    # construction, so `check_dir=False` does not buy tolerance here, it only
+    # moves the failure from a loud startup error to a 500 on an asset.
+    static_dir.mkdir(parents=True, exist_ok=True)
 
     app = FastAPI(title="Rocket — operator", docs_url=None, redoc_url=None)
     store = SessionStore(sessions_root)
@@ -112,6 +128,19 @@ def create_app(
         return HTMLResponse(body, status_code=status)
 
     # ---- public ----
+
+    # The landing page's own assets — its video, its poster, its images.
+    #
+    # StaticFiles rather than a route that reads the file and returns bytes:
+    # only this serves Range requests, and without them a browser cannot seek
+    # inside a video. The failure is not an error, it is a scrub bar that does
+    # nothing, which reads as a broken page rather than a missing feature.
+    #
+    # This is an ASGI mount, not a route: the "every route is a plain def"
+    # rule at the top of this file does not apply to it, and wrapping it in
+    # one would be the mistake. "/static/" is already in auth.PUBLIC_PREFIXES,
+    # trailing slash and all, and the middleware sees the path before routing.
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     @app.get("/", response_class=HTMLResponse)
     def landing() -> HTMLResponse:

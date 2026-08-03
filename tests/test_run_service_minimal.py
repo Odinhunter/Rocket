@@ -35,7 +35,7 @@ from agent.entities import (
 )
 from agent.run_service import RunService
 from agent.schema import validate_report
-from agent.telemetry import RUNS_DIR, run_dir
+from agent.telemetry import run_dir, runs_root
 from agent.vectors import (
     ChaosDistribution,
     ChaosProfile,
@@ -52,7 +52,7 @@ _BRAND = "_test_rs_brand"
 
 
 def _cleanup() -> None:
-    p = RUNS_DIR / _ACCOUNT
+    p = runs_root() / _ACCOUNT
     if p.exists():
         shutil.rmtree(p)
 

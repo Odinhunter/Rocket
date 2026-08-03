@@ -19,11 +19,11 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from agent.telemetry import RUNS_DIR, run_dir
+from agent.telemetry import run_dir, runs_root
 
 
 def _ledger_path(account_id: str) -> Path:
-    return RUNS_DIR / account_id / "credits_ledger.jsonl"
+    return runs_root() / account_id / "credits_ledger.jsonl"
 
 
 def _committed_marker(

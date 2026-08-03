@@ -15,14 +15,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agent import credits
-from agent.telemetry import RUNS_DIR
+from agent.telemetry import runs_root
 
 _ACCOUNT = "_test_two_phase_acct"
 _BRAND = "_test_two_phase_brand"
 
 
 def _cleanup() -> None:
-    p = RUNS_DIR / _ACCOUNT
+    p = runs_root() / _ACCOUNT
     if p.exists():
         shutil.rmtree(p)
 
@@ -74,9 +74,9 @@ def test_committed_marker_is_a_real_file() -> None:
     _cleanup()
     try:
         credits.debit_for_run("run_a", _ACCOUNT, _BRAND)
-        marker = RUNS_DIR / _ACCOUNT / _BRAND / "run_a" / "committed.marker"
+        marker = runs_root() / _ACCOUNT / _BRAND / "run_a" / "committed.marker"
         assert marker.exists(), "committed.marker not written"
-        ledger = RUNS_DIR / _ACCOUNT / "credits_ledger.jsonl"
+        ledger = runs_root() / _ACCOUNT / "credits_ledger.jsonl"
         assert ledger.exists(), "credits ledger not written"
         print("  OK  committed.marker + credits_ledger.jsonl written on debit")
     finally:

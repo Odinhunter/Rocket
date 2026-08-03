@@ -105,13 +105,29 @@ def _prep(tmp_path: Path, *, mismatch: bool = False, spec_name: str,
 
 
 class StubLauncher(Launcher):
-    """Records what it was asked to do; never calls RunService."""
+    """Records what it was asked to do; never calls RunService.
+
+    That second half was FALSE until 2026-08-04. `commit` delegated to
+    `super().commit(prep)` — correct, because these tests want the real
+    idempotency lock and the real worker thread — but the real worker then
+    called the real `RunService.commit`, which wrote directories into the real
+    `runs/` and was one populated fixture away from spending ~$4 from pytest.
+
+    Overriding `_run_engine` keeps everything the tests care about (thread,
+    job bookkeeping, error capture) and drops only the model calls.
+    """
+
+    def _run_engine(self, prep) -> None:  # noqa: ANN001
+        self.engine_calls.append(prep.run_id)
 
     def __init__(self, prep: RunPreparation | None = None) -> None:
         super().__init__()
         self.stub_prep = prep
         self.prepared_configs: list = []
         self.committed: list[str] = []
+        # What the worker thread actually reached, as opposed to what commit
+        # was asked for. The two differing is the bug this class had.
+        self.engine_calls: list[str] = []
 
     def prepare(self, config):
         self.prepared_configs.append(config)

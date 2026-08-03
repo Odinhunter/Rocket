@@ -172,10 +172,7 @@ class Launcher:
 
         def _run() -> None:
             try:
-                # commit() re-establishes its own telemetry context vars from
-                # prep (run_service.py:480), so nothing needs plumbing across
-                # the thread boundary.
-                RunService.commit(prep)
+                self._run_engine(prep)
             except Exception as exc:  # noqa: BLE001 — recorded, not swallowed
                 job.error = f"{type(exc).__name__}: {exc}"
                 _log.exception("run %s failed on the worker thread", prep.run_id)
@@ -183,11 +180,31 @@ class Launcher:
         job.thread = threading.Thread(
             target=_run, name=f"rocket-run-{prep.run_id}", daemon=False,
         )
+        # (the one line that spends money lives in _run_engine, below)
         with self._lock:
             self.jobs[key] = job
             self.prepared.pop(prep.run_id, None)
         job.thread.start()
         return job
+
+    def _run_engine(self, prep: RunPreparation) -> None:
+        """The one line in this class that spends ~$4. Isolated so a test can
+        replace it.
+
+        This used to be inline in `commit`'s worker, which left a test only two
+        options: call the real paid engine, or skip `commit` altogether and
+        test none of the machinery around it — the idempotency lock, the
+        non-daemon thread, the job bookkeeping, the error capture. The offline
+        suite took the first option. It stayed free only because the fixture's
+        panel happened to be empty, and it wrote real directories into `runs/`.
+
+        Override this, not `commit`, so everything except the model calls is
+        still the code that runs in production.
+
+        commit() re-establishes its own telemetry context vars from prep
+        (run_service.py:480), so nothing needs plumbing across the boundary.
+        """
+        RunService.commit(prep)
 
     # ---- recovery ----
 

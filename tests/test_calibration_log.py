@@ -18,14 +18,14 @@ from agent import calibration_log
 from agent.projection_l35 import MULTIPLIER_TABLE_VERSION, project_funnel
 from agent.schema import BehavioralSignalDistribution
 from agent.synthesis_types import L3Summary
-from agent.telemetry import RUNS_DIR
+from agent.telemetry import runs_root
 
 _ACCOUNT = "_test_calib_acct"
 _BRAND = "_test_calib_brand"
 
 
 def _cleanup() -> None:
-    p = RUNS_DIR / _ACCOUNT
+    p = runs_root() / _ACCOUNT
     if p.exists():
         shutil.rmtree(p)
 

@@ -1,0 +1,92 @@
+"""Suite-wide guards. Both are about money and about real client data.
+
+`server/app.py` has carried the sentence "Nothing in the offline suite may
+reach RunService" since the app was built. It was a comment, and on
+2026-08-04 it turned out to be false: three tests in test_server_runs.py
+called the real `Launcher.commit`, which spawned a thread into the real
+`RunService.commit`, which wrote real directories under `runs/`.
+
+It cost nothing, but only by accident — that fixture's panel is empty, so no
+agent was ever dispatched. Nothing pinned that. A fixture with a populated
+panel would have started a paid run from `pytest`.
+
+So the sentence is executable now. A comment cannot fail; this can.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from agent import run_service
+
+
+class PaidEngineReached(AssertionError):
+    """A test called the thing that spends ~$4."""
+
+
+# Appended to from whichever thread made the call. A plain list is enough:
+# list.append is atomic under the GIL, and this only ever needs to answer
+# "did anything reach it during this test".
+_REACHED: list[str] = []
+
+
+@pytest.fixture(autouse=True)
+def never_reach_the_paid_engine(monkeypatch: pytest.MonkeyPatch):
+    """Replace `RunService.commit` for every test in the suite, and FAIL if a
+    test reaches it.
+
+    Autouse and unconditional: an opt-in guard protects the tests that
+    remembered to ask for it, which are not the ones that need it.
+
+    ⚠ Raising is not sufficient on its own, and this was verified rather than
+    assumed. `Launcher.commit` runs the engine on a worker thread and records
+    exceptions on `job.error` instead of propagating them — so with only the
+    raise, the three offending tests went green while still having ATTEMPTED
+    the paid path. A guard that silently succeeds is how the next person
+    reintroduces the bug. Hence the post-test assertion below: the attempt
+    itself fails the test that made it, wherever it was made from.
+
+    A test that genuinely needs commit's machinery should override
+    `Launcher._run_engine`, which is the seam that exists for exactly that.
+    """
+    def _refuse(prep):  # noqa: ANN001 — signature mirrors the real one
+        _REACHED.append(getattr(prep, "run_id", "<unknown run>"))
+        raise PaidEngineReached(
+            "RunService.commit was called from the test suite. That is the "
+            "~$4 paid path and it writes into the real runs/ directory. "
+            "Override Launcher._run_engine in your test double instead."
+        )
+
+    monkeypatch.setattr(run_service.RunService, "commit", staticmethod(_refuse))
+    # prepare() is the cheaper paid call (~$0.15) and nothing in the suite
+    # reaches it today — the whole run is offline in ~2.6s. Guarded anyway:
+    # commit was also "obviously" unreachable until it wasn't.
+    monkeypatch.setattr(run_service.RunService, "prepare", staticmethod(_refuse))
+    _REACHED.clear()
+    yield
+    reached = list(_REACHED)
+    _REACHED.clear()
+    assert not reached, (
+        f"this test reached the paid engine for {reached}. The call was "
+        f"blocked, but Launcher.commit swallows worker-thread exceptions onto "
+        f"job.error, so nothing else here would have failed. Override "
+        f"Launcher._run_engine in the test double instead."
+    )
+
+
+@pytest.fixture(autouse=True)
+def runs_root_is_absolute() -> None:
+    """The engine's runs directory must never be cwd-relative again.
+
+    `RUNS_DIR = Path("runs")` was resolved against the working directory, so
+    `create_app(runs_root=tmp_path)` did not move where the engine WROTE — it
+    only moved where the server READ. Tests polluted real client runs, and in
+    production a container started outside the repo root would have completed
+    a paid run into a directory the app never reads.
+    """
+    from agent.telemetry import runs_root
+
+    assert runs_root().is_absolute(), (
+        "agent.telemetry.runs_root() is relative — it resolves against the "
+        "working directory, which is how the suite wrote into the real runs/"
+    )

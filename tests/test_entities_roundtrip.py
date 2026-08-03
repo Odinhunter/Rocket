@@ -22,7 +22,7 @@ from agent.entities import (
     DispositionLibrary,
     SavedAudience,
 )
-from agent.telemetry import RUNS_DIR
+from agent.telemetry import runs_root
 from agent.vectors import (
     ChaosDistribution,
     ChaosProfile,
@@ -106,7 +106,7 @@ def _audience_spec() -> AudienceSpec:
 
 
 def _cleanup() -> None:
-    path = RUNS_DIR / _TEST_ACCOUNT
+    path = runs_root() / _TEST_ACCOUNT
     if path.exists():
         shutil.rmtree(path)
 

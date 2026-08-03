@@ -30,11 +30,11 @@ from pathlib import Path
 
 from agent.projection_l35 import MULTIPLIER_TABLE_VERSION
 from agent.schema import FunnelProjection
-from agent.telemetry import RUNS_DIR
+from agent.telemetry import runs_root
 
 
 def _log_path(account_id: str, brand_profile_id: str) -> Path:
-    return RUNS_DIR / account_id / brand_profile_id / "calibration_log.jsonl"
+    return runs_root() / account_id / brand_profile_id / "calibration_log.jsonl"
 
 
 def _append(account_id: str, brand_profile_id: str, entry: dict) -> None:
