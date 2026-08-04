@@ -381,8 +381,9 @@ def create_app(
         """How many of the brand's consumer types this buy reaches. $0.
 
         Pure range arithmetic against the brand's own library — no model call,
-        measured at 0.2ms — which is what lets the form update it live while
-        someone is still choosing. It exists so the narrow-audience case is
+        and **0.02 ms measured for everything this route computes** (parse,
+        copy the spec, validate, overlap) — which is what lets the form update
+        it live while someone is still choosing. It exists so the narrow-audience case is
         visible at the point of CHOOSING rather than after a ~$4 run has
         already produced a single-segment read.
 

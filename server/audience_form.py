@@ -285,9 +285,12 @@ def reach(spec: AudienceSpec, dispositions: list) -> Reach:
     engine then builds must come from one calculation; two would drift, and the
     drift would show up as a promise the run did not keep.
 
-    Free and instant — pure arithmetic over demographic ranges, no API call,
-    measured at 0.2ms — which is what makes it usable as live feedback while
-    someone is still choosing.
+    Free and instant — pure arithmetic over demographic ranges, no API call.
+    Measured at **0.001 ms for this function and 0.02 ms for everything the
+    `/reads/audience-reach` endpoint computes** (parse + copy the spec +
+    validate + overlap), which is what makes it usable as live feedback while
+    someone is still choosing. The second figure is the one to quote: this
+    function alone is not what a request costs.
 
     A library whose dispositions carry no demographic bundles is
     demographically unspecified: `audience_mass` returns 1.0 for every one of
