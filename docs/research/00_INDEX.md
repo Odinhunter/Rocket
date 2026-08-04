@@ -11,12 +11,14 @@ Nykaa," that reactions felt insufficiently human, and that there was no chaos an
 | `02_social_layers_and_finetuning.md` | Whether to add a social layer (answer: not the way we assumed), and whether to fine-tune (answer: not on review prose) | ✅ complete |
 | `03_recovered_from_dead_agents.md` | Mined back out of the ten dead agents' raw transcripts: SimBench, the competitor claims, the incumbents already shipping synthetic ad testing | ⚠ recovered, unverified |
 | `04_simbench_read.md` | ⭐ The ICLR 2026 benchmark, read in full. Sets the ceiling for the whole field (best model = 40.80/100) and explains our homogeneity problem. **Corrects an error in file 03.** | ✅ primary source |
+| `05_deeper_dive.md` | ⭐ Second full sweep of all 20 transcripts, incl. 4 academic threads never opened. The "no discrimination between products" failure, analytic flexibility (r=.23–.84), CoMPosT, ESOMAR/MRS rules | ⚠ recovered |
 | `00_RAW_SOURCES.md` | 2,853 URLs the agents reached, indexed; plus the map of raw transcripts | ✅ index only |
 
 **Ten further agents died on a session limit before writing up** — but they had already fetched
 **2.1 million characters** of pages, and `03_recovered_from_dead_agents.md` is what was mined back
-out. **SimBench has since been read in full — see `04_simbench_read.md`.** The remaining gap is
-non-vendor evaluation of commercial panels.
+out. **SimBench has since been read in full — see `04_simbench_read.md`**, and `05_deeper_dive.md`
+is a second, complete sweep of every transcript. The remaining gap is non-vendor evaluation of
+commercial panels.
 
 ## Two leads captured before those agents died — UNVERIFIED, chase before use
 
