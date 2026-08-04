@@ -7,9 +7,14 @@ layer is to find that before a session does.
 
 The load-bearing assertions:
 
-  * the confirmation surface carries EVERY warning `batch_run._print_preparation`
-    prints — the fidelity spec is that function, not a mock-up
-    (memory: report_surface_fidelity). A missing warning is a run committed blind.
+  * ⚠ the confirmation surface carries every warning the operator can ACT ON,
+    which as of 2026-08-04 is no longer every warning `batch_run._print_preparation`
+    prints. The user's explicit decision: a row survives here if it tells them
+    something about their own input they can fix before paying; instrument
+    limits (trust ceiling, provisional dispositions) moved to the methodology
+    page. The CLI is unchanged and remains the full-fidelity surface
+    (memory: report_surface_fidelity), so the two now differ on purpose and
+    both directions are asserted.
   * a gross demographic mismatch is refused server-side, not by the form's
     `required` attribute, which a direct POST walks straight past. The CLI
     treats this one as overriding even --yes.
@@ -289,22 +294,35 @@ def test_unknown_audience_spec_is_refused_before_spending(world) -> None:
 # ---- the confirmation surface -----------------------------------------
 
 
-def test_confirmation_surface_carries_every_cli_warning(world) -> None:
-    """Fidelity against batch_run._print_preparation. Each fragment below is a
-    guardrail the CLI prints before a credit is debited."""
+def test_the_review_screen_keeps_what_the_operator_can_act_on(world) -> None:
+    """⚠ Rewritten 2026-08-04. This screen no longer mirrors
+    `batch_run._print_preparation` row for row, and the divergence is the point.
+
+    The rule `_prep_flags` applies: a row survives if it tells the operator
+    something about THEIR OWN INPUT that they can fix before paying; it moves
+    to the methodology page if it is a limit of our instrument. Eight
+    qualifications stacked above the commit button read as a product
+    apologising for itself.
+
+    Both halves are asserted, because either alone is satisfiable by the wrong
+    outcome — keeping everything, or quietly dropping something that protects
+    the operator's money. The CLI is deliberately unchanged and keeps all of
+    them (memory: report_surface_fidelity), so its fidelity test still stands.
+    """
     launcher = StubLauncher(_prep(world, mismatch=True,
                                   spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
     page = _prepare(client).text
 
+    # Escaped, because the renderer escapes — the no-match note contains an
+    # apostrophe, and asserting the raw string would report a dropped guardrail
+    # that is actually present.
     for fragment, what in (
-        (MISMATCH_MSG, "gross demographic mismatch"),
-        (COVERAGE_MSG, "thin audience coverage"),
-        (PURPOSE_MSG, "purpose mismatch"),
-        (TRUST_MSG, "trust ceiling"),
-        (NO_MATCH_MSG, "no-match note"),
-        (AMBIGUITY_MSG, "ambiguity note"),
-        ("skeptic_new_brand", "provisional dispositions"),
+        (MISMATCH_MSG, "the creative does not match the declared audience"),
+        (COVERAGE_MSG, "how many consumer types this audience reaches"),
+        (PURPOSE_MSG, "the ad's apparent job is not the one selected"),
+        (NO_MATCH_MSG, "creative and audience do not overlap"),
+        (AMBIGUITY_MSG, "who the ad is for is ambiguous"),
         ("$4.13", "estimated cost"),
         ("29", "persona cores rendered"),
         ("Macro-counting lifters", "inferred target"),
@@ -313,12 +331,17 @@ def test_confirmation_surface_carries_every_cli_warning(world) -> None:
         ("impulsive 50%", "chaos mix"),
         ("9baaf54d7841", "panel version"),
     ):
-        # Escaped, because the renderer escapes — the no-match note contains an
-        # apostrophe, and asserting the raw string would report a dropped
-        # guardrail that is actually present.
         assert escape(fragment, quote=True) in page, \
-            f"confirmation surface dropped: {what}"
-    print("  all 14 CLI warnings present on the confirm screen ✓")
+            f"the review screen dropped something actionable: {what}"
+
+    # Moved to the methodology page: limits of the instrument, not of their ad.
+    for fragment, what in (
+        (TRUST_MSG, "trust ceiling — 'a confident ship-it is unreachable'"),
+        ("skeptic_new_brand", "provisional dispositions (library bookkeeping)"),
+    ):
+        assert escape(fragment, quote=True) not in page, \
+            f"an instrument limit is back on the money screen: {what}"
+    print("  the review screen keeps what they can act on, drops the rest ✓")
 
 
 def test_a_demographic_mismatch_warns_loudly_and_commits_anyway(world) -> None:
@@ -326,9 +349,11 @@ def test_a_demographic_mismatch_warns_loudly_and_commits_anyway(world) -> None:
     what the guard was always documented to be (memory:
     demographic_mismatch_guard, "never blocks").
 
-    What this pins is the half that still has to hold: the flag is RENDERED,
-    and it is rendered as a STOP row rather than folded in with the ordinary
-    warnings. Deleting the refusal without this test would leave nothing at all
+    What this pins is the half that still has to hold: the operator is TOLD,
+    in words they can act on, and told what to do about it. ⚠ The STOP tag and
+    the alarm styling are gone as of 2026-08-04 (the user's call); the MESSAGE
+    is not, and the message was always the whole guardrail once the block was
+    removed. Deleting the refusal without this test would leave nothing at all
     asserting the operator was told.
     """
     launcher = StubLauncher(_prep(world, mismatch=True,
@@ -338,9 +363,17 @@ def test_a_demographic_mismatch_warns_loudly_and_commits_anyway(world) -> None:
     run_id = launcher.stub_prep.run_id
 
     assert escape(MISMATCH_MSG, quote=True) in page, "the mismatch was not shown"
-    assert "Gross demographic mismatch" in page
-    assert "f--stop" in page, "shown, but not as a STOP row"
-    assert "marked STOP" in page, "the commit button does not point at the flag"
+    assert "The creative and the audience don&#x27;t match" in page
+    # What to DO about it — the half that makes the row actionable rather than
+    # merely worrying, which is the whole justification for it surviving here.
+    for phrase in ("check you uploaded the right creative", "carry on"):
+        assert phrase in page, f"the row no longer says what to do: {phrase!r}"
+    # ⚠ Asserted on the RENDERED row, not the bare token: `.flags .f--stop`
+    # is still defined in the stylesheet (the mechanism is kept so reinstating
+    # a gate stays a one-line change), so `"f--stop" not in page` matches the
+    # CSS and fails on a page that emits no alarm at all.
+    assert 'class="f f--stop"' not in page, "the alarm styling is back"
+    assert "marked STOP" not in page, "the STOP counter line is back"
     # No acknowledgement field is posted any more — the design's call, and a
     # hidden one would be worse than none: a gate that looks present.
     assert "acknowledge_mismatch" not in page
@@ -370,11 +403,15 @@ def test_an_unvalidated_category_warns_loudly_and_commits_anyway(world) -> None:
     page = _prepare(client, category="chocolate").text
     run_id = launcher.stub_prep.run_id
 
-    assert "Unvalidated category" in page
+    assert "We haven&#x27;t validated this category yet" in page
     assert "chocolate" in page
+    # ⚠ Word for word, and deliberately unchanged by the 2026-08-04 softening.
+    # The tag and the styling were cosmetic; THIS is the guardrail, and it is
+    # the one thing on the screen standing between the operator and $4 spent on
+    # a fluent, confident, wrong read.
     for phrase in ("will not fail gracefully", "confident and wrong"):
         assert phrase in page, f"the consequence no longer says {phrase!r}"
-    assert "f--stop" in page, "shown, but not as a STOP row"
+    assert 'class="f f--stop"' not in page, "the alarm styling is back"
     assert "acknowledge_unvalidated_category" not in page
 
     ok = client.post("/reads/prepared/commit", data={"run_id": run_id},
@@ -386,18 +423,31 @@ def test_an_unvalidated_category_warns_loudly_and_commits_anyway(world) -> None:
           "commit not blocked ✓")
 
 
-def test_both_stop_flags_render_in_one_stack(world) -> None:
-    """Six warnings and two STOPs — the design's worst case. One container,
-    hairline rows, one tag column: eight read as a list, not a wall."""
+def test_the_worst_case_review_screen_is_a_short_list_not_a_wall(world) -> None:
+    """⚠ Rewritten 2026-08-04. This used to assert the design's worst case —
+    eight rows, two of them marked STOP — and the worst case is now the thing
+    being measured rather than the thing being preserved.
+
+    Every row here is still actionable and none of them is styled as an alarm.
+    The count is asserted with a CEILING, not an exact number: the point of the
+    change is that this screen cannot grow back into a wall, and pinning an
+    exact count would fail the next time a genuinely actionable check is added
+    while saying nothing about the property that matters.
+    """
     launcher = StubLauncher(_prep(world, mismatch=True, category="chocolate",
                                   spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
     page = _prepare(client, category="chocolate").text
 
-    assert page.count('class="f f--stop"') == 2, "both STOPs should be marked"
+    assert 'class="f f--stop"' not in page, "the alarm styling is back"
+    assert "marked STOP" not in page, "the STOP counter line is back"
     assert page.count('<div class="flags">') == 1, "flags split across stacks"
-    assert "2 flags above are marked STOP" in page
-    print("  8 flags, 2 of them STOP, in one stack ✓")
+    rows = page.count('<div class="f"')
+    assert rows, "no rows at all — this fixture is supposed to be the worst case"
+    assert rows <= 6, (
+        f"the review screen grew back to {rows} rows; every one must be "
+        "something the operator can act on before paying")
+    print(f"  worst-case review screen: {rows} actionable rows, no alarms ✓")
 
 
 def test_a_validated_category_needs_no_category_tick(world) -> None:

@@ -155,6 +155,18 @@ def create_app(
         """
         return _html(pages.landing_page(contact))
 
+    @app.get("/methodology", response_class=HTMLResponse)
+    def methodology() -> HTMLResponse:
+        """How the instrument works, and what it can and cannot tell you.
+
+        PUBLIC on purpose (`auth.PUBLIC_EXACT`). This is where the read's
+        standing qualifications went when they came off the page on 2026-08-04,
+        and a prospect being able to read them before they have an account is
+        the point of the change rather than a side effect of it. It reads
+        nothing off disk and names no client.
+        """
+        return _html(pages.methodology_page(contact))
+
     @app.get("/healthz")
     def healthz() -> JSONResponse:
         """Public, so it says only whether the process is up.
@@ -449,65 +461,79 @@ def create_app(
         ))
 
     def _prep_flags(prep) -> tuple[list[tuple[str, str, str, bool]], int]:
-        """Every warning `batch_run._print_preparation` prints, as flag rows.
+        """What the operator should see before spending ~$4.
 
-        Fidelity spec is that function, NOT the design's placeholder list: a
-        warning that exists in the engine and not here is a run committed
-        blind (memory: report_surface_fidelity). The design supplies the ROW,
-        this supplies WHICH rows.
+        ⚠ REWRITTEN 2026-08-04 on the user's explicit decision, and the rule
+        that decides what appears here is worth stating because it is the one
+        judgement in this change that is not "remove it":
 
-        The two `stop=True` rows used to be hard gates that refused the commit
-        without a ticked acknowledgement. They are advisory as of 2026-08-03 —
-        the user's explicit decision, taken after being shown that an
-        unvalidated category makes the engine answer confidently about nobody.
-        The flag is loud; the button is not blocked.
+            Does this tell them something about THEIR OWN INPUT that they can
+            act on before paying — or is it a limit of OUR INSTRUMENT?
+
+        The first kind stays. It protects their money: a mismatched creative, a
+        category we cannot read, an ad whose job is not the job they picked are
+        all things they can fix in thirty seconds, and letting someone spend $4
+        to discover it is a worse failure than any wording. The second kind
+        moves to the methodology page, where it can be read by anyone who goes
+        looking. Eight qualifications on the screen before the button read as a
+        product apologising for itself, which is what this removes.
+
+        Moved OFF this screen (instrument limits, not their input):
+          * launch scope — that a purpose is BETA is our maturity, not their ad;
+          * trust ceiling — "a confident ship-it is unreachable with this panel"
+            is the purest example of the register the user objected to;
+          * provisional dispositions — internal library bookkeeping.
+
+        ⚠ The STOP tag and the "N flags are marked STOP" counter are gone, but
+        NOTHING BELOW IS: both former STOP rows still render, with their
+        consequence text intact, because that text is the entire guardrail now
+        that the commit gates are advisory (the user's call, 2026-08-03). The
+        tests pin the consequence wording word for word — change the copy and
+        change them together, deliberately.
+
+        Fidelity note: `batch_run._print_preparation` is the CLI equivalent and
+        is deliberately NOT changed. It is an operator instrument, and it keeps
+        every row (memory: report_surface_fidelity).
         """
         tc = prep.target_classification
         rows: list[tuple[str, str, str, bool]] = []
-        scope = purpose_scope_note(prep.config.creative_inputs.purpose)
-        if scope:
-            rows.append(("SCOPE", "Launch scope", scope, False))
-        if tc.no_match_note:
-            rows.append(("NO MATCH", "No match", tc.no_match_note, False))
-        if tc.ambiguity_note:
-            rows.append(("TARGET", "Ambiguous target", tc.ambiguity_note, False))
-        if prep.coverage_warning is not None:
-            c = prep.coverage_warning
-            rows.append(("COVERAGE",
-                         f"Thin audience coverage — {c.eligible_count}/"
-                         f"{c.total_count} personas", c.message, False))
+        # --- about the creative they uploaded --------------------------------
+        if prep.demographic_mismatch is not None:
+            rows.append(("CHECK", "The creative and the audience don't match",
+                         prep.demographic_mismatch.message
+                         + " If that is deliberate — an off-demographic creative "
+                         "under test — carry on. Otherwise fix the audience, or "
+                         "check you uploaded the right creative.", False))
         if prep.purpose_mismatch is not None:
             pm = prep.purpose_mismatch
-            rows.append(("PURPOSE",
-                         f"Purpose mismatch — reads as {pm.apparent_label.upper()}, "
-                         f"grading as {pm.declared_label.upper()}",
+            rows.append(("CHECK",
+                         f"This reads as a {pm.apparent_label.lower()} ad, and "
+                         f"you picked {pm.declared_label.lower()}",
                          pm.message, False))
-        if prep.trust_ceiling_warning is not None:
-            rows.append(("TRUST",
-                         "Trust ceiling — a confident “ship it” is unreachable "
-                         "with this panel", prep.trust_ceiling_warning, False))
-        if prep.provisional_dispositions:
-            rows.append(("DISPOSITIONS", "Provisional dispositions",
-                         ", ".join(prep.provisional_dispositions)
-                         + " — awaiting team review; the report will carry the "
-                         "flag.", False))
-        stops = 0
-        if prep.demographic_mismatch is not None:
-            rows.append(("STOP", "Gross demographic mismatch",
-                         prep.demographic_mismatch.message
-                         + " Advisory, not a block. If this is deliberate (an "
-                         "off-demographic creative under test), carry on. "
-                         "Otherwise fix the declared audience, or check you "
-                         "uploaded the right creative.", True))
-            stops += 1
+        if tc.no_match_note:
+            rows.append(("CHECK", "The creative and the audience don't overlap",
+                         tc.no_match_note, False))
+        if tc.ambiguity_note:
+            rows.append(("CHECK", "Who this ad is for is ambiguous",
+                         tc.ambiguity_note, False))
+        # --- about the audience they chose -----------------------------------
+        if prep.coverage_warning is not None:
+            c = prep.coverage_warning
+            rows.append(("REACH",
+                         f"This audience reaches {c.eligible_count} of "
+                         f"{c.total_count} consumer types", c.message, False))
+        # --- about the category, which is what actually protects the $4 ------
         if prep.config.category not in VALIDATED_CATEGORIES:
-            rows.append(("STOP", "Unvalidated category",
+            rows.append(("CHECK", "We haven't validated this category yet",
                          f"There is no hand-built, validated disposition library "
                          f"for {prep.config.category!r}. The engine will not fail "
                          "gracefully: every persona classifies “outside” and the "
-                         "read comes out confident and wrong.", True))
-            stops += 1
-        return rows, stops
+                         "read comes out confident and wrong.", False))
+        # `stops` is retained at 0 so `review_page`'s counter line never
+        # renders. The parameter stays in the signature rather than being
+        # ripped out, because reinstating a gate is the user's decision to make
+        # later and this keeps that a one-line change.
+        return rows, 0
 
     @app.post("/reads/prepared/commit")
     def commit_read(run_id: str = Form(...)) -> Response:

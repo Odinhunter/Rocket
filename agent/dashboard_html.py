@@ -20,36 +20,60 @@ Three properties the design does not carry on its own, and this module must:
     (`_map_card`) — opening one lifts the two-line clamp on its lead and adds
     the rest of the pain underneath. A script tag would break the
     self-contained guarantee and the print/export path with it.
-  * **Every guardrail.** The client artifact may curate which FINDINGS it
-    shows; it may never drop a GUARDRAIL. The design has no slot for several,
-    so this module adds them — see the table below.
+  * **Every guardrail, in one findable place.** The client artifact may curate
+    which FINDINGS it shows; it may never DROP a guardrail. It may, and now
+    does, COLLECT them — see the next paragraph.
+
+⚠ **2026-08-04 — the guardrails moved. They were not removed, and this is the
+user's explicit decision, taken with the finished page in front of them.**
+Previously every qualifier rendered beside the thing it qualified: a warnings
+strip above the result, a caveat under the decision chip, another under the
+headline number, a third under the champion line, a fourth under the
+outside-response bars, a fifth above the panel table, a NOT RANKED block inside
+the fixes, and a methodology card. Eight interruptions, so a reader met a
+qualification before they met a finding, and the page read as a product that
+did not believe itself. They ALL now render inside `_how_it_was_made` —
+collapsed, at the foot, complete, and inlined rather than linked so the
+artifact stays self-contained.
+
+**Do not reinstate any of them inline on a reviewer's instinct that a number
+looks bare.** That is a decision the user makes, and reversing it is a flag
+flip here, not a rebuild, precisely because `read_model` still computes every
+one of them.
 
 Guardrail → where it lives in this design:
 
   | guardrail                        | slot                                  |
   |----------------------------------|---------------------------------------|
-  | VERDICT_CAVEAT, every state      | under the decision chip               |
-  | warnings above the result        | the warnings strip                    |
+  | VERDICT_CAVEAT                   | `_how_it_was_made` — keep-in-mind     |
+  | HEADLINE_CAVEAT                  | `_how_it_was_made` — keep-in-mind     |
+  | SEGMENT_CAVEAT                   | `_how_it_was_made` — keep-in-mind     |
+  | OUT_OF_TARGET_ONLY_NOTE          | `_how_it_was_made`, only when the     |
+  |                                  |   floor actually reordered something  |
+  | F3 launch scope                  | `_how_it_was_made` — this-run row     |
+  | panel degradation                | `_how_it_was_made` — this-run row     |
+  | audience mismatch / coherence    | `_how_it_was_made` — this-run rows    |
+  | methodology flags                | `_how_it_was_made` — this-run rows    |
+  | provisional dispositions         | `_how_it_was_made` — how-it-was-run   |
+  | why trust is DIRECTIONAL         | `_how_it_was_made` — how-it-was-run   |
+  | brand-relative panel agreement   | `_how_it_was_made` — how-it-was-run   |
   | INCONCLUSIVE hides the rate      | the INCONCLUSIVE result card          |
   | INCONCLUSIVE hides the panel     | ADDED — the design showed it always   |
   | A3 research reported separately  | its own line under the headline       |
   | A4 per-cycle breakdown           | the purchase-cycle dots               |
   | A6 trust + note                  | the trust chip + line                 |
-  | F3 launch scope                  | a warnings-strip row                  |
   | E3 model-inferred disclaimer     | the bordered block                    |
-  | panel degradation                | a warnings-strip row                  |
-  | methodology flags                | a warnings-strip row + methodology    |
-  | provisional dispositions         | ADDED — a methodology row             |
-  | decoupling note                  | ADDED — under the panel table         |
-  | panel denominator summary        | ADDED — under the panel heading       |
-  | why trust is DIRECTIONAL         | ADDED — a methodology row             |
-  | HEADLINE_CAVEAT, every state     | directly under the headline number     |
-  |   with a headline                |   (the number keeps its place)        |
-  | SEGMENT_CAVEAT                   | above the panel table, and under the  |
-  |                                  |   champion line, which can stand alone|
-  | OUT_OF_TARGET_ONLY_NOTE          | ADDED — the NOT RANKED block in fixes |
+  | decoupling note                  | under the panel table (a FINDING —    |
+  |                                  |   neutral tint, not the warning one)  |
+  | panel denominator summary        | under the panel heading               |
   | breadth + traced evidence count  | the chip on both problem surfaces     |
-  | brand-relative panel agreement   | ADDED — a methodology row             |
+
+⚠ **This page and the INTERNAL surfaces diverge on purpose.** The operator
+console and `server/app.py`'s session export — the Track-2 artifact that lands
+beside a contact's real CTR/ROAS — keep every qualifier inline, because they
+are how we find out whether the instrument works. Stripping one there would
+corrupt our evidence rather than our presentation. Tests pin the divergence in
+BOTH directions so neither side gets "fixed" into matching the other.
 
 Everything rendered comes from `ReadModel`. Never reach past it into raw run
 JSON: the model is where the guardrails live, and going around it is how a
@@ -421,6 +445,19 @@ details:not([open])>summary .opened{{display:none}}
 .rk-why>summary::-webkit-details-marker{{display:none}}
 .rk-why .x{{margin-top:8px;font-size:12.5px;line-height:1.6;color:var(--soft)}}
 
+/* how this read was made — collapsed, quiet, and the last thing on the page.
+   Deliberately styled DOWN: it is complete and findable, not advertised. The
+   summary is a plain sentence rather than a flag colour, because everything
+   inside it used to be scattered up the page in warning tints and that is the
+   look the user asked to be rid of. */
+.rk-made>summary{{list-style:none;cursor:pointer;font-size:11px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--faint);
+  display:flex;align-items:center;gap:7px}}
+.rk-made>summary::-webkit-details-marker{{display:none}}
+.rk-made>summary::after{{content:"▾";font-size:9px;transform:translateY(-1px)}}
+.rk-made[open]>summary::after{{content:"▴"}}
+.rk-made>summary:hover{{color:var(--muted)}}
+
 /* what worked */
 .rk-grid{{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}}
 .rk-won{{background:var(--accent-tint);border:1px solid var(--accent-line);
@@ -538,9 +575,11 @@ def _run_header(m: ReadModel, embed_image: bool, base_dir: Path) -> str:
                      f'<span class="rk-lbl">DECLARED TARGETING&nbsp;&nbsp;</span>'
                      f"{_e(m.declared_targeting)}</div>")
 
-    # The two-axis audience verdict, in both directions. A mismatch also runs
-    # as a warnings-strip row above the result — it qualifies every number on
-    # the page, and this chip sits beside the targeting it contradicts.
+    # The two-axis audience verdict, in both directions, and THE ONLY place it
+    # renders. This is a finding about the creative, so it stays on the visible
+    # page beside the targeting it contradicts — see `_run_qualifiers` for why
+    # it is the one qualifier-shaped thing that did not move into the collapsed
+    # block on 2026-08-04.
     aud = ""
     if m.audience_mismatch:
         aud = (f'<span class="rk-chip" style="color:var(--danger);'
@@ -570,19 +609,33 @@ def _run_header(m: ReadModel, embed_image: bool, base_dir: Path) -> str:
 </div>"""
 
 
-def _warnings(m: ReadModel) -> str:
-    """Every surface that qualifies how much of this page to believe.
+def _run_qualifiers(m: ReadModel) -> list[tuple[str, str]]:
+    """This run's own qualifiers — the rows that used to be the warnings strip
+    pinned above the result.
 
-    Pinned ABOVE the result, not because a report should open on caveats — on
-    most runs this strip is empty and it doesn't — but because these qualify
-    THE NUMBERS: coherence qualifies the buy figure, launch scope qualifies
-    the headline metric, panel degradation qualifies every denominator on the
-    page. Below the result each would arrive after the number it exists to
-    qualify, which is not a caveat.
+    ⚠ They are NO LONGER rendered above the result, or anywhere the page opens
+    on them. The user's explicit decision, 2026-08-04, after reviewing the read
+    end to end: a page that leads with five qualifications reads as a product
+    that does not believe itself. They now render inside `_how_it_was_made`,
+    collapsed, at the bottom.
+
+    ⚠ Nothing is dropped and nothing stops being computed — this function is
+    still the single place that enumerates them, and `read_model` still derives
+    every field. The operator console and the session export (the Track-2
+    artifact that lands beside real CTR/ROAS) are deliberately NOT changed:
+    those are our own measuring instruments, and stripping a qualifier there
+    would corrupt the evidence rather than the presentation.
+    `tests/test_dashboard_html.py` pins that divergence in both directions.
     """
     rows: list[tuple[str, str]] = []
-    if m.audience_mismatch:
-        rows.append(("AUDIENCE MISMATCH", m.audience_mismatch))
+    # ⚠ `audience_mismatch` is deliberately NOT here, and its absence is the
+    # one judgement call inside this change rather than a copy of it. A
+    # mismatch is a FINDING ABOUT THE AD — "your creative reads as women 35-54
+    # and you are buying men 18-24" — not a qualification of our own instrument,
+    # which is what everything else in this list is. It keeps its chip in
+    # `_run_header`, in full, beside the declared targeting it contradicts.
+    # Repeating it down here would be the second copy of one statement, which
+    # is the habit this whole change exists to break.
     if m.scope_note:                                   # F3
         rows.append(("HOW FAR TO TRUST IT", m.scope_note))
     if m.coherence_warning:                            # A7
@@ -591,11 +644,7 @@ def _warnings(m: ReadModel) -> str:
         rows.append(("PANEL", m.panel_degraded))
     for line in m.flag_lines:
         rows.append(("METHOD", line))
-    if not rows:
-        return ""
-    return ('<div class="rk-warn">' + "".join(
-        f'<div><span class="t">{_e(tag)}</span><span class="x">{_e(text)}</span></div>'
-        for tag, text in rows) + "</div>")
+    return rows
 
 
 def _decision_head(m: ReadModel, trust_chip: bool) -> str:
@@ -614,12 +663,22 @@ def _decision_head(m: ReadModel, trust_chip: bool) -> str:
 def _result(m: ReadModel) -> str:
     """The decision, then the numbers that substantiate it.
 
-    The verdict LEADS, by the user's explicit call (asked twice). That places
-    the least reliable element on the page first — docs/v3_discriminant_check.md:
-    the bucket scored a deliberately-bad control the same as real ads — so
-    VERDICT_CAVEAT rendering inside this card is load-bearing, not decoration.
-    It is the whole of what keeps a lead-with-the-bucket page honest. Do not
-    move it to a footnote and do not drop it in a restyle.
+    ⚠ The caveats that used to render in this card — VERDICT_CAVEAT under the
+    chip, HEADLINE_CAVEAT under the number, SEGMENT_CAVEAT under the champion
+    line — are GONE from the visible page by the user's explicit decision,
+    2026-08-04, and this is not an oversight to fix. They were reviewed
+    together and judged to read as an apology for the product rather than as
+    honesty. Every one of them still exists: `read_model` computes them all
+    unchanged, and they render inside `_how_it_was_made`, collapsed at the
+    bottom of the page, plus on the standalone methodology page.
+
+    ⚠ The buy-intent number KEEPS ITS POSITION here, caveat-free — also the
+    user's explicit call, taken after being shown the measurement
+    (`read_model.HEADLINE_CAVEAT`: same-ad re-runs move it as much as
+    different ads do, signal-to-noise 1.0). It was put to them as a choice
+    against leading with the problem map, which is the surface that measurably
+    DOES discriminate, and they chose to keep the number leading. Do not
+    re-litigate it in a restyle; do not quietly reinstate the caveat line.
     """
     # INCONCLUSIVE: the reasons, and never an action rate by any route.
     if m.is_inconclusive or m.headline is None:
@@ -629,24 +688,20 @@ def _result(m: ReadModel) -> str:
         )
         first = _e(m.inconclusive[0].strip()) if m.inconclusive else ""
         return f"""<div class="rk-card">{_decision_head(m, trust_chip=False)}
-  <div class="rk-sub">{_e(VERDICT_CAVEAT)}</div>
   <hr class="rk-hr">
   <div style="font-size:21px;font-weight:600;line-height:1.35;letter-spacing:-.01em;
     text-wrap:pretty">{first}</div>{rest}
 </div>"""
 
-    out = [f'<div class="rk-card">{_decision_head(m, trust_chip=True)}',
-           f'<div class="rk-sub">{_e(VERDICT_CAVEAT)}</div>']
-    if m.trust_note:
-        out.append(f'<div class="rk-sub" style="margin-top:2px">{_e(m.trust_note)}</div>')
+    # ⚠ `trust_note` no longer renders here. It read "treat as a lead, not a
+    # verdict" directly beneath the decision — the single most self-undermining
+    # sentence on the page — and it was ALREADY a duplicate: the collapsed
+    # block's WHY DIRECTIONAL row states the same thing with the reason
+    # attached. The trust CHIP stays, because a one-word quality signal is a
+    # finding; the sentence apologising for it is not.
+    out = [f'<div class="rk-card">{_decision_head(m, trust_chip=True)}']
     out.append('<hr class="rk-hr">')
     out.append(f'<div class="rk-headline">{_e(m.headline.strip())}</div>')
-    # The headline's own caveat, directly beneath it and never conditional. The
-    # number does not discriminate between ads (read_model.HEADLINE_CAVEAT has
-    # the measurement); it keeps its position and carries its limitation with
-    # it, exactly as the verdict above does. Do not make this depend on the
-    # decision, and do not move it to the methodology block.
-    out.append(f'<div class="rk-under">{_e(HEADLINE_CAVEAT)}</div>')
     if m.research_line:      # A3 — research reported separately, never as a sale
         out.append(f'<div class="rk-under">{_e(m.research_line)}</div>')
     if m.champion_line:
@@ -656,7 +711,6 @@ def _result(m: ReadModel) -> str:
         # caveat, so it gets its own copy rather than relying on the reader
         # scrolling to find the qualifier.
         out.append(f'<div class="rk-under">{_e(m.champion_line)}</div>')
-        out.append(f'<div class="rk-sub" style="margin-top:4px">{_e(SEGMENT_CAVEAT)}</div>')
     elif m.narrow_frame_line:
         out.append(f'<div class="rk-under">{_e(m.narrow_frame_line)}</div>')
 
@@ -702,13 +756,6 @@ def _result(m: ReadModel) -> str:
                 f'<div class="rk-k rk-num" style="margin-top:6px;font-size:12px">'
                 f'{_e(_outside_legend(m))}</div>'
             )
-            # Target vs EVERYONE ELSE is a between-segment comparison, and it
-            # can be the only one on the page: the champion line fires on
-            # RETARGET alone, and the panel table that carries this caveat is a
-            # long scroll below. Two bars side by side invite exactly the
-            # comparison the caveat qualifies.
-            out.append(f'<div class="rk-sub" style="margin-top:8px">'
-                       f'{_e(SEGMENT_CAVEAT)}</div>')
 
     next_rows = m.panel.next_steps_in_target()
     if next_rows or m.cycle_rows:
@@ -1047,22 +1094,23 @@ def _fixes(m: ReadModel) -> str:
                        f'<span style="font-size:13px;line-height:1.55;color:var(--body);'
                        f'text-wrap:pretty">{_e(text)}</span></div>')
         out.append("</div>")
-    if m.ranked_changes:
+    # The prevalence floor still runs — it just stops announcing itself. A fix
+    # resting only on out-of-target problems sorts LAST instead of sitting
+    # under a "NOT RANKED" heading with OUT_OF_TARGET_ONLY_NOTE attached (the
+    # user's explicit call, 2026-08-04: the machinery is ours to act on, not
+    # the customer's to read). The ordering is the whole of what the floor now
+    # does to the page, so `ranked_changes` must stay computed in read_model.
+    #
+    # ⚠ All three changes render. `_validate_prescription` requires exactly
+    # three, so dropping the demoted ones would silently show two on the 2-of-51
+    # runs that have one — a gap with no explanation, which is worse than the
+    # heading this replaces.
+    changes = list(m.ranked_changes) + list(m.unranked_changes)
+    if changes:
         if levers:
             out.append('<hr class="rk-hr">')
         out.append('<div class="rk-k">DETAILED CHANGES</div>')
-        out.extend(_fix_card(c) for c in m.ranked_changes)
-    # The prevalence floor. A fix resting only on out-of-target problems is
-    # shown — it is real engine output and often the most interesting thing on
-    # the page — but it is separated from the ranked ones and wears the reason,
-    # so it can never be read as a recommendation about the audience being
-    # bought. See read_model.OUT_OF_TARGET_ONLY_NOTE.
-    if m.unranked_changes:
-        out.append('<hr class="rk-hr">')
-        out.append('<div class="rk-k">NOT RANKED</div>')
-        out.append(f'<div class="rk-sub" style="margin:6px 0 4px">'
-                   f'{_e(OUT_OF_TARGET_ONLY_NOTE)}</div>')
-        out.extend(_fix_card(c) for c in m.unranked_changes)
+        out.extend(_fix_card(c) for c in changes)
     out.append("</div>")
     return "".join(out)
 
@@ -1169,17 +1217,21 @@ def _panel_table(m: ReadModel) -> str:
         extra = (f'<div style="margin-top:10px;font-size:12px;color:var(--muted)">'
                  f"Also in the panel, without a column above: {_e(said)}.</div>")
 
+    # "Who it landed on" is a FINDING — often the most useful thing in the
+    # table — and it used to render in the warning tint, which made a result
+    # look like a problem with the result. Neutral styling; same content.
     note = ""
     if p.decoupling_note:
-        note = (f'<div class="rk-warn" style="margin-top:12px"><div>'
-                f'<span class="t">WHO IT LANDED ON</span>'
-                f'<span class="x">{_e(p.decoupling_note)}</span></div></div>')
+        note = (f'<div style="margin-top:12px;padding:12px 14px;border-radius:10px;'
+                f'background:var(--accent-tint);border:1px solid var(--accent-line)">'
+                f'<div class="rk-k" style="color:var(--accent-deep)">WHO IT LANDED ON</div>'
+                f'<div style="margin-top:5px;font-size:12.5px;line-height:1.55;'
+                f'color:var(--body)">{_e(p.decoupling_note)}</div></div>')
 
     return f"""<div class="rk-card" style="padding:20px 24px 22px">
   <div class="rk-k">PANEL — {m.panel.panel_n} SIMULATED CONSUMERS</div>
   <div style="margin-top:6px;font-size:12px;line-height:1.55;color:var(--muted)">
     {_e(p.summary)}</div>
-  <div class="rk-sub" style="margin-top:8px">{_e(SEGMENT_CAVEAT)}</div>
   <div class="rk-tblwrap"><table class="rk-tbl">
     <thead><tr><th>CONSUMER TYPE</th><th>N</th><th>SCROLLED PAST</th>
     <th>STOPPED</th><th>SAVED</th><th>NEXT STEP</th></tr></thead>
@@ -1226,7 +1278,31 @@ def _extras(m: ReadModel) -> str:
     )
 
 
-def _methodology(m: ReadModel) -> str:
+def _how_it_was_made(m: ReadModel) -> str:
+    """Everything about HOW this read was produced, collapsed, at the foot.
+
+    ⚠ This is where the honesty budget of the page now lives, entire, and it is
+    a deliberate consolidation rather than a deletion — the user's explicit
+    decision, 2026-08-04. Previously the same content was scattered across the
+    page as eight separate interruptions: a warnings strip above the result, a
+    caveat under the decision chip, another under the headline number, a third
+    under the champion line, a fourth under the outside-response bars, a fifth
+    above the panel table, a NOT RANKED block in the fixes, and a methodology
+    card. A reader met a qualification before they met a finding.
+
+    Nothing is gone. `read_model` computes every one of them unchanged, they
+    all render here, and `<details>` costs the page nothing until opened —
+    the same zero-JS mechanism the problem cards already use.
+
+    Three sections, in the order someone who opens this actually wants them:
+    what to keep in mind (the standing caveats, true of every read), what
+    qualifies THIS run (`_run_qualifiers`), and the run's configuration.
+
+    ⚠ The standing caveats are INLINED, not linked to the methodology page.
+    This artifact is self-contained by hard requirement — it is emailed and
+    opened from disk — so a `/methodology` href would be a dead link exactly
+    where the reader went looking for the qualification.
+    """
     rows: list[tuple[str, str]] = [
         ("PANEL", f"{m.panel.panel_n or m.panel_size} simulated consumers"),
     ]
@@ -1254,8 +1330,11 @@ def _methodology(m: ReadModel) -> str:
                        "stake a precise number on."))
     if m.homogeneity_note:
         rows.append(("PANEL AGREEMENT", m.homogeneity_note))
-    if m.flag_lines:
-        rows.append(("FLAGS", " ".join(m.flag_lines)))
+    # ⚠ No FLAGS row. `_run_qualifiers` already emits one METHOD row per flag
+    # line into the "specific to this run" grid directly above this one, and
+    # rendering them here too printed the same sentence twice inside a single
+    # collapsed block — which is the duplication this change exists to remove,
+    # reproduced in miniature.
     if m.report.provisional_dispositions:
         rows.append(("PROVISIONAL DISPOSITIONS",
                      ", ".join(humanize(d)
@@ -1266,10 +1345,34 @@ def _methodology(m: ReadModel) -> str:
         rows.append(("RECOVERED VIA", m.report_source))
     rows.append(("RUN ID", m.run_id))
 
-    body = "".join(f'<div class="k">{_e(k)}</div><div>{_e(v)}</div>' for k, v in rows)
-    return (f'<div class="rk-card" style="padding:20px 24px 22px">'
-            f'<div class="rk-k">METHODOLOGY</div>'
-            f'<div class="rk-method">{body}</div></div>')
+    def _grid(pairs: list[tuple[str, str]]) -> str:
+        return ('<div class="rk-method">' + "".join(
+            f'<div class="k">{_e(k)}</div><div>{_e(v)}</div>' for k, v in pairs)
+            + "</div>")
+
+    # The standing caveats — true of every read this engine produces, which is
+    # why they are stated once here rather than re-attached to each number.
+    # VERDICT_CAVEAT keeps the user's own wording.
+    mind = [
+        ("THE VERDICT", VERDICT_CAVEAT),
+        ("THE BUY-INTENT FIGURE", HEADLINE_CAVEAT),
+        ("BETWEEN CONSUMER TYPES", SEGMENT_CAVEAT),
+    ]
+    if m.unranked_changes:
+        # Only when the floor actually moved something, because otherwise this
+        # describes machinery that did nothing on this run.
+        mind.append(("CHANGE ORDER", OUT_OF_TARGET_ONLY_NOTE))
+
+    qualifiers = _run_qualifiers(m)
+    parts = [f'<div class="rk-k">WHAT TO KEEP IN MIND</div>{_grid(mind)}']
+    if qualifiers:
+        parts.append(f'<hr class="rk-hr"><div class="rk-k">SPECIFIC TO THIS RUN</div>'
+                     f"{_grid(qualifiers)}")
+    parts.append(f'<hr class="rk-hr"><div class="rk-k">HOW IT WAS RUN</div>{_grid(rows)}')
+
+    return (f'<details class="rk-card rk-made" style="padding:20px 24px 22px">'
+            f'<summary>How this read was made</summary>'
+            f'<div style="margin-top:16px">{"".join(parts)}</div></details>')
 
 
 def _shell(inner: str, m: ReadModel) -> str:
@@ -1302,23 +1405,28 @@ def render_html(
     operator server and `render_read.py` were cut over without a call site
     changing. Keep it: `full_document=False` is the fragment path.
 
-    The section order below is the user's design and is fixed. Two placements
-    inside it are load-bearing and were reasoned about; don't re-flip either:
+    The section order below is the user's design and is fixed.
 
-      * `_warnings` stays pinned ABOVE the result — three of its rows qualify
-        the NUMBERS, so beneath them each would arrive after the figure it
-        exists to qualify.
-      * `_result` opens with the decision, and VERDICT_CAVEAT renders inside
-        it. Leading with the bucket means a reader who goes no further has read
-        only the least reliable element on the page; the caveat is what keeps
-        that honest.
+    ⚠ The page no longer opens on a warnings strip, and no caveat renders
+    beside the finding it qualifies. That is the user's explicit decision of
+    2026-08-04, taken with the whole page in front of them, and it is not a
+    regression to repair: every qualifier still exists, still gets computed by
+    `read_model`, and renders in `_how_it_was_made` at the foot — collapsed,
+    findable, complete. Reinstating any of them inline needs THEIR say-so, not
+    a reviewer's instinct that a number looks bare.
+
+    ⚠ The customer read and the internal surfaces now DIVERGE ON PURPOSE. The
+    operator console and `server/app.py`'s session export — the Track-2
+    artifact that lands next to real CTR/ROAS — keep every qualifier inline,
+    because they are how we find out whether this instrument works. The
+    divergence is pinned by tests in both directions so that neither side gets
+    "fixed" into agreement with the other.
     """
     base_dir = base_dir or Path.cwd()
     title = (f"Creative Read — {model.asset_label}" if model.asset_label
              else "Creative Read")
     inner = "".join([
         _run_header(model, embed_image, base_dir),
-        _warnings(model),
         _result(model),
         _problem_map(model),
         _problem_cards(model),
@@ -1327,7 +1435,7 @@ def render_html(
         _panel_table(model),
         f'<div class="rk-disc">{_e(model.disclaimer)}</div>',   # E3
         _extras(model),
-        _methodology(model),
+        _how_it_was_made(model),
         f'<div class="rk-foot"><span>Rocket</span>'
         f'<span style="font-family:{_MONO};font-size:9.5px">{_e(model.run_id)}</span></div>',
     ])

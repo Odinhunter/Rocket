@@ -381,7 +381,117 @@ def landing_page(contact_email: str = "") -> str:
 <section><div class="slots">
   <a class="slot" href="/login"><b>Sign in</b><span>For accounts we have set up</span></a>
   {mail}
-</div></section>
+</div>
+<p style="margin-top:18px;font-size:14px;color:var(--muted)">
+  <a href="/methodology">How it works</a> — what the instrument does, what it is
+  good at, and what to hold lightly.</p>
+</section>
+""")
+
+
+def methodology_page(contact_email: str = "") -> str:
+    """How the instrument works, and what it can and cannot tell you.
+
+    ⚠ This page is the counterpart to a decision taken on 2026-08-04: the read
+    itself stopped carrying its qualifications inline, because eight of them
+    scattered across a page read as a product that does not believe itself.
+    They did not disappear. The per-run ones collapse into the read's own
+    "How this read was made" block; the standing ones — the things true of
+    every read we produce — are stated here, once, in full, and in public.
+
+    ⚠ **This page is the reason the rest of the product can be confident, so it
+    must not be quietly softened.** A startup that states its limits plainly in
+    one findable place is credible; one that hedges every number is not; one
+    that does neither is neither. The middle option is the whole strategy, and
+    deleting a paragraph here converts it into the third.
+
+    Written for a marketer, not a researcher: no jargon, no hedging verbs, and
+    every number that appears is one we actually measured (scripts/gate_test.py
+    reproduces them for $0).
+
+    Public by deliberate edit to `auth.PUBLIC_EXACT` — a prospect reading this
+    before they have an account is the point.
+    """
+    mail = (f'<p style="margin-top:14px">Questions about any of this — '
+            f'<a href="mailto:{_e(contact_email)}">{_e(contact_email)}</a>.</p>'
+            if contact_email else "")
+    return shell("How Rocket works", f"""
+{_head("Methodology", "How Rocket works",
+       "What the instrument does, what it is good at, and what to hold lightly. "
+       "Written plainly, because a method you cannot check is not a method.")}
+
+<section class="card">
+  <h3>What happens when you run a read</h3>
+  <p style="margin-top:8px">We build a panel of about 100 simulated consumers.
+    Each one is a specific person — an age, an income, a city, a household, and
+    an existing attitude to the category, drawn from a library we research and
+    write by hand for each product category. Each of them sees your ad in a
+    particular moment: on a commute, at a desk actively shopping, lying in bed
+    at the end of the day.</p>
+  <p style="margin-top:10px">They react. We then read those reactions back and
+    report what stopped people, what lost them, and what to change — with the
+    consumers' own words attached to each problem, so you can check our working
+    rather than take it on trust.</p>
+</section>
+
+<section class="card">
+  <h3>What it is good at, and how we know</h3>
+  <p style="margin-top:8px">The <b>problem map</b> — the list of what is going
+    wrong with your creative — is the part of the read we have tested hardest,
+    and it holds up. Run the same ad twice and the problems come back
+    consistently. Run a different ad and they come back different. We measured
+    the gap, and the two do not overlap: the least-similar pair of repeat runs
+    on one ad still resembles itself more than the most-similar pair of
+    different ads does.</p>
+  <p style="margin-top:10px">In plain terms: <b>the diagnosis is about your ad,
+    not boilerplate.</b> That is the finding the product is built on, and it is
+    why the problem map is the centre of the read rather than a footnote.</p>
+</section>
+
+<section class="card">
+  <h3>What to hold lightly</h3>
+  <p style="margin-top:8px">Three things, stated up front rather than buried in
+    a number you would otherwise over-read.</p>
+  <table class="rows" style="margin-top:14px">
+    <tr><td style="width:170px"><b>The buy-intent figure</b></td>
+      <td>The headline percentage is a rough gauge, not a measurement. Running
+        the same ad again moves it about as much as running a different ad does.
+        Read it as a direction, and let the problem map and the recommended
+        changes carry the decision.</td></tr>
+    <tr><td><b>Differences between consumer types</b></td>
+      <td>When the read says one group responded better than another, treat it
+        as a lead to check rather than a settled fact. Simulated panels are
+        known to overstate the gaps between groups, and occasionally to show a
+        gap where there is none.</td></tr>
+    <tr><td><b>The overall verdict</b></td>
+      <td>The one-word call at the top — scale, iterate, retarget, rebuild — is
+        a summary of everything below it, and it is the coarsest thing on the
+        page. When it and the problem map disagree, the problem map is the one
+        we would act on.</td></tr>
+  </table>
+</section>
+
+<section class="card">
+  <h3>Where we are honest about the limits</h3>
+  <p style="margin-top:8px"><b>Categories.</b> The panel is only as good as the
+    consumer library behind it, and each library is hand-built from primary
+    research. Nutrition and supplements are built and validated. Other
+    categories are in progress — we will tell you before you run one, because
+    an unvalidated category does not produce a vague answer, it produces a
+    confident and wrong one.</p>
+  <p style="margin-top:10px"><b>Simulated, not surveyed.</b> These are language
+    models reasoning as specific people, not real consumers. That is what makes
+    a read cost minutes instead of weeks, and it is also the thing to keep in
+    mind: the instrument tells you how a well-specified buyer would likely
+    react, not what a named human did.</p>
+  <p style="margin-top:10px"><b>What we are still proving.</b> We are running
+    the panel against real campaigns with known outcomes, to establish how
+    closely the diagnosis tracks what actually happened in market. Until that
+    is done, we describe the read as a strong instrument for finding problems
+    in a creative — which we have measured — and not as a predictor of
+    performance, which we have not.</p>
+  {mail}
+</section>
 """)
 
 

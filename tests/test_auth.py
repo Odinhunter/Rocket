@@ -187,14 +187,17 @@ def test_the_public_allowlist_is_exactly_this(tmp_path: Path) -> None:
     # /signout is NOT here: it is a POST from a signed-in page, so it does not
     # need to be public — and the enumeration test below therefore walks it.
     # /login and /logout are the old names, kept as public redirects.
+    # /methodology was added 2026-08-04, deliberately: it is the public
+    # statement of what the instrument can and cannot do, and it renders from
+    # constants alone — no disk read, no client name, nothing account-scoped.
     assert PUBLIC_EXACT == frozenset({"/", "/signin", "/healthz",
-                                      "/login", "/logout"})
+                                      "/login", "/logout", "/methodology"})
     assert PUBLIC_PREFIXES == ("/static/",)
     # The trailing slash is load-bearing: on "/static" this would be public.
     assert not is_public("/static-secret")
     assert not is_public("/operator")
     assert is_public("/static/hero.mp4")
-    print("  4 public paths, 1 public prefix, and /static-secret is not one ✓")
+    print("  6 public paths, 1 public prefix, and /static-secret is not one ✓")
 
 
 def test_every_route_outside_the_allowlist_refuses(tmp_path: Path) -> None:

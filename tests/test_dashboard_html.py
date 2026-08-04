@@ -107,7 +107,6 @@ def _html(report: Report | None = None, **kw) -> str:
 
 
 # Section markers, in the design's fixed order.
-_WARN = 'class="rk-warn"'
 _VERDICT = 'class="rk-dec"'
 _HEADLINE = 'class="rk-headline"'
 _MAP = "PROBLEM MAP"
@@ -118,7 +117,25 @@ _WORKED = "WHAT WORKED"
 _PANEL = " SIMULATED CONSUMERS"
 _DISC = 'class="rk-disc"'
 _VOICE = "SIMULATED CONSUMER VOICE"
-_METHOD = ">METHODOLOGY<"
+# The collapsed block at the foot that now holds every qualifier — see the
+# module docstring of agent/dashboard_html.py. `_MADE` is the <summary> a
+# reader clicks; `_METHOD` is the run-configuration grid inside it.
+_MADE = "How this read was made"
+_METHOD = ">HOW IT WAS RUN<"
+_KEEP_IN_MIND = ">WHAT TO KEEP IN MIND<"
+
+
+def _in_collapsed_block(html: str, needle: str) -> bool:
+    """Is `needle` present, exactly once, and inside the collapsed block?
+
+    Both halves matter. Presence alone would pass if a qualifier were still
+    rendered inline beside the number it qualifies; position alone would pass
+    if it had been deleted outright, which is precisely what this change is
+    NOT. Callers assert the count separately when a string may legitimately
+    repeat.
+    """
+    at = html.find(needle)
+    return at != -1 and at > html.index(_MADE)
 
 
 def _one_pain() -> list:
@@ -359,7 +376,7 @@ def test_flags_render_in_plain_words_not_engine_tokens() -> None:
     print("  methodology flags render in plain words ✓")
 
 
-def test_panel_agreement_observation_reaches_the_methodology_block() -> None:
+def test_panel_agreement_observation_reaches_the_collapsed_block() -> None:
     """How alike the panel's segments were, against this brand's own history.
     It is an observation and not a flag — a >2 sigma detector would never fire
     on the real distribution (mean 0.69, sd 0.16, max 0.87, bar 1.01), and a
@@ -369,20 +386,32 @@ def test_panel_agreement_observation_reaches_the_methodology_block() -> None:
     assert "PANEL AGREEMENT" in html, "the observation lost its label"
     assert html_escape(note) in html, "the observation never reached the page"
     assert html.index(_METHOD) < html.index(html_escape(note)), \
-        "panel agreement belongs in the methodology block, not above the result"
+        "panel agreement belongs in the run-configuration grid, not up the page"
+    assert _in_collapsed_block(html, html_escape(note)), \
+        "panel agreement escaped the collapsed block"
     assert "homogenization_high" not in html, "the suppressed flag came back as a token"
-    print("  panel-agreement observation reaches the methodology block ✓")
+    print("  panel-agreement observation reaches the collapsed block ✓")
 
 
-def test_headline_caveat_sits_under_the_number_in_every_decision_state() -> None:
-    """The buy-intent number does not discriminate between ads (signal-to-noise
-    1.0 — read_model.HEADLINE_CAVEAT carries the measurement). The user's call
-    was that it KEEPS its position and wears its limitation, so the caveat must
-    be unconditional and adjacent: between the number and the next claim, in
-    every state where a headline renders.
+def test_the_headline_number_leads_uncaveated_and_the_caveat_is_findable() -> None:
+    """⚠ The user's explicit decision, 2026-08-04, and the direction is the
+    OPPOSITE of what this test used to pin.
 
-    Imports the constant rather than restating it — a copy in the test would go
-    on passing after the page's wording drifted."""
+    The buy-intent number keeps its position at the top of the result card and
+    renders with NO caveat line beneath it. They were shown the measurement
+    (signal-to-noise 1.0 — same-ad re-runs move it as much as different ads do)
+    and offered the alternative of leading with the problem map, which does
+    discriminate; they chose to keep the number leading. So the assertion is
+    two-sided, and both sides are load-bearing:
+
+      * nothing between the number and the next claim, in every state — a
+        reinstated caveat line fails here;
+      * HEADLINE_CAVEAT still on the page, in the collapsed block — a DELETED
+        caveat fails here too. Moved, not dropped.
+
+    Imports the constant rather than restating it: a copy in the test would go
+    on passing after the page's wording drifted.
+    """
     from agent.read_model import HEADLINE_CAVEAT
 
     escaped = html_escape(HEADLINE_CAVEAT)
@@ -390,24 +419,34 @@ def test_headline_caveat_sits_under_the_number_in_every_decision_state() -> None
         rep = _report(_decision(decision=decision))
         rep.pain_map = _one_pain()
         html = _html(rep)
-        assert escaped in html, f"headline caveat missing on {decision}"
-        assert html.index(_HEADLINE) < html.index(escaped), \
-            f"caveat rendered above the number it qualifies on {decision}"
-        assert html.index(escaped) < html.index(_MAP), \
-            f"caveat escaped the result card on {decision}"
+        assert escaped in html, f"the caveat was DELETED, not moved, on {decision}"
+        assert _in_collapsed_block(html, escaped), \
+            f"the headline caveat is back on the visible page on {decision}"
+        # Nothing at all between the number and the diagnosis that follows it.
+        between = html[html.index(_HEADLINE):html.index(_MAP)]
+        assert escaped not in between, \
+            f"a caveat line reappeared beside the number on {decision}"
 
-    # INCONCLUSIVE prints no action rate at all, so there is no number to
-    # caveat — and a caveat about an absent number is noise.
+    # INCONCLUSIVE prints no action rate at all. The standing caveats are
+    # stated once regardless of state, so the block still carries it — what
+    # must not happen is a caveat rendering beside a number that isn't there.
     inc = _html(_report(_decision(decision="INCONCLUSIVE", target_action_rate=None)))
-    assert escaped not in inc, "caveated a headline that was never rendered"
-    print("  headline caveat sits under the number in every state that has one ✓")
+    assert _in_collapsed_block(inc, escaped), \
+        "the collapsed block lost its standing caveats on INCONCLUSIVE"
+    print("  the headline number leads uncaveated; the caveat stays findable ✓")
 
 
-def test_segment_differences_carry_their_caveat_on_every_surface() -> None:
-    """Between-segment gaps are the least reliable class of finding here
-    (inflated 2-4x, wrong segment picked in 50-72% of pairs, invented outright
-    in up to 41% of cases). Both surfaces that report them as findings must say
-    so: the panel table, and the champion line that drives RETARGET."""
+def test_segment_differences_are_stated_plainly_and_the_caveat_is_findable() -> None:
+    """⚠ Inverted 2026-08-04 on the user's explicit decision. The caveat used
+    to render on all three surfaces that report a between-segment difference —
+    the panel table, the champion line, and the target-vs-everyone-else bars.
+    Three copies of the same qualification on one page is the pattern they
+    asked to be rid of.
+
+    It is now stated ONCE, in the collapsed block. Both directions are pinned:
+    each of the three surfaces still renders its finding, and none of them
+    renders the caveat.
+    """
     from agent.read_model import SEGMENT_CAVEAT
 
     escaped = html_escape(SEGMENT_CAVEAT)
@@ -419,34 +458,42 @@ def test_segment_differences_carry_their_caveat_on_every_surface() -> None:
             "next_step_counts": {"nothing": 4, "buy_now": 3}},
     }}
     table = _html(_report(), l3=l3)
-    assert escaped in table, "the panel table reports per-type differences uncaveated"
-    assert table.index(escaped) < table.index('<table class="rk-tbl"'), \
-        "caveat must precede the per-type table it qualifies, not trail it"
+    assert '<table class="rk-tbl"' in table, "no panel table — this test is vacuous"
+    assert table.count(escaped) == 1, \
+        "the segment caveat must be stated exactly once, not per surface"
+    assert _in_collapsed_block(table, escaped), \
+        "the segment caveat is back above the panel table"
 
     champ = _html(_report(_decision(
         decision="RETARGET", champion_disposition="aspirant_clean_label",
         champion_action_rate=0.42)))
     assert "Right ad, wrong person." in champ, "champion line missing — test is vacuous"
-    assert escaped in champ, "the champion line makes a between-segment claim uncaveated"
+    assert champ.count(escaped) == 1 and _in_collapsed_block(champ, escaped), \
+        "the champion line grew its own copy of the caveat back"
 
-    # The TARGET vs EVERYONE ELSE bars are a between-segment comparison too,
-    # and on an ITERATE run they can be the ONLY one above the fold — the
-    # champion line fires on RETARGET alone, and the panel table is a long
-    # scroll below. Asserted inside the result card, because the table's own
-    # copy of the caveat would otherwise satisfy a whole-page search.
     rep = _report()
     rep.pain_map = _one_pain()
     bars = _html(rep, l3=l3)
     assert "EVERYONE ELSE" in bars, "no outside bar — this branch is untested"
     result_card = bars[:bars.index(_MAP)]
-    assert escaped in result_card, \
-        "the target-vs-everyone-else bars are compared with no caveat in view"
-    print("  segment differences carry their caveat on all three surfaces ✓")
+    assert escaped not in result_card, \
+        "a caveat reappeared inside the result card beside the bars"
+    assert _in_collapsed_block(bars, escaped), "the caveat was deleted, not moved"
+    print("  segment differences read as findings; the caveat is stated once ✓")
 
 
-def test_an_outsider_only_fix_leaves_the_ranked_list_wearing_its_reason() -> None:
-    """The floor on the page: the fix is still shown, under its own heading,
-    with the reason next to it — and the ranked list no longer contains it.
+def test_an_outsider_only_fix_sorts_last_without_announcing_the_machinery() -> None:
+    """⚠ Inverted 2026-08-04 on the user's explicit decision. The floor still
+    RUNS — it just stops narrating itself.
+
+    What it does to the page is now ordering and nothing else: an outsider-only
+    fix sorts after the in-target ones, with no "NOT RANKED" heading and no
+    reason attached. The customer sees three changes in a sensible order; the
+    reasoning stays ours.
+
+    ⚠ All three still render. `_validate_prescription` requires exactly three,
+    so dropping the demoted one would show two with no explanation — a gap
+    worse than the heading this replaces.
 
     Also pins that `bet_ranking` is passed through UNTOUCHED and in order. The
     bets carry no reference to any pain, so there is no deterministic way to
@@ -454,12 +501,16 @@ def test_an_outsider_only_fix_leaves_the_ranked_list_wearing_its_reason() -> Non
     read inventing a ranking the engine never produced."""
     from agent.read_model import OUT_OF_TARGET_ONLY_NOTE
 
+    # ⚠ The outsider-only fix is listed FIRST on purpose. With the in-target
+    # one first, "sort the demoted fix last" and "do not sort at all" emit
+    # byte-identical pages, and the ordering assertion below passes without
+    # testing anything — which is exactly what a mutation run caught.
     rep = _report(
         top_3_changes=[
-            TopChange(change="fix for the target", why="w",
-                      derives_from_pains=["P1"], lever_class="creative"),
             TopChange(change="fix for outsiders only", why="w",
                       derives_from_pains=["P2"], lever_class="media_buy"),
+            TopChange(change="fix for the target", why="w",
+                      derives_from_pains=["P1"], lever_class="creative"),
         ],
         bet_ranking=["bet one", "bet two", "bet three"],
     )
@@ -471,14 +522,20 @@ def test_an_outsider_only_fix_leaves_the_ranked_list_wearing_its_reason() -> Non
     ]
     html = _html(rep)
 
-    assert "NOT RANKED" in html, "the demoted fix lost its heading"
-    assert html_escape(OUT_OF_TARGET_ONLY_NOTE) in html, \
-        "the demoted fix must carry the reason it was demoted"
-    assert html.index(_FIXES) < html.index("NOT RANKED"), \
-        "the demoted fix must come after the ranked ones"
-    assert html.index("fix for the target") < html.index("NOT RANKED") \
-        < html.index("fix for outsiders only"), \
-        "the outsider-only fix is still inside the ranked list"
+    assert "NOT RANKED" not in html, "the demotion heading is back on the page"
+    assert "fix for the target" in html and "fix for outsiders only" in html, \
+        "a change was dropped — all three must render"
+    assert html.index("fix for the target") < html.index("fix for outsiders only"), \
+        "the floor stopped ordering: the outsider-only fix must sort last"
+    # Moved, not deleted — and only surfaced when the floor actually moved
+    # something, so it never describes machinery that did nothing.
+    assert _in_collapsed_block(html, html_escape(OUT_OF_TARGET_ONLY_NOTE)), \
+        "the reason was deleted rather than moved to the collapsed block"
+    clean = _html(_report(top_3_changes=[
+        TopChange(change="only fix", why="w", derives_from_pains=["P1"],
+                  lever_class="creative")]))
+    assert html_escape(OUT_OF_TARGET_ONLY_NOTE) not in clean, \
+        "a run where nothing was demoted still explains the demotion rule"
 
     # bet_ranking: every bet, in the engine's order, numbered from 1.
     for i, bet in enumerate(["bet one", "bet two", "bet three"], 1):
@@ -536,13 +593,14 @@ def test_audience_verdict_renders_in_both_directions() -> None:
         message="The creative's apparent target (women 35-54) does not match the "
                 "declared audience (men 18-24).")
     html = _html(rep)
-    # Scoped to the warnings strip, not to the page. The run header carries a
-    # mismatch chip too, so a page-wide search passes on that alone while the
-    # pinned surface — the strip above the result — is gone.
-    strip = re.search(r'<div class="rk-warn">(.*?)</div></div>', html, re.S)
-    assert strip, "no warnings strip rendered for a mismatched read"
-    assert "AUDIENCE MISMATCH" in strip.group(1), \
-        "the mismatch left the warnings strip"
+    # ⚠ The mismatch is a FINDING ABOUT THE AD, not a qualification of our
+    # instrument, so it is the one qualifier-shaped thing that stayed on the
+    # visible page in the 2026-08-04 change. Pinned to the header, ABOVE the
+    # diagnosis, and pinned to render exactly once.
+    assert html.count("AUDIENCE MISMATCH") == 1, \
+        "the mismatch is stated twice — it belongs in the header alone"
+    assert html.index("AUDIENCE MISMATCH") < html.index(_VERDICT), \
+        "the mismatch left the run header"
     assert "women 35-54" in html and "men 18-24" in html
 
     rep2 = _report()
@@ -659,23 +717,25 @@ def test_load_bearing_pain_is_marked_on_the_card_not_only_the_map() -> None:
 
 
 def test_page_renders_the_designed_section_order() -> None:
-    """header -> warnings -> result -> problem map -> problems -> fixes ->
-    what worked -> panel -> disclaimer -> extras -> methodology.
+    """header -> result -> problem map -> problems -> fixes -> what worked ->
+    panel -> disclaimer -> extras -> how this read was made.
 
-    This order is the user's design and is fixed. The one placement inside it
-    that carries honesty weight is the warnings strip, pinned above the result
-    — see the caveat test below.
+    This order is the user's design and is fixed. ⚠ The warnings strip that
+    used to open the page is GONE by their explicit decision, 2026-08-04 — the
+    page now opens on a finding, and every qualifier lives in the collapsed
+    block that closes it.
     """
     rep = _report(bet_ranking=["lever one"])
     rep.pain_map = _one_pain()
     html = _html(rep, l3={"segment_behavioral_distributions": _PANEL_DISTS})
-    # Each marker must identify one element. The methodology block also says
+    assert 'class="rk-warn"' not in html, \
+        "the warnings strip is back — the page opens on a qualification again"
+    # Each marker must identify one element. The collapsed block also says
     # "N simulated consumers"; if the panel marker ever matched that instead,
     # this test would be asserting the order of the wrong thing and passing.
-    for marker in (_WARN, _VERDICT, _HEADLINE, _MAP, _PANEL, _DISC, _METHOD):
+    for marker in (_VERDICT, _HEADLINE, _MAP, _PANEL, _DISC, _MADE, _METHOD):
         assert html.count(marker) == 1, f"ambiguous section marker: {marker!r}"
     beats = [
-        ("warnings", html.index(_WARN)),
         ("result", html.index(_VERDICT)),
         ("problem map", html.index(_MAP)),
         ("problems", html.index(_PROBLEMS)),
@@ -685,7 +745,7 @@ def test_page_renders_the_designed_section_order() -> None:
         ("panel", html.index(_PANEL)),
         ("disclaimer", html.index(_DISC)),
         ("extras", html.index(_VOICE)),
-        ("methodology", html.index(_METHOD)),
+        ("how it was made", html.index(_MADE)),
     ]
     for (name_a, at_a), (name_b, at_b) in zip(beats, beats[1:]):
         assert at_a < at_b, f"{name_b} must follow {name_a}, not precede it"
@@ -705,10 +765,48 @@ def test_the_problem_map_is_the_hero_and_leads_the_diagnosis() -> None:
     print("  the problem map leads the diagnosis ✓")
 
 
-def test_verdict_caveat_survives_every_decision_state() -> None:
-    """A guardrail conditional on state is a guardrail that gets missed. The
-    bucket leads the page in every state, so its caveat rides with it in every
-    state — including INCONCLUSIVE, where the card renders differently."""
+def test_the_trust_chip_stays_and_the_apology_beneath_it_does_not() -> None:
+    """⚠ 2026-08-04. `trust_note` used to render immediately under the decision
+    — "thin evidence (one narrow audience engaged); treat as a lead, not a
+    verdict" — which was the most self-undermining sentence on the page AND a
+    duplicate: the collapsed block's WHY DIRECTIONAL row says the same thing
+    with the reason attached.
+
+    The line separating a signal from an apology: a one-word quality marker is
+    a FINDING and stays visible; the sentence talking the reader out of the
+    result is not, and moves. So this pins three things at once — chip present,
+    note absent from the visible page, explanation still reachable.
+    """
+    rep = _report(_decision(decision="ITERATE",
+                            within_dispositions=["enthusiast_macros_lifter"]))
+    rep.pain_map = _one_pain()
+    m = _model(rep)
+    note = m.trust_note
+    assert note, "no trust note on this fixture — the assertion below is vacuous"
+    html = render_html(m, embed_image=False)
+
+    assert "TRUST: DIRECTIONAL" in html, "the trust chip was removed with the note"
+    assert html.index("TRUST: DIRECTIONAL") < html.index(_MAP), \
+        "the chip is a finding and belongs on the visible page"
+    assert html_escape(note) not in html, \
+        "the trust note is back under the decision, apologising for the read"
+    # The substance survives, with its reason, where someone can go and find it.
+    assert _in_collapsed_block(html, "WHY DIRECTIONAL"), \
+        "the note was dropped without its explanation surviving anywhere"
+    print("  the trust chip stays; the sentence apologising for it does not ✓")
+
+
+def test_the_verdict_states_itself_and_its_caveat_survives_every_state() -> None:
+    """⚠ Inverted 2026-08-04 on the user's explicit decision. VERDICT_CAVEAT
+    used to render under the decision chip in every state; the decision now
+    states itself.
+
+    The caveat is NOT gone — it keeps the user's own wording and is stated once
+    in the collapsed block, unconditionally, in every state including
+    INCONCLUSIVE where the card renders differently. A guardrail conditional on
+    state is a guardrail that gets missed, and that half of the old contract
+    still holds; only its position changed.
+    """
     from agent.read_model import VERDICT_CAVEAT
     escaped = html_escape(VERDICT_CAVEAT)
     for decision in ("ITERATE", "SCALE", "RETARGET", "REBUILD", "INCONCLUSIVE"):
@@ -718,10 +816,13 @@ def test_verdict_caveat_survives_every_decision_state() -> None:
                                 else ["enthusiast_macros_lifter"]))
         rep.pain_map = _one_pain()
         html = _html(rep)
-        assert escaped in html, f"verdict caveat missing on {decision}"
-        assert html.index(_VERDICT) < html.index(escaped) < html.index(_MAP), \
-            f"the caveat escaped the decision card on {decision}"
-    print("  the verdict never renders without its caveat, in any state ✓")
+        assert escaped in html, f"the verdict caveat was DELETED on {decision}"
+        assert _in_collapsed_block(html, escaped), \
+            f"the verdict caveat is back on the visible page on {decision}"
+        decision_card = html[html.index(_VERDICT):html.index(_MAP)]
+        assert escaped not in decision_card, \
+            f"the caveat reappeared under the decision chip on {decision}"
+    print("  the verdict states itself; its caveat survives in the block ✓")
 
 
 def test_ranked_levers_stay_adjacent_to_the_fixes_they_summarise() -> None:
@@ -739,12 +840,21 @@ def test_ranked_levers_stay_adjacent_to_the_fixes_they_summarise() -> None:
     print("  ranked levers stay adjacent to the fixes they summarise ✓")
 
 
-def test_every_caveat_precedes_the_result_it_qualifies() -> None:
-    """A caveat read after the number is not a caveat. Three of these qualify
-    the NUMBERS, not the diagnosis — coherence qualifies the buy figure,
-    launch scope the headline metric, panel degradation every denominator — so
-    asserting only that they precede the problem cards would pass while each
-    still arrived after the figure it exists to qualify."""
+def test_every_qualifier_is_present_and_none_precedes_a_finding() -> None:
+    """⚠ The exact inverse of what this test used to assert, and the single
+    most important test of the 2026-08-04 change. It is deliberately two-sided,
+    because each side alone is satisfiable by the wrong outcome:
+
+      * PRESENT — every qualifier still reaches the page. Passing this half
+        alone would be satisfied by leaving them scattered inline.
+      * AFTER THE FINDINGS — none of them renders before the verdict, the
+        number, or the diagnosis. Passing this half alone would be satisfied
+        by deleting them outright, which is NOT what the user asked for: they
+        asked for them to be separate and findable, not absent.
+
+    A run is constructed with every qualifier firing at once, because the
+    empty-strip case is the common one and would make this vacuous.
+    """
     from agent.schema import AudienceMatch
     rep = _report()
     rep.audience_match = AudienceMatch(
@@ -756,17 +866,22 @@ def test_every_caveat_precedes_the_result_it_qualifies() -> None:
                                     "expected": 100},
                  scope_note="brand-building is BETA",
                  coherence_warning="buy intent contradicts the glance")
-    verdict_at = html.index(_VERDICT)
-    headline_at = html.index(_HEADLINE)
+    made_at = html.index(_MADE)
     pains_at = html.index(_PROBLEMS)
-    for label in ("AUDIENCE MISMATCH", "HOW FAR TO TRUST IT", "COHERENCE",
+    # "AUDIENCE MISMATCH" is deliberately absent from this list: it is a
+    # finding about the creative, not a qualification of the instrument, and
+    # `test_audience_verdict_renders_in_both_directions` pins it to the header.
+    for label in ("HOW FAR TO TRUST IT", "COHERENCE",
                   "96 of 100", "Only one consumer type"):
-        assert label in html, f"warning missing entirely: {label}"
+        assert label in html, f"qualifier DELETED rather than moved: {label}"
         at = html.index(label)
-        assert at < verdict_at, f"{label!r} rendered after the verdict it qualifies"
-        assert at < headline_at, f"{label!r} rendered after the number it qualifies"
-        assert at < pains_at, f"{label!r} rendered after the diagnosis it qualifies"
-    print("  every caveat precedes the verdict, the number AND the diagnosis ✓")
+        assert at > pains_at, f"{label!r} still renders before the diagnosis"
+        assert at > made_at, f"{label!r} is outside the collapsed block"
+    # The block must actually be collapsed. A <div> here would put all of it
+    # back on the page while every assertion above still passed.
+    assert '<details class="rk-card rk-made"' in html, \
+        "the qualifiers are in the right place but nothing collapses them"
+    print("  every qualifier survives, and none of them precedes a finding ✓")
 
 
 def test_inconclusive_says_so_before_any_diagnosis() -> None:

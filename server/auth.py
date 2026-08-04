@@ -208,7 +208,12 @@ def safe_next(target: str | None, fallback: str = "/reads") -> str:
 # kept as redirects because they are in browser histories and in things we
 # already told people — a dead URL that someone typed from memory looks like a
 # broken server, not a renamed route. They carry no data and set no cookie.
-PUBLIC_EXACT = frozenset({"/", "/signin", "/healthz", "/login", "/logout"})
+# `/methodology` is public by deliberate decision (2026-08-04): it states what
+# the instrument can and cannot do, and it exists so the read itself does not
+# have to carry that inline. A prospect reading it before they have an account
+# is the point. It renders from constants — no disk, no client name.
+PUBLIC_EXACT = frozenset({"/", "/signin", "/healthz", "/login", "/logout",
+                          "/methodology"})
 # Prefixes. The trailing slash is not cosmetic: on "/static" a path like
 # "/static-secret" would also match.
 PUBLIC_PREFIXES = ("/static/",)

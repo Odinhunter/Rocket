@@ -319,6 +319,7 @@ NAV = (
     ("Reads", "/reads"),
     ("New read", "/reads/new"),
     ("Brand profiles", "/profiles"),
+    ("How it works", "/methodology"),
     ("Settings", "/settings"),
 )
 

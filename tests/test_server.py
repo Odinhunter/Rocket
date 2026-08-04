@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import random
 import re
+from html import escape as html_escape
 from pathlib import Path
 
 import pytest
@@ -552,6 +553,57 @@ def test_export_applies_the_ranking_floor_and_caveats_its_number(env) -> None:
     print("  export applies the ranking floor and caveats its headline ✓")
 
 
+def test_the_export_keeps_the_caveats_the_customer_read_dropped(env) -> None:
+    """⚠ The customer read and this export DIVERGE ON PURPOSE, and the whole
+    point of this test is that the divergence is intentional rather than a
+    surface that got missed.
+
+    On 2026-08-04 the user decided the customer-facing read would stop
+    rendering its caveats inline — they read as an apology for the product.
+    This export did NOT change, and must not be "harmonised" with the page:
+    it is the Track-2 artifact, produced to sit beside a contact's real
+    CTR/ROAS while we find out whether the instrument works at all. Stripping
+    a caveat here would corrupt our own evidence rather than our presentation,
+    and a bare buy-intent figure in a spreadsheet (signal-to-noise 1.0) reads
+    as a measurement with no "one line below" to qualify it.
+
+    Both halves are asserted against ONE run, so neither can drift alone.
+    """
+    from agent.dashboard_html import render_html
+    from agent.read_model import HEADLINE_CAVEAT, build_read_model
+
+    rep = _report(
+        top_3_changes=[TopChange(change="fix for the target", why="w",
+                                 derives_from_pains=["P1"])],
+        pain_map=[Pain(id="P1", pain="in-target problem",
+                       funnel_stage="conversion", severity="execution",
+                       within_target=True)],
+    )
+    runs_root = env.__dict__["runs_root"]
+    _write_run(runs_root, account="demo", brand="hw", run_id=REAL_RUN_ID,
+               label=REAL_LABEL, targeting=REAL_TARGETING, report=rep,
+               asset_rel="assets/creative.png")
+
+    sid = _start(env)
+    env.post(f"/sessions/{sid}/predict", data=_PREDICTION, follow_redirects=False)
+    engine = env.get(f"/sessions/{sid}/export").json()["engine"]
+
+    # The internal instrument keeps the caveat, attached to the number.
+    assert engine["headline"], "no headline — the assertion below would be vacuous"
+    assert engine["headline_caveat"] == HEADLINE_CAVEAT, \
+        "the export lost its caveat — the Track-2 evidence is now a bare number"
+
+    # The customer page carries it too, but only inside the collapsed block,
+    # never beside the number. Rendered from the SAME run directory.
+    html = render_html(build_read_model(runs_root / "demo" / "hw" / REAL_RUN_ID),
+                       embed_image=False)
+    escaped = html_escape(HEADLINE_CAVEAT)
+    assert escaped in html, "the caveat vanished from the read entirely"
+    assert html.index("How this read was made") < html.index(escaped), \
+        "the caveat is back beside the number on the customer read"
+    print("  export keeps the caveats inline; the read keeps them collapsed ✓")
+
+
 def test_export_survives_a_read_that_has_gone_missing(env) -> None:
     sid = _start(env)
     env.post(f"/sessions/{sid}/predict", data=_PREDICTION, follow_redirects=False)
@@ -686,6 +738,55 @@ def test_the_landing_page_publishes_nothing_off_disk(env) -> None:
         "positive control failed — the reads are not on this server at all, "
         "so the assertions above proved nothing")
     print("  2 client reads on disk, 0 of them on the public page ✓")
+
+
+def test_the_methodology_page_carries_what_the_read_stopped_saying(env) -> None:
+    """⚠ The load-bearing test of the 2026-08-04 honesty rearrangement.
+
+    The read stopped stating its standing limitations inline on the promise
+    that they are stated somewhere findable instead. If this page ever softens
+    to the point of not saying them, that promise silently becomes false and
+    the product is simply hiding its limits — which is a different thing from
+    what the user decided, and a worse one.
+
+    So each limitation is asserted by its SUBSTANCE, not by matching the
+    constants: the wording here is written for a marketer and deliberately
+    differs from `read_model`'s, so importing those would pass while this page
+    said nothing. It is also written against a populated runs_root, because
+    this page is public and must publish nothing off disk.
+    """
+    page = env.get("/methodology")
+    assert page.status_code == 200, "the methodology page is not reachable"
+    # Whitespace-normalised: the prose is wrapped for readability in the
+    # source, so a phrase spanning a line break is present on the page and
+    # absent from a naive substring search.
+    text = " ".join(page.text.lower().split())
+
+    for phrase, what in (
+        ("rough gauge, not a measurement", "the buy-intent figure is a gauge"),
+        ("same ad again moves it", "why that figure is a gauge"),
+        ("overstate the gaps between groups", "between-segment differences"),
+        ("lead to check rather than a settled fact", "how to treat them"),
+        ("coarsest thing on the page", "the verdict is the coarsest element"),
+        ("confident and wrong", "an unvalidated category does not degrade"),
+        ("not what a named human did", "simulated, not surveyed"),
+        ("not as a predictor of performance", "what is still unproven"),
+    ):
+        assert phrase in text, f"the methodology page no longer states: {what}"
+
+    # It is also where the measured STRENGTH is stated. A page that lists only
+    # limitations is the apology the user asked us to stop making, relocated.
+    assert "do not overlap" in text and "not boilerplate" in text, \
+        "the page states the limits without stating what we measured working"
+
+    # Public, so it must publish nothing off disk — same rule as `/`.
+    for leak in (REAL_LABEL, DECOY_LABEL, REAL_RUN_ID, REAL_TARGETING,
+                 "muscleblaze", "proski"):
+        assert leak.lower() not in text, f"the methodology page leaks {leak!r}"
+    signed_in = env.get("/operator").text
+    assert REAL_LABEL in signed_in, \
+        "positive control failed — no reads on this server, so the above proved nothing"
+    print("  the methodology page states every limit the read stopped stating ✓")
 
 
 def test_the_contact_address_comes_only_from_the_environment(
