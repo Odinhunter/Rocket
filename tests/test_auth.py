@@ -46,7 +46,7 @@ JSON_ROUTES = (
 def _app(tmp_path: Path, auth: Auth | None = None):
     return create_app(
         runs_root=tmp_path / "runs", sessions_root=tmp_path / "sessions",
-        base_dir=tmp_path, specs_dir=tmp_path / "specs",
+        base_dir=tmp_path,
         uploads_dir=tmp_path / "uploads", auth=auth or demo_auth(),
     )
 

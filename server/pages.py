@@ -479,6 +479,11 @@ def methodology_page(contact_email: str = "") -> str:
     categories are in progress — we will tell you before you run one, because
     an unvalidated category does not produce a vague answer, it produces a
     confident and wrong one.</p>
+  <p style="margin-top:10px"><b>Consumer types still under review.</b> Within a
+    built library, an individual consumer type is sometimes still provisional —
+    researched and in use, but not yet through our own review. A read that
+    leans on one is marked, so you always know which part of the panel is
+    settled and which is new.</p>
   <p style="margin-top:10px"><b>Simulated, not surveyed.</b> These are language
     models reasoning as specific people, not real consumers. That is what makes
     a read cost minutes instead of weeks, and it is also the thing to keep in

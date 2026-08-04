@@ -34,11 +34,11 @@ from agent.read_model import (
     purpose_scope_note,
 )
 from agent.telemetry import runs_root as engine_runs_root
-from server import app_html, pages
+from server import app_html, audience_form, pages
 from server.auth import COOKIE_NAME, DEMO_ACCOUNT, Auth, RequireSignIn, safe_next
 from server.launcher import VALIDATED_CATEGORIES, Launcher
 from server.runs import (
-    discover_runs, discover_specs, peek_run, render_blinded, render_run,
+    discover_brands, discover_runs, peek_run, render_blinded, render_run,
     resolve_run,
 )
 from server.sessions import SLOTS, PredictionMissing, SessionError, SessionStore
@@ -51,7 +51,6 @@ def create_app(
     runs_root: Path | None = None,
     sessions_root: Path | None = None,
     base_dir: Path | None = None,
-    specs_dir: Path | None = None,
     uploads_dir: Path | None = None,
     static_dir: Path | None = None,
     launcher: Launcher | None = None,
@@ -83,7 +82,6 @@ def create_app(
     # NOT Path.cwd(): uvicorn can be started from anywhere, and the failure is
     # silent — the creative simply disappears from the page.
     base_dir = Path(base_dir or REPO_ROOT)
-    specs_dir = Path(specs_dir or REPO_ROOT / "specs")
     uploads_dir = Path(uploads_dir or REPO_ROOT / "uploads")
     # REPO_ROOT, not cwd, for the same reason as base_dir above.
     static_dir = Path(static_dir or REPO_ROOT / "static")
@@ -308,42 +306,138 @@ def create_app(
         words = stem.replace("_", " ").strip()
         return words[:1].upper() + words[1:]
 
+    def _brand_choices() -> list:
+        """Brands offered by the picker, validated brands first.
+
+        Validated leads for the same reason the category list used to: the safe
+        choice is the default one, and the warning about anything else arrives
+        on the review screen before a credit is debited (the user's call,
+        2026-08-03). Nothing is labelled here.
+        """
+        brands = discover_brands(runs_root, account=DEMO_ACCOUNT)
+        brands.sort(key=lambda b: (b.category not in VALIDATED_CATEGORIES,
+                                   b.brand_profile_id))
+        return brands
+
+    def _brand_options(brands: list) -> list[tuple[str, str]]:
+        """`(value, label)` for the brand select. The category rides in the
+        label because a brand profile carries no display name of its own, and
+        "which research library is behind this" is the one thing about the
+        choice a customer might actually want to check."""
+        return [(b.brand_profile_id,
+                 f"{_humanise(b.brand_profile_id)} — {_humanise(b.category)}")
+                for b in brands]
+
+    def _new_read_form(answers: dict | None = None, *, error: str = "",
+                       filename: str = "") -> str:
+        """The form, rendered from one place.
+
+        It is reached three ways — first visit, a rejected upload, and a
+        rejected audience answer — and the two rejection paths must come back
+        with everything already chosen still chosen. Building it in three
+        places is how state 4C ("the form does not clear what was typed")
+        silently stops being true on one of them.
+        """
+        brands = _brand_choices()
+        line = ""
+        if brands:
+            try:
+                chosen, ans = _resolve_audience(answers or {}, brands)
+                line = audience_form.reach(
+                    audience_form.build_spec(chosen.template, ans),
+                    list(chosen.dispositions)).sentence
+            except Exception:  # noqa: BLE001 — a reach line is never load-bearing
+                line = ""
+        return app_html.new_read_page(
+            account=DEMO_ACCOUNT, brands=_brand_options(brands),
+            jobs=[(k, resolve_purpose(k).label) for k in PURPOSE_ORDER],
+            answers=answers, reach_line=line, error=error, filename=filename,
+        )
+
+    def _resolve_audience(data: dict, brands: list):
+        """(brand choice, validated answers) or raise `AudienceAnswerError`.
+
+        The brand is checked against the DISCOVERED list rather than loaded
+        straight from the posted id: that id reaches here from a form field, so
+        treating it as a path component would let a hand-posted request read an
+        entity directory outside this account.
+        """
+        wanted = str(data.get("brand", "") or "").strip()
+        chosen = next((b for b in brands if b.brand_profile_id == wanted),
+                      brands[0] if wanted == "" else None)
+        if chosen is None:
+            raise audience_form.AudienceAnswerError(
+                "Pick one of your brands from the list.")
+        return chosen, audience_form.parse(data)
+
     @app.get("/reads/new", response_class=HTMLResponse)
     def new_read() -> HTMLResponse:
-        specs = discover_specs(specs_dir)
-        cats = sorted(p.stem for p in (REPO_ROOT / "packs").glob("*.py")
-                      if not p.stem.startswith("_"))
-        # Validated first — the picker still leads with the safe choice even
-        # though it no longer labels the others (the user's call, 2026-08-03:
-        # the warning arrives on the review screen instead, before any spend).
-        cats.sort(key=lambda c: (c not in VALIDATED_CATEGORIES, c))
-        brands = sorted({r.brand_profile_id
-                         for r in discover_runs(runs_root, account=DEMO_ACCOUNT)})
-        return _html(app_html.new_read_page(
-            account=DEMO_ACCOUNT,
-            categories=[(c, _humanise(c)) for c in cats],
-            audiences=specs,
-            jobs=[(k, resolve_purpose(k).label) for k in PURPOSE_ORDER],
-            brands=brands,
-        ))
+        return _html(_new_read_form())
+
+    @app.get("/reads/audience-reach")
+    def audience_reach(brand: str = "", age_from: str = "", age_to: str = "",
+                       gender: str = "", income: str = "",
+                       geography: str = "") -> JSONResponse:
+        """How many of the brand's consumer types this buy reaches. $0.
+
+        Pure range arithmetic against the brand's own library — no model call,
+        measured at 0.2ms — which is what lets the form update it live while
+        someone is still choosing. It exists so the narrow-audience case is
+        visible at the point of CHOOSING rather than after a ~$4 run has
+        already produced a single-segment read.
+
+        Answers 200 with a readable sentence in every case, including a bad
+        one: this feeds a line of text beside a form, and a 4xx here would
+        replace guidance with nothing at the moment it is most useful.
+        """
+        brands = _brand_choices()
+        if not brands:
+            return JSONResponse({"sentence": ""})
+        data = {"brand": brand, "age_from": age_from, "age_to": age_to,
+                "gender": gender, "income": income, "geography": geography}
+        try:
+            chosen, answers = _resolve_audience(data, brands)
+            spec = audience_form.build_spec(chosen.template, answers)
+            return JSONResponse({
+                "sentence": audience_form.reach(
+                    spec, list(chosen.dispositions)).sentence,
+                "targeting": answers.declared_targeting(),
+            })
+        except audience_form.AudienceAnswerError as exc:
+            return JSONResponse({"sentence": str(exc)})
+        except (OSError, ValueError, KeyError):
+            return JSONResponse({"sentence": ""})
 
     @app.post("/reads/new")
     def start_prepare(
         asset: UploadFile = File(...),
-        category: str = Form(...), audience_spec: str = Form(...),
-        asset_label: str = Form(""), declared_targeting: str = Form(""),
+        brand: str = Form(""), asset_label: str = Form(""),
+        age_from: str = Form(""), age_to: str = Form(""),
+        gender: str = Form(""), income: str = Form(""),
+        geography: str = Form(""),
         purpose: str = Form(DEFAULT_PURPOSE),
-        brand_profile: str = Form(""), library_id: str = Form(""),
-        audience_id: str = Form(""), marketer_led: str = Form(""),
     ) -> Response:
         """PAID (~$0.15) — but off the request thread, so the browser gets a
-        page that can say what is happening instead of a spinner it owns."""
-        spec_path = (specs_dir / Path(audience_spec).name)
-        if not spec_path.exists():
-            return _html(app_html.error_page(
-                "No such audience spec",
-                f"{audience_spec!r} is not in {specs_dir}.",
-                account=DEMO_ACCOUNT), 400)
+        page that can say what is happening instead of a spinner it owns.
+
+        ⚠ The signature is the 2026-08-04 rewrite: `category`, `audience_spec`,
+        `declared_targeting`, `brand_profile`, `library_id` and `marketer_led`
+        are gone as INPUTS. Every one is now derived — the first five from the
+        brand, the last because `marketer_led` is what makes the customer's
+        declared demographics compose the panel, so a form built entirely out
+        of those demographics can only ever want it on. A checkbox that must
+        never be unticked is not a choice, it is a trap.
+        """
+        answers_raw = {"brand": brand, "age_from": age_from, "age_to": age_to,
+                       "gender": gender, "income": income, "geography": geography,
+                       "purpose": purpose}
+        brands = _brand_choices()
+        if not brands:
+            return _html(_new_read_form(), 400)
+        try:
+            chosen, answers = _resolve_audience(answers_raw, brands)
+        except audience_form.AudienceAnswerError as exc:
+            return _html(_new_read_form(answers_raw, error=str(exc)), 400)
 
         uploads_dir.mkdir(parents=True, exist_ok=True)
         # Never reuse the client-supplied name as a path: it is attacker- (or
@@ -355,19 +449,10 @@ def create_app(
             # Back to the form with the rejection stated and the reason next to
             # the drop target, rather than a dead-end error page — the design's
             # state 4C, and the whole point of it is that the form does not
-            # clear what was already typed.
-            return _html(app_html.new_read_page(
-                account=DEMO_ACCOUNT,
-                categories=[(c, _humanise(c)) for c in sorted(
-                    p.stem for p in (REPO_ROOT / "packs").glob("*.py")
-                    if not p.stem.startswith("_"))],
-                audiences=discover_specs(specs_dir),
-                jobs=[(k, resolve_purpose(k).label) for k in PURPOSE_ORDER],
-                brands=sorted({r.brand_profile_id for r in discover_runs(
-                    runs_root, account=DEMO_ACCOUNT)}),
-                error="That's not a .png, .jpg or .webp.",
-                filename=asset.filename or "",
-            ), 400)
+            # clear what was already chosen.
+            return _html(_new_read_form(
+                answers_raw, error="That's not a .png, .jpg or .webp.",
+                filename=asset.filename or ""), 400)
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         dest = uploads_dir / f"{stamp}_{secrets.token_hex(3)}{suffix}"
         dest.write_bytes(asset.file.read())
@@ -380,14 +465,23 @@ def create_app(
             recorded = dest
 
         label = asset_label or default_asset_label(asset.filename or dest.name)
+        # The brand's saved audience, re-aimed at the buy they described. The
+        # customer supplies `demographics`; the consumer types, attention
+        # moments, behavioural mix and panel size come from the brand's own
+        # hand-built research and are not theirs to author.
+        spec = audience_form.build_spec(chosen.template, answers)
         config = build_run_config(
             asset_path=recorded, asset_label=label,
-            audience_spec=spec_path, category=category,
+            audience_spec=spec, category=chosen.category,
             account_id=DEMO_ACCOUNT,
-            brand_profile_id=brand_profile or "default",
-            library_id=library_id, audience_id=audience_id,
-            declared_targeting=declared_targeting, purpose=purpose,
-            marketer_led=bool(marketer_led),
+            brand_profile_id=chosen.brand_profile_id,
+            library_id=chosen.library_id, audience_id=chosen.audience_id,
+            # Composed from the same answers that built the frame above, so the
+            # classifier's hint and the panel's frame can no longer disagree —
+            # which they could whenever someone typed one audience into the old
+            # free-text box and selected another from the spec dropdown.
+            declared_targeting=answers.declared_targeting(), purpose=purpose,
+            marketer_led=True,
             max_concurrent_agents=100,
         )
         token = runner.prepare_async(config)

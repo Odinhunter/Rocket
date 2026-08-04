@@ -23,6 +23,7 @@ from fastapi.testclient import TestClient
 
 from server import app_html
 from server.app import create_app
+from server.runs import discover_brands
 from tests.helpers_auth import demo_auth, sign_in
 from tests.test_server import _report
 
@@ -76,7 +77,7 @@ def client(tmp_path: Path) -> TestClient:
          label="Smoke test 3")
     c = sign_in(TestClient(create_app(
         runs_root=runs_root, sessions_root=tmp_path / "sessions",
-        base_dir=tmp_path, specs_dir=tmp_path / "specs",
+        base_dir=tmp_path,
         uploads_dir=tmp_path / "uploads", auth=demo_auth())))
     c.__dict__["runs_root"] = runs_root
     return c
@@ -325,70 +326,110 @@ def test_recovery_is_offered_only_when_there_is_something_to_replay(client) -> N
 # ---- the pickers only offer things that work --------------------------
 
 
-def test_the_audience_picker_hides_files_that_are_not_audience_specs(tmp_path: Path) -> None:
-    """`specs/` holds two unrelated kinds of file, and five of the eleven real
-    ones are the wrong kind.
+def test_the_brand_picker_hides_brands_that_cannot_actually_run(tmp_path: Path) -> None:
+    """⚠ Replaces the audience-spec picker test, 2026-08-04. The form no longer
+    offers audience files at all, so the `#29` rule — NEVER OFFER WHAT CANNOT BE
+    CHOSEN — has to hold on the surface that replaced it.
 
-    A `*_baseline.json` is four funnel numbers for the CLI's --baseline-funnel
-    flag, not an audience. Offering one meant a picker where nearly half the
-    options failed AFTER the whole form was filled in, with
-    "AudienceSpec.demographics must have >= 1 point" — which is what the user
-    hit on the first real run through the app.
+    The rule exists because the failure lands AFTER the operator has done the
+    work: they upload a creative, fill in an audience, submit, and only then
+    does the engine refuse. Every broken shape below is one that passes a
+    superficial "does the directory exist" check and dies inside
+    `RunService.prepare`.
     """
-    from server.runs import discover_specs
+    from tests.helpers_brand import build_brand
 
-    specs = tmp_path / "specs"
-    specs.mkdir()
-    # A REAL spec, copied rather than hand-written. AudienceSpec.validate
-    # checks six separate things (demographics, dispositions, the context
-    # envelope, chaos, panel size); a hand-rolled one that misses any of them
-    # would make this test pass for the wrong reason — the first draft did.
-    (specs / "real_cold_traffic.json").write_text(
-        Path("specs/health_wellness_cold_traffic.json").read_text())
-    # The real shape of the five files on disk that broke it.
-    (specs / "real_baseline.json").write_text(json.dumps(
-        {"stop_rate": 0.11, "click_rate": 0.02,
-         "visit_rate": 0.012, "convert_rate": 0.006}))
-    (specs / "empty_demographics.json").write_text(json.dumps(
-        {"demographics": [], "disposition_labels": ["x"]}))
-    (specs / "not_even_json.json").write_text("{oh dear")
+    runs = tmp_path / "runs"
+    build_brand(runs, brand="good")
 
-    offered = discover_specs(specs)
-    assert offered == ["real_cold_traffic.json"], offered
+    # 1. A profile naming no category — nothing to read the ad against.
+    ent = runs / "demo" / "no_category" / "entities"
+    (ent / "audiences").mkdir(parents=True)
+    build_brand(runs, brand="no_category")
+    profile = json.loads((ent / "brand_profile.json").read_text())
+    profile["categories"] = []
+    (ent / "brand_profile.json").write_text(json.dumps(profile))
 
-    # The predicate is the ENGINE's, not a filename pattern: a file named
-    # *_baseline that is a valid spec would be offered, and this is what keeps
-    # the filter and the failure from drifting apart.
-    (specs / "late_baseline.json").write_text(
-        (specs / "real_cold_traffic.json").read_text())
-    assert "late_baseline.json" in discover_specs(specs)
-    print("  only real, valid audience specs are offered ✓")
+    # 2. A profile whose disposition library is missing — the failure the old
+    #    free-text brand box produced on a typo, as a FileNotFoundError inside
+    #    prepare.
+    build_brand(runs, brand="no_library")
+    (runs / "demo" / "no_library" / "entities" / "library.json").unlink()
+
+    # 3. A saved audience that does not validate — the `*_baseline.json`
+    #    failure in its entity form.
+    build_brand(runs, brand="bad_audience")
+    aud_path = (runs / "demo" / "bad_audience" / "entities" / "audiences"
+                / "cold_traffic_v1.json")
+    bad = json.loads(aud_path.read_text())
+    bad["spec"]["demographics"] = []
+    aud_path.write_text(json.dumps(bad))
+
+    # 4. A saved audience naming a consumer type its own library does not have.
+    #    This one PASSES its own validate() and dies at library.resolve(), so a
+    #    check that only called validate() would offer it.
+    build_brand(runs, brand="dangling_type")
+    aud_path = (runs / "demo" / "dangling_type" / "entities" / "audiences"
+                / "cold_traffic_v1.json")
+    dangling = json.loads(aud_path.read_text())
+    dangling["spec"]["disposition_labels"] = ["a_type_that_was_deleted"]
+    aud_path.write_text(json.dumps(dangling))
+
+    offered = [b.brand_profile_id for b in discover_brands(runs, account="demo")]
+    assert offered == ["good"], (
+        f"a brand that cannot run was offered: {offered}")
+
+    # Positive control: the four broken ones are genuinely on disk, so the
+    # assertion above is the filter working rather than the fixture being empty.
+    assert len(list((runs / "demo").glob("*/entities/brand_profile.json"))) == 5
+    print("  4 unrunnable brands on disk, 0 of them offered ✓")
 
 
-def test_the_repo_s_own_specs_are_all_runnable_as_offered() -> None:
-    """The picker against the real specs/ directory. Not a unit test with
-    fixtures: the bug was about the actual files on disk."""
-    from agent.entities import AudienceSpec
-    from server.runs import discover_specs
+def test_the_repo_s_own_brands_are_all_runnable_as_offered() -> None:
+    """The picker against the real `runs/` directory rather than fixtures —
+    the `#29` bug was about the actual files on disk, not a hypothetical.
 
-    offered = discover_specs(Path("specs"))
-    assert offered, "no audience spec on disk is offerable"
-    for name in offered:
-        spec = AudienceSpec.from_dict(json.loads(Path("specs", name).read_text()))
-        spec.validate()          # the exact call prepare makes
-    assert not any(n.endswith("_baseline.json") for n in offered)
-    print(f"  {len(offered)} real specs offered, every one of them runnable ✓")
+    Skipped rather than failed when the repo has no brands set up: `runs/` is
+    gitignored, so a fresh clone legitimately has none until the scaffolds are
+    run, and failing there would report a missing fixture as a broken filter.
+    """
+    from agent.telemetry import runs_root
+
+    offered = discover_brands(runs_root(), account="demo")
+    if not offered:
+        pytest.skip("no brands scaffolded in this checkout")
+    for brand in offered:
+        brand.template.validate()        # the exact call prepare makes
+        assert brand.dispositions, f"{brand.brand_profile_id} resolved no types"
+        assert brand.category, f"{brand.brand_profile_id} has no category"
+    print(f"  {len(offered)} brands offered, every one of them runnable ✓")
 
 
-def test_a_form_with_no_usable_spec_says_so_instead_of_an_empty_picker(
+def test_an_account_with_no_brands_says_so_instead_of_an_empty_picker(
         tmp_path: Path) -> None:
+    """⚠ Rewritten 2026-08-04: the unusable state is "no BRANDS", not "no
+    audience specs", because the form now derives everything from the brand.
+
+    This is a NEW ACCOUNT's very first visit, so what it says matters as much
+    as that it says something: it explains what a brand is and that we build it
+    during onboarding, rather than describing a `specs/` directory the customer
+    will never look at. And it offers no submit path — a picker with no options
+    looks fine and then fails on a field they were never able to fill in.
+    """
     c = sign_in(TestClient(create_app(
         runs_root=tmp_path / "runs", sessions_root=tmp_path / "s",
-        base_dir=tmp_path, specs_dir=tmp_path / "none", auth=demo_auth())))
+        base_dir=tmp_path, auth=demo_auth())))
     page = c.get("/reads/new").text
-    assert "no usable audience spec" in _flat(page)
+    flat = _flat(page)
+    assert "No brands are set up on this account yet" in flat
+    assert "during onboarding" in flat, \
+        "it says what is missing without saying how it gets fixed"
     assert "<select" not in page, "an unusable form still offered a submit path"
-    print("  no specs on disk: says so rather than failing on submit ✓")
+    # The old vocabulary must not resurface here — a customer has no idea what
+    # an audience spec is, which is the whole reason for the rewrite.
+    for jargon in ("audience spec", "specs/", ".json"):
+        assert jargon not in flat, f"internal vocabulary on a customer page: {jargon!r}"
+    print("  no brands: says so, says why, offers no dead submit path ✓")
 
 
 def test_a_refused_preparation_answers_whether_it_was_charged() -> None:

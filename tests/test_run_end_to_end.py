@@ -39,6 +39,7 @@ from agent.telemetry import run_dir, runs_root
 from server.app import create_app
 from server.launcher import Launcher
 from tests.helpers_auth import demo_auth, sign_in
+from tests.helpers_brand import ANSWERS, build_brand
 from tests.test_server_runs import StubLauncher, _prep
 
 ACCOUNT, BRAND = "demo", "hw"
@@ -124,13 +125,16 @@ def world(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
          / "specs" / "health_wellness_cold_traffic.json").read_text())
     (tmp_path / "ad.png").write_bytes(b"\x89PNG\r\n\x1a\n")
     monkeypatch.setenv("ROCKET_RUNS_DIR", str(tmp_path / "runs"))
+    # The form derives category, library and audience template from the brand
+    # since 2026-08-04, so a world with no brand entities renders "no brands
+    # are set up" and never reaches the engine at all.
+    build_brand(tmp_path / "runs")
     return tmp_path
 
 
 def _client(world: Path, launcher: Launcher) -> TestClient:
     return sign_in(TestClient(create_app(
-        sessions_root=world / "sessions", base_dir=world,
-        specs_dir=world / "specs", uploads_dir=world / "uploads",
+        sessions_root=world / "sessions", base_dir=world, uploads_dir=world / "uploads",
         launcher=launcher, auth=demo_auth())))
 
 
@@ -140,8 +144,7 @@ def _drive(client: TestClient) -> str:
     resp = client.post(
         "/reads/new",
         files={"asset": ("client_ad.png", b"\x89PNG\r\n\x1a\n", "image/png")},
-        data={"category": "health_wellness_nutrition",
-              "audience_spec": "hw_cold.json"},
+        data=dict(ANSWERS),
         follow_redirects=False)
     assert resp.status_code == 303, resp.text
     where = resp.headers["location"]

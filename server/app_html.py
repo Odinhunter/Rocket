@@ -35,6 +35,7 @@ import html
 
 from agent.dashboard_html import PAGE_CSS
 from agent.read_model import DECISION_TAGLINE
+from server import audience_form
 from server.runs import RunRef
 
 # The design's two tokens that PAGE_CSS does not carry. `--leak-line` is the
@@ -177,6 +178,12 @@ textarea{line-height:1.5;resize:vertical}
   gap:11px;align-items:flex-start}
 .check input{width:16px;height:16px;margin:1px 0 0;accent-color:#0f8a6d;flex:none}
 .check b{font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer}
+/* The live audience-reach line. Deliberately styled as INFORMATION and not as
+   a warning — it is the same fact whether it reads 6 of 6 or 1 of 6, and the
+   narrow case is a thing to know, not a thing to be alarmed by. An accent tint
+   here would make widening an audience feel like clearing an error. */
+.reach{margin-top:18px;border-top:1px solid var(--line);padding-top:14px;
+  font-size:13px;line-height:1.55;color:var(--muted);min-height:20px}
 .go{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .go .quiet{line-height:1.5;max-width:460px}
 
@@ -604,42 +611,71 @@ def error_page(heading: str, message: str, *, account: str = "demo",
 # ---- new read ----------------------------------------------------------
 
 
-def new_read_page(*, account: str, categories: list[tuple[str, str]],
-                  audiences: list[str], jobs: list[tuple[str, str]],
-                  brands: list[str], error: str = "",
+def new_read_page(*, account: str, brands: list[tuple[str, str]],
+                  jobs: list[tuple[str, str]], answers: dict | None = None,
+                  reach_line: str = "", error: str = "",
                   filename: str = "") -> str:
-    """One multipart post. The drop target IS the file input, so it works
-    with JavaScript switched off — there is none on this page.
+    """One multipart post, and four questions a media buyer already answers.
 
-    The category list carries no NOT VALIDATED marker: the user's explicit
-    call, 2026-08-03. The warning still arrives, on the review screen, before
-    any credit is debited.
+    ⚠ REWRITTEN 2026-08-04. This form used to ask for an **audience spec**,
+    chosen from a dropdown of `.json` FILENAMES rendered in monospace, and for a
+    **brand profile** typed into a free-text box that — despite the category
+    select claiming to do it — was what actually chose the disposition library.
+    A typo there raised `FileNotFoundError` half way through the prepare, after
+    the creative had been uploaded. None of it was answerable by the person the
+    product is for.
+
+    It now asks what Meta Ads Manager asks: who are you buying — age, gender,
+    income, where. Those are `AudienceSpec.demographics`, which this engine has
+    always documented as "always customer-set", and they really do change the
+    panel (`server/audience_form` carries the verification). Everything else —
+    the consumer types, the attention moments, the behavioural mix, the panel
+    size, the category — is derived from the brand they pick, because that half
+    is hand-built per brand from primary research and is not theirs to author.
+
+    ⚠ **Progressive enhancement, not a JS dependency.** The reach line updates
+    live from a free endpoint (no API call, sub-millisecond) because watching
+    the number move as you widen an age range is what makes this feel like an
+    ads tool rather than a config file. With scripting off, every field still
+    submits and the same fact arrives on the review screen before any money is
+    spent. The zero-JS rule binds the REPORT, which is emailed and archived —
+    not the app chrome.
+
+    The category carries no NOT VALIDATED marker here: the user's explicit
+    call, 2026-08-03. That warning arrives on the review screen, before any
+    credit is debited.
     """
-    # value = the pack stem the engine needs, label = the human one. Two
-    # separate things: the option text is for the operator, the value is what
-    # `build_run_config` resolves a disposition library from.
-    if not audiences:
-        # Better than a select with no options, which looks fine and then
-        # fails on submit with a validation error about a field the operator
-        # was never able to fill in.
+    if not brands:
+        # Better than a select with no options, which looks fine and then fails
+        # on submit about a field the operator was never able to fill in. This
+        # is also a NEW ACCOUNT's first visit, so it says what happens next
+        # rather than describing a file layout they will never look at.
         return shell("New read", active="/reads/new", account=account, body="""
 <h1>New read</h1>
 <div class="card" style="margin-top:18px;max-width:700px">
-  <p style="font-size:14px;line-height:1.6;color:var(--ink)">There is no usable
-    audience spec on disk, so a read cannot be started.</p>
-  <p class="quiet" style="margin-top:10px;line-height:1.6">An audience spec
-    describes who the panel is. The files in <span class="mono"
-    style="display:inline;padding:2px 5px">specs/</span> named
-    <span class="mono" style="display:inline;padding:2px 5px">*_baseline.json</span>
-    are not specs — they are funnel baselines, and they are not offered here.</p>
+  <p style="font-size:14px;line-height:1.6;color:var(--ink)">No brands are set
+    up on this account yet, so there is nothing to read an ad against.</p>
+  <p class="quiet" style="margin-top:10px;line-height:1.6">A brand carries the
+    consumer research your ads get read against — the buyer types, what they
+    already believe, and how they behave in the category. We build it with you
+    during onboarding; it is not something to fill in here.</p>
 </div>""")
 
-    cat_opts = "".join(f'<option value="{_e(v)}">{_e(label)}</option>'
-                       for v, label in categories)
-    aud_opts = "".join(f"<option>{_e(a)}</option>" for a in audiences)
-    job_opts = "".join(f'<option value="{_e(v)}">{_e(label)}</option>'
-                       for v, label in jobs)
-    brand_opts = "".join(f"<option>{_e(b)}</option>" for b in brands)
+    a = {**audience_form.DEFAULTS, **(answers or {})}
+
+    def _opts(pairs, chosen) -> str:
+        return "".join(
+            f'<option value="{_e(v)}"'
+            f'{" selected" if str(v) == str(chosen) else ""}>{_e(label)}</option>'
+            for v, label in pairs)
+
+    brand_opts = _opts(brands, a.get("brand"))
+    job_opts = _opts(jobs, a.get("purpose"))
+    age_from_opts = _opts(audience_form.AGE_FROM, a["age_from"])
+    age_to_opts = _opts(audience_form.AGE_TO, a["age_to"])
+    gender_opts = _opts(audience_form.GENDERS, a["gender"])
+    income_opts = _opts(audience_form.INCOME_BANDS, a["income"])
+    geo_opts = _opts(audience_form.GEOGRAPHIES, a["geography"])
 
     if error:
         drop = f"""<label for="creative" class="drop"
@@ -673,48 +709,53 @@ def new_read_page(*, account: str, categories: list[tuple[str, str]],
 <form class="form" method="post" action="/reads/new" enctype="multipart/form-data">
 
   <div class="card">
-    <div class="k">THE CREATIVE</div>
+    <div class="k">THE AD</div>
     {drop}
-    <div class="fld">
-      <label class="lbl" for="asset_label">LABEL</label>
-      <div class="hint">How it should read in the report header.</div>
-      <input id="asset_label" name="asset_label" type="text">
-    </div>
-    <div class="two">
-      <div><label class="lbl" for="category">CATEGORY</label>
-        <div class="hint">Which disposition library to read against.</div>
-        <select id="category" name="category" required>{cat_opts}</select></div>
-      <div><label class="lbl" for="audience_spec">AUDIENCE SPEC</label>
-        <div class="hint">The audience this is aimed at.</div>
-        <select id="audience_spec" name="audience_spec" required
-          style="font-family:var(--font-mono);font-size:12px">{aud_opts}</select></div>
+    <div class="two" style="margin-top:16px">
+      <div><label class="lbl" for="asset_label">WHAT TO CALL IT</label>
+        <div class="hint">How it appears at the top of the read.</div>
+        <input id="asset_label" name="asset_label" type="text"
+          placeholder="Winter whey — carousel v2"></div>
+      <div><label class="lbl" for="brand">WHICH BRAND</label>
+        <div class="hint">Sets the consumer research this is read against.</div>
+        <select id="brand" name="brand" required>{brand_opts}</select></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="k">THE BUY</div>
+    <div class="k">WHO ARE YOU BUYING?</div>
+    <div class="hint" style="max-width:640px;margin-top:6px">The audience behind
+      this ad — the same one you set up on Meta. We build the panel to match it.</div>
+    <div class="two" style="margin-top:16px">
+      <div><label class="lbl" for="age_from">AGE</label>
+        <div class="hint">From, to.</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select id="age_from" name="age_from">{age_from_opts}</select>
+          <span class="quiet" style="flex:none">to</span>
+          <select id="age_to" name="age_to">{age_to_opts}</select>
+        </div></div>
+      <div><label class="lbl" for="gender">GENDER</label>
+        <div class="hint">Who the buy is served to.</div>
+        <select id="gender" name="gender">{gender_opts}</select></div>
+    </div>
+    <div class="two" style="margin-top:16px">
+      <div><label class="lbl" for="income">HOUSEHOLD INCOME</label>
+        <div class="hint">Roughly, per year.</div>
+        <select id="income" name="income">{income_opts}</select></div>
+      <div><label class="lbl" for="geography">WHERE</label>
+        <div class="hint">Shapes who the panel are, not how many.</div>
+        <select id="geography" name="geography">{geo_opts}</select></div>
+    </div>
+    <div id="reach" class="reach">{_e(reach_line)}</div>
+  </div>
+
+  <div class="card">
+    <div class="k">WHAT SHOULD THIS AD DO?</div>
     <div class="fld">
-      <label class="lbl" for="declared_targeting">DECLARED TARGETING</label>
-      <div class="hint" style="max-width:600px">Their stated audience, in their
-        words. A hint to the classifier — it never overrides what the creative
-        itself reads as.</div>
-      <textarea id="declared_targeting" name="declared_targeting" rows="2"></textarea>
-    </div>
-    <div class="two">
-      <div><label class="lbl" for="purpose">THE AD'S JOB</label>
-        <div class="hint">What it is being graded against.</div>
-        <select id="purpose" name="purpose">{job_opts}</select></div>
-      <div><label class="lbl" for="brand_profile">BRAND PROFILE</label>
-        <div class="hint">Where the read gets filed.</div>
-        <input id="brand_profile" name="brand_profile" type="text"
-          list="brands" style="font-family:var(--font-mono);font-size:12px">
-        <datalist id="brands">{brand_opts}</datalist></div>
-    </div>
-    <div class="check">
-      <input id="marketer_led" name="marketer_led" type="checkbox" value="1" checked>
-      <div><label for="marketer_led"><b>Marketer-led composition</b></label>
-        <div class="hint" style="max-width:560px">Compose the panel from the declared
-          audience. On for a real client read.</div></div>
+      <label class="lbl" for="purpose">THE AD'S JOB</label>
+      <div class="hint" style="max-width:600px">What it gets graded against. A
+        cold-traffic sales ad and a brand film are not judged the same way.</div>
+      <select id="purpose" name="purpose">{job_opts}</select>
     </div>
   </div>
 
@@ -723,7 +764,37 @@ def new_read_page(*, account: str, categories: list[tuple[str, str]],
     <span class="quiet">Preparing classifies the creative and resolves the panel.
       You review the cost before anything is committed.</span>
   </div>
-</form>""")
+</form>
+<script>
+/* Live audience reach. Progressive enhancement only: with this script blocked
+   every field still submits and the same fact reaches the review screen before
+   any money is spent. The endpoint costs nothing — it is range arithmetic over
+   the brand's own library, no model call — which is why it can run on every
+   keystroke-equivalent without a debounce budget. */
+(function () {{
+  var out = document.getElementById("reach");
+  var ids = ["brand", "age_from", "age_to", "gender", "income", "geography"];
+  var fields = ids.map(function (i) {{ return document.getElementById(i); }});
+  if (!out || fields.some(function (f) {{ return !f; }})) return;
+  var seq = 0;
+  function update() {{
+    var mine = ++seq;
+    var q = ids.map(function (i, n) {{
+      return i + "=" + encodeURIComponent(fields[n].value);
+    }}).join("&");
+    fetch("/reads/audience-reach?" + q, {{ headers: {{ Accept: "application/json" }} }})
+      .then(function (r) {{ return r.ok ? r.json() : null; }})
+      .then(function (d) {{
+        /* Out-of-order responses would otherwise let a stale answer overwrite
+           a newer one, and the number that lands is the one they act on. */
+        if (d && mine === seq) out.textContent = d.sentence;
+      }})
+      .catch(function () {{ /* leave the server-rendered line in place */ }});
+  }}
+  fields.forEach(function (f) {{ f.addEventListener("change", update); }});
+  update();
+}})();
+</script>""")
 
 
 def preparing_page(*, account: str, label: str, refresh: int = 2) -> str:

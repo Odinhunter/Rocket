@@ -42,6 +42,7 @@ from agent.synthesis_types import (
 from server.app import create_app
 from server.launcher import VALIDATED_CATEGORIES, Launcher
 from tests.helpers_auth import demo_auth, sign_in
+from tests.helpers_brand import ANSWERS, BRAND, build_brand
 
 # Fragments of every warning the CLI confirmation surface prints. Kept as data
 # so a new guardrail added to _print_preparation shows up as a failing name
@@ -149,7 +150,14 @@ class StubLauncher(Launcher):
 
 @pytest.fixture
 def world(tmp_path: Path):
-    """A repo-shaped temp world: a spec, a creative, empty runs/."""
+    """A repo-shaped temp world: a spec, a creative, and one brand set up.
+
+    The brand entities are what the form reads since 2026-08-04 — it derives
+    the category, the disposition library and the audience template from the
+    brand rather than asking for them. `specs/` is still written because
+    `_prep` builds its RunConfig from a spec file directly, which is the CLI's
+    path and not the form's.
+    """
     specs = tmp_path / "specs"
     specs.mkdir()
     # A REAL spec, copied rather than hand-written: AudienceSpec.from_dict is
@@ -161,13 +169,14 @@ def world(tmp_path: Path):
     )
     (tmp_path / "ad.png").write_bytes(b"\x89PNG\r\n\x1a\n")
     (tmp_path / "runs").mkdir()
+    build_brand(tmp_path / "runs")
     return tmp_path
 
 
 def _client(world: Path, launcher: Launcher) -> TestClient:
     return sign_in(TestClient(create_app(
         runs_root=world / "runs", sessions_root=world / "sessions",
-        base_dir=world, specs_dir=world / "specs",
+        base_dir=world,
         uploads_dir=world / "uploads", launcher=launcher, auth=demo_auth(),
     )))
 
@@ -185,8 +194,10 @@ def _prepare(client: TestClient, **data):
     preparation lands.
     """
     files = data.pop("files", {"asset": ("a.png", b"x", "image/png")})
-    form = {"category": "health_wellness_nutrition",
-            "audience_spec": "hw_cold.json"}
+    # The four audience answers plus the brand — what the form posts since
+    # 2026-08-04. `category` and `audience_spec` are no longer inputs at all:
+    # both are derived from the brand.
+    form = dict(ANSWERS)
     form.update(data)
     resp = client.post("/reads/new", files=files, data=form,
                        follow_redirects=False)
@@ -206,31 +217,39 @@ def _prepare(client: TestClient, **data):
 
 
 
-def test_the_picker_offers_every_category_and_leads_with_the_validated_one(world) -> None:
-    """The picker stopped marking unvalidated categories on 2026-08-03 — the
-    user's explicit call, taken with the consequence in front of them. What
-    survives is the ORDER (the safe choice is first) and the warning itself,
-    which moved to the review screen and is asserted there by
-    `test_an_unvalidated_category_warns_loudly_and_commits_anyway`.
+def test_the_picker_offers_brands_and_leads_with_the_validated_one(world) -> None:
+    """⚠ Rewritten 2026-08-04. The picker used to offer CATEGORIES (pack stems)
+    and a second dropdown of audience `.json` FILENAMES. It now offers brands,
+    because the category, the disposition library and the audience template are
+    all derivable from one — and the free-text brand box that actually selected
+    the library is gone with them.
 
-    Pinned because a marker that quietly reappears, or an order that quietly
-    goes alphabetical, are both changes to a decision rather than to a style.
+    What survives from the old contract is the ORDER: the safe choice leads,
+    and nothing is marked (the user's explicit call, 2026-08-03 — the warning
+    moved to the review screen, asserted by
+    `test_an_unvalidated_category_warns_loudly_and_commits_anyway`).
+
+    A marker that quietly reappears, or an order that quietly goes
+    alphabetical, are both changes to a decision rather than to a style.
     """
+    # A second brand whose category has no validated library, and whose id
+    # sorts BEFORE the validated one — so "validated first" cannot pass by
+    # alphabetical accident, which is what it would do with a name like "zzz".
+    build_brand(world / "runs", brand="aaa_choc", category="chocolate",
+                audience_id="cold_traffic_v1")
     client = _client(world, StubLauncher())
     page = client.get("/reads/new").text
 
-    packs = [p.stem for p in Path("packs").glob("*.py")
-             if not p.stem.startswith("_")]
-    for cat in packs:
-        assert f'value="{cat}"' in page, f"{cat} missing from the picker"
+    for brand in (BRAND, "aaa_choc"):
+        assert f'value="{brand}"' in page, f"{brand} missing from the picker"
     assert "NOT VALIDATED" not in page
+    assert "hw_cold.json" not in page, "a filename is back in front of the customer"
+    assert "audience_spec" not in page and "declared_targeting" not in page, \
+        "a field the customer cannot answer came back"
 
-    order = [c for c in
-             [page.split('value="')[i].split('"')[0]
-              for i in range(1, page.count('value="') + 1)] if c in packs]
-    assert order[0] in VALIDATED_CATEGORIES, (
-        f"picker leads with {order[0]!r}, which has no validated library")
-    print(f"  {len(packs)} categories offered, validated first, unmarked ✓")
+    assert page.index(f'value="{BRAND}"') < page.index('value="aaa_choc"'), (
+        "the picker leads with a brand whose category has no validated library")
+    print("  brands offered, validated category first, no filenames ✓")
 
 
 def test_prepare_builds_the_config_the_form_described(world) -> None:
@@ -239,16 +258,30 @@ def test_prepare_builds_the_config_the_form_described(world) -> None:
     resp = _prepare(
         client,
         files={"asset": ("client_ad.png", b"\x89PNG\r\n\x1a\n", "image/png")},
-        asset_label="Q3 whey", declared_targeting="adults 25-44, metro",
-        purpose="direct_sell", brand_profile="hw", marketer_led="1")
+        asset_label="Q3 whey", purpose="direct_sell",
+        age_from="25", age_to="44", gender="female", income="17:40",
+        geography="metro tier-1")
     assert resp.status_code == 200, resp.text
 
     config = launcher.prepared_configs[-1]
     assert config.asset.label == "Q3 whey"
+    # Derived from the brand, never posted — the whole point of the rewrite.
     assert config.category == "health_wellness_nutrition"
-    assert config.declared_targeting == "adults 25-44, metro"
-    assert config.marketer_led is True
-    assert config.account_id == "demo" and config.brand_profile_id == "hw"
+    assert config.account_id == "demo" and config.brand_profile_id == BRAND
+    assert config.library_id == "hw_lib_v1" and config.audience_id == "cold_traffic_v1"
+    # Composed from the four answers, so the classifier's hint and the panel's
+    # frame come from one source and can no longer disagree.
+    assert config.declared_targeting == (
+        "women 25-44, metro tier-1, ₹17-40L household income"), \
+        f"declared targeting was not composed from the answers: {config.declared_targeting!r}"
+    # The answers reached the SPEC, not just the prose.
+    point = config.audience_spec.demographics[0]
+    assert len(config.audience_spec.demographics) == 1
+    assert (point.gender, point.age_min, point.age_max) == ("female", 25, 44)
+    assert (point.income_lpa_min, point.income_lpa_max) == (17.0, 40.0)
+    # Inherited from the brand's saved audience rather than asked for.
+    assert config.audience_spec.panel_size == 30
+    assert len(config.audience_spec.context_envelope) >= 3
     # The upload landed outside the repo tree the tests were given, with a
     # server-minted name rather than the client's.
     saved = list((world / "uploads").glob("*.png"))
@@ -258,14 +291,26 @@ def test_prepare_builds_the_config_the_form_described(world) -> None:
     print("  prepare builds the config the form described ✓")
 
 
-def test_marketer_led_is_off_when_the_box_is_unticked(world) -> None:
-    """An omitted checkbox posts nothing at all. Defaulting it to True would
-    silently change panel composition on every run."""
+def test_marketer_led_is_always_on_from_the_form(world) -> None:
+    """⚠ Inverted 2026-08-04, and the inversion is the honest direction.
+
+    `marketer_led` was a checkbox, and it is what makes the customer's declared
+    demographics compose the panel. A form built ENTIRELY out of those
+    demographics can only ever want it on: unticked, every answer they gave
+    would be collected, displayed back to them, and then ignored by the panel
+    builder. A checkbox that must never be unticked is not a choice, it is a
+    trap, so it is gone and the value is derived.
+
+    The CLI still exposes `--marketer-led`; this pins the form's path only.
+    """
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
+    page = client.get("/reads/new").text
+    assert "marketer_led" not in page, "the trap checkbox is back on the form"
     _prepare(client)
-    assert launcher.prepared_configs[-1].marketer_led is False
-    print("  unticked marketer-led stays off ✓")
+    assert launcher.prepared_configs[-1].marketer_led is True, (
+        "the demographics the customer answered would not compose the panel")
+    print("  marketer-led is derived, not offered as a checkbox ✓")
 
 
 def test_upload_rejects_a_non_image(world) -> None:
@@ -282,13 +327,24 @@ def test_upload_rejects_a_non_image(world) -> None:
     print("  non-image upload refused before any spend, form kept ✓")
 
 
-def test_unknown_audience_spec_is_refused_before_spending(world) -> None:
+def test_an_unknown_brand_is_refused_before_spending(world) -> None:
+    """The brand id arrives from a form field and is resolved against the
+    DISCOVERED list, never used as a path component. Posting a traversal
+    reaches `_resolve_audience`, which does not find it and refuses — before
+    target_id fires and before anything is charged.
+
+    Both halves matter: a 400 with the prepare still having run would be a paid
+    refusal.
+    """
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json"))
     client = _client(world, launcher)
-    resp = _prepare(client, audience_spec="../../etc/passwd")
-    assert resp.status_code == 400
-    assert not launcher.prepared_configs
-    print("  bad spec path refused before target_id fires ✓")
+    for bad in ("../../etc/passwd", "no_such_brand", "demo/health_wellness_demo"):
+        resp = _prepare(client, brand=bad)
+        assert resp.status_code == 400, f"{bad!r} was accepted"
+        assert not launcher.prepared_configs, f"{bad!r} reached the engine"
+        assert "Pick one of your brands" in resp.text, \
+            f"{bad!r} refused without saying what to do"
+    print("  an unknown brand is refused before target_id fires ✓")
 
 
 # ---- the confirmation surface -----------------------------------------
@@ -397,10 +453,16 @@ def test_an_unvalidated_category_warns_loudly_and_commits_anyway(world) -> None:
     consequence stated. The text that says so is now the entire guardrail,
     which is exactly why it is asserted word by word here.
     """
+    # The category is no longer posted — it comes off the brand. So the
+    # unvalidated case needs a BRAND whose category has no validated library,
+    # which is also the shape a real customer hits: they pick their brand, and
+    # whether we have researched that category is our fact, not their input.
+    build_brand(world / "runs", brand="choc_co", category="chocolate",
+                audience_id="cold_traffic_v1")
     launcher = StubLauncher(_prep(world, spec_name="specs/hw_cold.json",
                                   category="chocolate"))
     client = _client(world, launcher)
-    page = _prepare(client, category="chocolate").text
+    page = _prepare(client, brand="choc_co").text
     run_id = launcher.stub_prep.run_id
 
     assert "We haven&#x27;t validated this category yet" in page

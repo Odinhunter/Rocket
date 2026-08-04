@@ -19,7 +19,9 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from agent.dashboard_html import render_html
-from agent.entities import AudienceSpec
+from agent.entities import (
+    AudienceSpec, BrandProfile, DispositionLibrary, SavedAudience,
+)
 from agent.read_model import ReadModel, build_read_model
 
 
@@ -113,35 +115,105 @@ def discover_runs(runs_root: Path, *, account: str | None = None) -> list[RunRef
     return out
 
 
-def discover_specs(specs_dir: Path) -> list[str]:
-    """The audience specs that would actually survive being run.
+@dataclass(frozen=True)
+class BrandChoice:
+    """One brand a read can actually be run against, with everything a run
+    needs already resolved off it.
 
-    `specs/` holds two unrelated kinds of file. An **audience spec** describes
-    who the panel is (`demographics`, `disposition_labels`, …). A
-    **baseline-funnel** file is four numbers — `{stop_rate, click_rate,
-    visit_rate, convert_rate}` — that the CLI takes through `--baseline-funnel`
-    and that has nothing to do with audiences. Five of the eleven files on disk
-    are the second kind, and they are named `*_baseline.json`.
+    ⚠ This exists because the "new read" form used to ask the customer for the
+    things on the right-hand side of this dataclass — a category from a
+    dropdown, an audience from a list of `.json` filenames, and a brand profile
+    typed into a FREE-TEXT box that silently selected the disposition library.
+    Every one is derivable from the brand, and the free-text one failed hard:
+    `DispositionLibrary.load` raises `FileNotFoundError` on a typo, so a
+    misspelling ended the prepare after the creative had been uploaded.
 
-    Globbing `*.json` therefore offered a picker where nearly half the options
-    could not be chosen: `RunService.prepare` validates the spec on its first
-    lines and dies with "demographics must have >= 1 point". This is the same
-    rule `discover_runs` follows one function up — **listing something that is
-    guaranteed to fail is worse than not listing it**, because the failure
-    happens after the operator has filled in the whole form.
-
-    Filtered by the engine's OWN predicate (`AudienceSpec.validate`) rather
-    than by a filename pattern, so a `*_baseline.json` that grows into a real
-    spec starts being offered, and a malformed real spec stops being.
+    ⚠ It carries the resolved `template` and `dispositions` rather than the ids
+    needed to re-load them, and that is deliberate. Re-loading would mean the
+    caller resolving `runs/` a SECOND time — and the entity loaders resolve it
+    from `agent.telemetry.runs_root()` while this server resolves it from the
+    `runs_root` handed to `create_app`. Two spellings of that path is the exact
+    bug that put a finished ~$4 run somewhere the app could not see it. One
+    lookup, here, and the result travels.
     """
-    out: list[str] = []
-    for path in sorted(specs_dir.glob("*.json")):
+
+    brand_profile_id: str
+    category: str
+    library_id: str
+    audience_id: str
+    template: AudienceSpec
+    dispositions: tuple
+
+    @property
+    def n_consumer_types(self) -> int:
+        return len(self.dispositions)
+
+
+def discover_brands(runs_root: Path, *, account: str) -> list[BrandChoice]:
+    """The brands this account can actually run a read against.
+
+    ⚠ Filtered by the ENGINE'S OWN predicates rather than by what exists on
+    disk. This is the `#29` rule, and it replaced a `discover_specs` that
+    applied the same discipline to the audience-file picker this supersedes:
+    listing something guaranteed to fail is worse than not listing it, because
+    the failure lands AFTER the operator has filled in the whole form and
+    uploaded the creative.
+
+    A brand is offered only when all four hold, and each rules out a real
+    failure that has a shape:
+
+      * the profile parses and names a category (nothing to run against);
+      * its disposition library loads (the free-text-typo failure, now
+        unreachable from the form);
+      * it has a saved audience whose spec VALIDATES (the `*_baseline.json`
+        failure, in its entity form);
+      * the audience's disposition labels all RESOLVE against the library — a
+        saved audience naming a type its own library dropped would pass its own
+        validate() and then die inside `RunService.prepare`.
+
+    ⚠ `audience_ids` is a list. The first entry whose spec both validates and
+    resolves wins, so a profile carrying a broken audience alongside a working
+    one is offered rather than hidden. Every profile on disk carries exactly
+    one today; the rule is written down so the second does not surprise anyone.
+
+    ⚠ `runs_root` is a PARAMETER, matching `discover_runs`, and the entities are
+    read through it rather than through `BrandProfile.load` and friends — those
+    resolve the path themselves from `agent.telemetry`, which is a different
+    spelling of it. See `BrandChoice`.
+    """
+    out: list[BrandChoice] = []
+    root = runs_root / account
+    if not root.is_dir():
+        return out
+    for profile_path in sorted(root.glob("*/entities/brand_profile.json")):
+        entities = profile_path.parent
+        brand_id = profile_path.parts[-3]
         try:
-            spec = AudienceSpec.from_dict(json.loads(path.read_text()))
-            spec.validate()
+            profile = BrandProfile.from_dict(json.loads(profile_path.read_text()))
+            library = DispositionLibrary.from_dict(
+                json.loads((entities / "library.json").read_text()))
         except Exception:  # noqa: BLE001 — any failure means "do not offer it"
             continue
-        out.append(path.name)
+        if not profile.categories:
+            continue
+        for audience_id in profile.audience_ids:
+            try:
+                saved = SavedAudience.from_dict(json.loads(
+                    (entities / "audiences" / f"{audience_id}.json").read_text()))
+                saved.spec.validate()
+                dispositions = library.resolve(saved.spec.disposition_labels)
+            except Exception:  # noqa: BLE001
+                continue
+            out.append(BrandChoice(
+                brand_profile_id=brand_id,
+                category=profile.categories[0],
+                library_id=profile.library_id,
+                audience_id=audience_id,
+                template=saved.spec,
+                dispositions=tuple(dispositions),
+            ))
+            break
+    out.sort(key=lambda b: b.brand_profile_id)
     return out
 
 
