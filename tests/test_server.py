@@ -771,6 +771,12 @@ def test_the_methodology_page_carries_what_the_read_stopped_saying(env) -> None:
         ("confident and wrong", "an unvalidated category does not degrade"),
         ("not what a named human did", "simulated, not surveyed"),
         ("not as a predictor of performance", "what is still unproven"),
+        # ⚠ The other half of a two-sided pin. `server/app.py:_prep_flags`
+        # drops provisional dispositions from the review screen ON THE STATED
+        # GROUNDS that they are covered here. That test asserts only their
+        # ABSENCE there, so without this line someone could delete this
+        # paragraph and leave the justification silently false.
+        ("still under review", "consumer types that are provisional"),
     ):
         assert phrase in text, f"the methodology page no longer states: {what}"
 
