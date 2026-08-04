@@ -10,7 +10,67 @@ from our own measurements (`HANDOFF.md`, and §0 below) and from `docs/research/
 **A third label says what it costs to know if it worked:** **[$0]** offline · **[$4]** one paid run
 · **[$4×n]** more.
 
-⚠ **Nothing here is implemented.** This is the plan, not a changelog.
+⚠ **Status, 2026-08-04: §1 and §5.1 are now BUILT — see "What shipped" below.**
+Everything in §2, §3 and §4 is still plan, not changelog.
+
+---
+
+## ⭐ What shipped, 2026-08-04 — the whole `$0` tier
+
+All of §1 and §5.1, plus the gate test as runnable code. No engine change, no
+paid run, and every item is visible on the runs already on disk.
+
+| item | what it does now |
+|---|---|
+| **§1.1** | The problem chip reads **"3 of 5 consumer types · quoted from 4 people"** instead of "3 types". `read_model.breadth_line` composes it; `grounding.attribute_quotes_to_agents` traces each pain's quotes back to the transcripts that contain them. |
+| **§1.2** | `read_model.split_changes_by_target` — a fix resting **only** on out-of-target problems is shown under **NOT RANKED** with its reason, on the page and in the CLI. |
+| **§1.3** | Brand-relative panel agreement as a **methodology row**, not a flag. See "why the flag stays suppressed" below. |
+| **§1.4** | `read_model.SEGMENT_CAVEAT`, on the panel table and the champion line. |
+| **§1.5** | `read_model.HEADLINE_CAVEAT`, directly under the number, in every state that renders one. The number **keeps its position** — the user's call, 2026-08-04. |
+| **§5.1** | `run.json` now stamps `disposition_version` (was the literal `"auto"` on every run ever made), `panel_version`, `funnel_enabled`, `vector_schema_version` and **fingerprints of every static prompt template**. `scripts/freeze_config.py` prints the record to publish beside a result. |
+| **§0a/§0b** | `scripts/gate_test.py` — the measurement below, re-runnable for `$0` after any engine change. It previously existed only as prose in this file. |
+
+**Three things learned while building it, each of which changed the design:**
+
+1. ⚠ **A per-pain count of PEOPLE cannot be derived from what the engine
+   records, and must not be faked.** `cited_by` holds disposition *labels*;
+   `Quote` carries no agent id; L2/L3 collapse agents to histograms.
+   `synthesis_assess.py:424` is the last point at which agent identity exists,
+   and it evaporates into prompt text. Dispositions are 15–24 agents each, so
+   rendering "19 people" for a pain that 3 may have raised would inflate in the
+   flattering direction — the very defect §1.1 exists to fix. **What ships is a
+   count of consumer types with its denominator, plus a count of people whose
+   own words are quoted.** The second number is **bounded by quotes emitted**
+   (the distribution across 110 pains is 2 quotes: 9, 3: 64, 4: 37, so it is
+   always 2–4). **It is a grounding count, not prevalence. Never promote it.**
+   Emitting agent ids from the assess pass would fix this properly — a schema +
+   prompt change, and therefore `$4` to see.
+2. ⚠ **`cited_by` is never validated against the panel.** On 2 of 183 citations
+   the assess pass named a consumer type **that was not in that run's panel at
+   all**, inflating the chip by one. The chip now counts against the panel that
+   really ran.
+3. ⚠ **§1.2's "<5% of the panel" floor cannot bind and was replaced.** At 15–24
+   agents per disposition, no pain cited by even one type falls under 5%. The
+   rule that does bind — and is deterministic — is out-of-target-only, which
+   catches 2 of 51 ranked changes on disk, with 8 more mixing insiders and
+   outsiders. Mixed fixes stay ranked.
+
+⚠ **Not closed: `bet_ranking` is exempt from the floor.** The numbered levers
+are free text with **no reference to any pain id**, so there is no deterministic
+way to tell whether a lever leans on a demoted fix. They are passed through
+untouched and unreordered rather than filtered on a guess. Giving bets a
+`derives_from_pains` field is the real fix, and it is an engine change.
+
+### Why `homogenization_high` stays suppressed (§1.3)
+
+`ROADMAP.md` proposed replacing the suppressed flag with a **>2σ brand-relative
+detector**. Measured against the runs on disk, **that flag would never fire**:
+health_wellness_demo across 15 v3 runs is mean **0.69**, sd **0.16**, max
+**0.87** — against a 2σ bar of **1.01**. A guardrail that cannot fire is worse
+than none, because it reads as a check that passed. So the number and its
+context ship as an observation and **both suppression sites stay**. Baselines
+are scoped by brand *and* protocol: v2 and v3 measure **0.60 vs 0.69** on the
+same brand, so pooling them compares a run against a different instrument.
 
 ---
 
@@ -62,6 +122,17 @@ and it is the first hard evidence that the instrument carries real signal at all
 ⚠ **But same-ad stability is only 0.231.** Two runs of the *same* ad share under a quarter of their
 pain vocabulary. It discriminates; it is not yet repeatable. Both facts are true and the read
 should reflect both.
+
+⭐ **Both are now runnable as code: `.venv/bin/python scripts/gate_test.py` ($0).**
+It reproduces §0a exactly (0.111 / 0.111, signal-to-noise 1.00) and §0b to within
+rounding. It also reports §0b under **four tokenizations** rather than one,
+because there is no single right answer and the same class of arbitrary choice
+moved published human-vs-silicon correlations from r = .23 to .84. **The
+separation holds under all four** — which is a stronger result than the single
+figure below. The numbers quoted here are the stop+len>3 row (that variant
+measures 0.234 / 0.148 against the 0.231 / 0.148 published above; the difference
+is a stopword-list detail, and it is a small live demonstration of exactly the
+analytic-flexibility problem §5.1 is about).
 
 ### 0c. QC1/QC2 convex-combination check — **NOT YET RUN** **[$0]**
 Neumann et al.: is the panel-wide average a valid convex combination of the subgroup averages?

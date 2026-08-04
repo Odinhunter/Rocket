@@ -94,6 +94,8 @@ def _model(report: Report | None = None, **kw) -> ReadModel:
     }))
     if "l3" in kw:
         (rd / "l3_summary.json").write_text(json.dumps(kw.pop("l3")))
+    if "transcripts" in kw:
+        (rd / "transcripts.json").write_text(json.dumps(kw.pop("transcripts")))
     m = build_read_model(rd)
     for k, v in kw.items():
         setattr(m, k, v)
@@ -355,6 +357,165 @@ def test_flags_render_in_plain_words_not_engine_tokens() -> None:
     assert "Only one consumer type fell within the declared target" in html
     assert "single_within_target" not in html, "raw flag token leaked to the client"
     print("  methodology flags render in plain words ✓")
+
+
+def test_panel_agreement_observation_reaches_the_methodology_block() -> None:
+    """How alike the panel's segments were, against this brand's own history.
+    It is an observation and not a flag — a >2 sigma detector would never fire
+    on the real distribution (mean 0.69, sd 0.16, max 0.87, bar 1.01), and a
+    check that cannot fire reads as a check that passed."""
+    note = "Segments in this run reacted alike 87% of the time, against 69% typical."
+    html = _html(homogeneity_note=note)
+    assert "PANEL AGREEMENT" in html, "the observation lost its label"
+    assert html_escape(note) in html, "the observation never reached the page"
+    assert html.index(_METHOD) < html.index(html_escape(note)), \
+        "panel agreement belongs in the methodology block, not above the result"
+    assert "homogenization_high" not in html, "the suppressed flag came back as a token"
+    print("  panel-agreement observation reaches the methodology block ✓")
+
+
+def test_headline_caveat_sits_under_the_number_in_every_decision_state() -> None:
+    """The buy-intent number does not discriminate between ads (signal-to-noise
+    1.0 — read_model.HEADLINE_CAVEAT carries the measurement). The user's call
+    was that it KEEPS its position and wears its limitation, so the caveat must
+    be unconditional and adjacent: between the number and the next claim, in
+    every state where a headline renders.
+
+    Imports the constant rather than restating it — a copy in the test would go
+    on passing after the page's wording drifted."""
+    from agent.read_model import HEADLINE_CAVEAT
+
+    escaped = html_escape(HEADLINE_CAVEAT)
+    for decision in ("ITERATE", "SCALE", "RETARGET", "REBUILD"):
+        rep = _report(_decision(decision=decision))
+        rep.pain_map = _one_pain()
+        html = _html(rep)
+        assert escaped in html, f"headline caveat missing on {decision}"
+        assert html.index(_HEADLINE) < html.index(escaped), \
+            f"caveat rendered above the number it qualifies on {decision}"
+        assert html.index(escaped) < html.index(_MAP), \
+            f"caveat escaped the result card on {decision}"
+
+    # INCONCLUSIVE prints no action rate at all, so there is no number to
+    # caveat — and a caveat about an absent number is noise.
+    inc = _html(_report(_decision(decision="INCONCLUSIVE", target_action_rate=None)))
+    assert escaped not in inc, "caveated a headline that was never rendered"
+    print("  headline caveat sits under the number in every state that has one ✓")
+
+
+def test_segment_differences_carry_their_caveat_on_every_surface() -> None:
+    """Between-segment gaps are the least reliable class of finding here
+    (inflated 2-4x, wrong segment picked in 50-72% of pairs, invented outright
+    in up to 41% of cases). Both surfaces that report them as findings must say
+    so: the panel table, and the champion line that drives RETARGET."""
+    from agent.read_model import SEGMENT_CAVEAT
+
+    escaped = html_escape(SEGMENT_CAVEAT)
+    l3 = {"segment_behavioral_distributions": {
+        "enthusiast_macros_lifter::moderate": {
+            "counts": {"scroll_past": 8}, "next_step_counts": {"nothing": 8}},
+        "aspirant_clean_label::moderate": {
+            "counts": {"scroll_past": 4, "save": 3},
+            "next_step_counts": {"nothing": 4, "buy_now": 3}},
+    }}
+    table = _html(_report(), l3=l3)
+    assert escaped in table, "the panel table reports per-type differences uncaveated"
+    assert table.index(escaped) < table.index('<table class="rk-tbl"'), \
+        "caveat must precede the per-type table it qualifies, not trail it"
+
+    champ = _html(_report(_decision(
+        decision="RETARGET", champion_disposition="aspirant_clean_label",
+        champion_action_rate=0.42)))
+    assert "Right ad, wrong person." in champ, "champion line missing — test is vacuous"
+    assert escaped in champ, "the champion line makes a between-segment claim uncaveated"
+
+    # The TARGET vs EVERYONE ELSE bars are a between-segment comparison too,
+    # and on an ITERATE run they can be the ONLY one above the fold — the
+    # champion line fires on RETARGET alone, and the panel table is a long
+    # scroll below. Asserted inside the result card, because the table's own
+    # copy of the caveat would otherwise satisfy a whole-page search.
+    rep = _report()
+    rep.pain_map = _one_pain()
+    bars = _html(rep, l3=l3)
+    assert "EVERYONE ELSE" in bars, "no outside bar — this branch is untested"
+    result_card = bars[:bars.index(_MAP)]
+    assert escaped in result_card, \
+        "the target-vs-everyone-else bars are compared with no caveat in view"
+    print("  segment differences carry their caveat on all three surfaces ✓")
+
+
+def test_an_outsider_only_fix_leaves_the_ranked_list_wearing_its_reason() -> None:
+    """The floor on the page: the fix is still shown, under its own heading,
+    with the reason next to it — and the ranked list no longer contains it.
+
+    Also pins that `bet_ranking` is passed through UNTOUCHED and in order. The
+    bets carry no reference to any pain, so there is no deterministic way to
+    demote one; reordering or dropping a numbered lever on a guess would be the
+    read inventing a ranking the engine never produced."""
+    from agent.read_model import OUT_OF_TARGET_ONLY_NOTE
+
+    rep = _report(
+        top_3_changes=[
+            TopChange(change="fix for the target", why="w",
+                      derives_from_pains=["P1"], lever_class="creative"),
+            TopChange(change="fix for outsiders only", why="w",
+                      derives_from_pains=["P2"], lever_class="media_buy"),
+        ],
+        bet_ranking=["bet one", "bet two", "bet three"],
+    )
+    rep.pain_map = [
+        Pain(id="P1", pain="In-target problem. Second sentence.",
+             funnel_stage="conversion", severity="execution", within_target=True),
+        Pain(id="P2", pain="Outsider problem. Second sentence.",
+             funnel_stage="attention", severity="execution", within_target=False),
+    ]
+    html = _html(rep)
+
+    assert "NOT RANKED" in html, "the demoted fix lost its heading"
+    assert html_escape(OUT_OF_TARGET_ONLY_NOTE) in html, \
+        "the demoted fix must carry the reason it was demoted"
+    assert html.index(_FIXES) < html.index("NOT RANKED"), \
+        "the demoted fix must come after the ranked ones"
+    assert html.index("fix for the target") < html.index("NOT RANKED") \
+        < html.index("fix for outsiders only"), \
+        "the outsider-only fix is still inside the ranked list"
+
+    # bet_ranking: every bet, in the engine's order, numbered from 1.
+    for i, bet in enumerate(["bet one", "bet two", "bet three"], 1):
+        assert bet in html, f"lever {bet!r} was dropped"
+    assert html.index("bet one") < html.index("bet two") < html.index("bet three"), \
+        "the levers were reordered — the floor must not reach bet_ranking"
+    print("  outsider-only fix demoted with its reason; bet_ranking untouched ✓")
+
+
+def test_breadth_chip_reaches_both_problem_surfaces_with_its_denominator() -> None:
+    """The chip is composed by `ReadModel.breadth_line` and rendered twice — the
+    map card and the problem card. It must be the SAME string in both, and it
+    must never regress to a bare "1 type", which had no denominator and no
+    indication of how much evidence sat behind it.
+
+    Driven through the rendered page rather than asserted against the source,
+    because `_marker` feeds two call sites and pinning one would leave the other
+    free to drift."""
+    quote = "the big grey tub reads as gym-bro kit and that is not me"
+    rep = _report()
+    rep.pain_map = [Pain(
+        id="P1", pain="The load-bearing one. Second sentence.",
+        funnel_stage="conversion", severity="execution", within_target=True,
+        cited_by=["enthusiast_macros_lifter"],
+        evidence_quotes=[Quote(quote=quote, disposition="enthusiast_macros_lifter",
+                               round=1, context="commute_scroll")])]
+    html = _html(rep, l3={"segment_behavioral_distributions": {
+        "enthusiast_macros_lifter::moderate": {"counts": {"scroll_past": 4}},
+        "aspirant_clean_label::moderate": {"counts": {"scroll_past": 6}},
+    }}, transcripts=[
+        {"agent_id": 3, "encoding_text": f"R1 GUT: {quote}", "reflection_text": ""}])
+
+    chip = "1 of 2 consumer types · quoted from 1 person"
+    assert html.count(html_escape(chip)) == 2, \
+        "the chip must render identically on the map card AND the problem card"
+    assert ">1 type<" not in html, "the old denominator-free chip came back"
+    print("  breadth chip reaches both problem surfaces, with its denominator ✓")
 
 
 def test_provisional_dispositions_and_engine_read_reach_methodology() -> None:

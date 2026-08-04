@@ -231,6 +231,44 @@ def test_a_run_goes_from_upload_to_a_rendered_read(world: Path) -> None:
     print("  upload → prepare → commit → progress → complete → read ✓")
 
 
+def test_a_broken_provenance_record_does_not_cost_the_whole_run(
+        world: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """§5.1 added a write near the END of the paid path, which is the most
+    expensive place in this codebase to add anything that can raise: a throw
+    there replaces the return value of a synthesis already paid for, and a
+    transcript we bought gets discarded.
+
+    Driven through the real chain rather than against the payload helper —
+    a unit test proves the try/except, not that a ~$4 run survives it.
+    """
+    import agent.run_service as rs
+
+    def boom() -> dict:
+        raise RuntimeError("a template moved and importlib is unhappy")
+
+    monkeypatch.setattr(rs, "prompt_fingerprints", boom)
+
+    prep = _prep(world, spec_name="specs/hw_cold.json")
+    launcher = FakeEngine(prep)
+    client = _client(world, launcher)
+    client.app_run_id = prep.run_id  # type: ignore[attr-defined]
+
+    page = _await(client, _drive(client), "READ COMPLETE")
+
+    expected = runs_root() / prep.config.account_id / \
+        prep.config.brand_profile_id / prep.run_id
+    on_disk = json.loads((expected / "run.json").read_text())
+    assert on_disk["status"] == "complete", "the run was lost to a provenance failure"
+    assert on_disk["report"] is not None, "the paid-for report was discarded"
+    assert on_disk["prompt_fingerprints"] is None, "expected the record to degrade to null"
+    assert "ITERATE" in page.text
+
+    # And the read still renders — the failure is confined to the record.
+    key = f"{prep.config.account_id}/{prep.config.brand_profile_id}/{prep.run_id}"
+    assert "PROBLEM MAP" in client.get(f"/reads/{key}").text
+    print("  a raising provenance helper costs the record, never the run ✓")
+
+
 def test_the_status_page_reports_progress_while_the_run_is_alive(
         world: Path) -> None:
     """Between commit and completion the operator must see the run moving.
@@ -262,9 +300,18 @@ def test_the_status_page_reports_progress_while_the_run_is_alive(
         live = _await(client, status_url, "RUNNING")
         assert "READ COMPLETE" not in live.text, \
             "a still-running run was reported as finished"
-        assert (runs_root() / prep.config.account_id /
-                prep.config.brand_profile_id / prep.run_id /
-                "progress.json").exists(), "no progress was written"
+        # ⚠ POLLED, not asserted once. "RUNNING" comes from run.json's status,
+        # which the worker writes BEFORE its first progress write — so the two
+        # files land in that order with a real gap between them, and asserting
+        # progress.json the instant the page says RUNNING is a race the test
+        # loses whenever anything slows that gap down. It still fails if
+        # progress is never written; it just stops failing on timing.
+        progress = (runs_root() / prep.config.account_id /
+                    prep.config.brand_profile_id / prep.run_id / "progress.json")
+        deadline = time.time() + 5.0
+        while not progress.exists() and time.time() < deadline:
+            time.sleep(0.01)
+        assert progress.exists(), "no progress was written"
     finally:
         gate.set()
     _await(client, status_url, "READ COMPLETE")

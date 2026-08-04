@@ -33,7 +33,11 @@ from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER, resolve_purpose
 from agent.read_model import (
     CYCLE_LABEL as _CYCLE_LABEL,
     DECISION_TAGLINE as _DECISION_TAGLINE,
+    HEADLINE_CAVEAT as _HEADLINE_CAVEAT,
     LEVER_HEADING as _LEVER_HEADING,
+    OUT_OF_TARGET_ONLY_NOTE as _OUT_OF_TARGET_ONLY_NOTE,
+    SEGMENT_CAVEAT as _SEGMENT_CAVEAT,
+    split_changes_by_target as _split_changes_by_target,
     headline_metric_line as _headline_metric_line,
     humanize as _humanize,
     inconclusive_lines as _inconclusive_lines,
@@ -67,12 +71,24 @@ def _print_target_and_changes(report: Report) -> None:
     for d in report.target_match.missed:
         print(f"  ✗ {d.disposition}  ({d.classification})")
 
-    if report.top_3_changes:
-        print("\nTOP 3 CHANGES:")
-        for i, c in enumerate(report.top_3_changes, 1):
+    # The same prevalence floor the client read applies, from the same function.
+    # This list is NUMBERED, which is what makes it a ranking — leaving the CLI
+    # to rank a fix the read demotes is exactly the surface drift the shared
+    # vocabulary rule exists to prevent.
+    _ranked, _unranked = _split_changes_by_target(report)
+    if _ranked:
+        print("\nTOP CHANGES:")
+        for i, c in enumerate(_ranked, 1):
             print(f"\n  {i}. {c.change}")
             print(f"     why: {c.why}")
             print(f"     within-target corroboration: {c.within_target_corroboration}")
+            for q in c.evidence_quotes:
+                print(f"     ↪ \"{q.quote}\"  — {q.disposition} (R{q.round}, {q.context})")
+    if _unranked:
+        print(f"\nNOT RANKED:\n  {_OUT_OF_TARGET_ONLY_NOTE}")
+        for c in _unranked:
+            print(f"\n  • {c.change}")
+            print(f"     why: {c.why}")
             for q in c.evidence_quotes:
                 print(f"     ↪ \"{q.quote}\"  — {q.disposition} (R{q.round}, {q.context})")
 
@@ -127,6 +143,11 @@ def _print_decision_headline(report: Report) -> None:
             print(line)
     elif d.target_action_rate is not None:
         print(_headline_metric_line(d))
+        # The same caveat the client read carries, from the same constant. The
+        # number reads identically on re-runs of one ad and on six different
+        # ads; an operator reading this in a terminal needs that as much as a
+        # brand manager reading the page does.
+        print(f"  {_HEADLINE_CAVEAT}")
         preset = resolve_purpose(getattr(d, "purpose", "direct_sell") or "direct_sell")
         # A3: the "would research" companion — reported SEPARATELY, never folded
         # into the buy headline (a researcher is not a buyer). Buy-frame jobs only.
@@ -151,6 +172,7 @@ def _print_decision_headline(report: Report) -> None:
         if d.decision == "RETARGET" and d.champion_disposition:
             print(f"  But the {_humanize(d.champion_disposition)} — whom you are NOT "
                   f"targeting — acts at {d.champion_action_rate:.0%}. Right ad, wrong person.")
+            print(f"  {_SEGMENT_CAVEAT}")
         elif d.decision in ("ITERATE", "REBUILD") and preset.audience_frame == "narrow":
             # "everyone else scrolls, tighten targeting" only fits a narrow-frame
             # job — a cold-hook/awareness ad WANTS broad reach.

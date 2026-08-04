@@ -50,6 +50,7 @@ from agent.entities import DispositionLibrary
 from agent.panel import PanelAgent, build_panel, compute_panel_version
 from agent.progress import ProgressWriter
 from agent.projection_l35 import project_funnel
+from agent.provenance import prompt_fingerprints
 from agent.render import RENDER_PROMPT_VERSION, render_persona_core
 from agent.runtime import REACTION_PROTOCOL_VERSION, run_agent_async
 from agent.schema import AgentTranscript, Report
@@ -302,10 +303,60 @@ def _run_json_payload(
         "decision_version": DECISION_VERSION,
         "purpose_version": PURPOSE_VERSION,
         "updated_at": datetime.now(timezone.utc).isoformat(),
+        # §5.1: what the prompts ACTUALLY said, not what a hand-bumped version
+        # constant claims they said. See agent/provenance.py.
+        #
+        # ⚠ Best-effort by construction. This function is called at
+        # status='complete', at the end of the paid path, and anything that can
+        # raise there replaces the return value of a synthesis we already paid
+        # ~$4 for. A run with no fingerprints is a small loss; a run discarded
+        # because its provenance record failed to compute is a total one.
+        "prompt_fingerprints": _safe_prompt_fingerprints(),
         "config": config.to_dict(),
         "panel_health": panel_health,
         "report": report.to_dict() if report is not None else None,
     }
+
+
+def stamp_config_provenance(
+    config: RunConfig, disposition_pool: list[tuple[str, str]], panel_version: str,
+) -> None:
+    """Record WHICH inputs this run actually read, on the config that gets
+    serialised into run.json. Called once, from `prepare`, as soon as both are
+    resolved.
+
+    Two gaps, both real before §5.1:
+
+    `disposition_version` — the field and its hash function have existed since
+    1.x and nothing ever called it, so every run on disk records the literal
+    string `"auto"`. Two runs whose disposition library text differs are
+    indistinguishable in the record. That is precisely the undeclared
+    researcher freedom §5.1 exists to close: across 66 defensible
+    configurations of one task, human-vs-silicon correlation ranged r = .23 to
+    .84, so a result without its configuration is not a result.
+
+    `panel_version` — computed and written to preparation.json only, while
+    run.json is the record that travels with the report and the one a reader of
+    a finished run opens.
+
+    ⚠ Safe to turn `disposition_version` on: nothing reads it. It is not an
+    input to `persona_core_hash` or `compute_panel_version`, so no entry of the
+    brand-level render cache is invalidated and no paid re-render is triggered.
+
+    ⚠ Extracted so it can be tested. `RunService.prepare` itself cannot run
+    offline — it makes model calls, and `tests/conftest.py` refuses it outright
+    — so the behaviour below is pinned here while the single call site is not.
+    """
+    config.disposition_version = config.compute_disposition_version(disposition_pool)
+    config.panel_version = panel_version
+
+
+def _safe_prompt_fingerprints() -> dict | None:
+    try:
+        return prompt_fingerprints()
+    except Exception:  # noqa: BLE001 — see the note above; never fail a paid run
+        _log.warning("prompt fingerprints unavailable for this run", exc_info=True)
+        return None
 
 
 def _write_run_json(
@@ -385,6 +436,7 @@ class RunService:
         disposition_pool = [
             (d.label, _disposition_description(d)) for d in dispositions
         ]
+        stamp_config_provenance(config, disposition_pool, panel_version)
         target_cls = identify_target(disposition_pool, config)
         _persist_json(rd / "target_classification.json", target_cls.to_dict())
 

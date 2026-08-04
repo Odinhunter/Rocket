@@ -294,6 +294,9 @@ def test_cli_path_builds_every_field() -> None:
         "dispositions_per_run", "contexts_per_run", "seeds_per_cell", "mode",
         "protocol_version", "disposition_version", "model_versions",
         "temperatures", "efforts",
+        # stamped by RunService.prepare once the panel is resolved, never by a
+        # caller — see the §5.1 config freeze
+        "panel_version",
     }
     unpinned = {f.name for f in dataclasses.fields(cfg)} - covered
     assert not unpinned, f"RunConfig fields not pinned by this test: {sorted(unpinned)}"

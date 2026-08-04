@@ -15,6 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agent.grounding import (
+    attribute_quotes_to_agents,
     check_lever_space,
     verify_pain_references,
     verify_quote_authenticity,
@@ -286,6 +287,55 @@ def test_quote_authenticity_prefix_match() -> None:
     print("  OK  verify_quote_authenticity: rejects invention, accepts near-verbatim (prefix match)")
 
 
+def test_attribution_counts_a_person_once_and_only_when_traced() -> None:
+    """The anti-inflation rule. Two agents can write the same opening — with a
+    40-char head match that is one probe hitting two transcripts, and resolving
+    it to BOTH would rebuild the over-counting this replaces. An ambiguous match
+    is one person; an untraceable quote is nobody."""
+    shared = "another clean energy bar, they all say the same thing"
+    transcripts = [
+        {"agent_id": 1, "encoding_text": f"R1 GUT: {shared}", "reflection_text": ""},
+        # a different person opening identically — the ambiguous case
+        {"agent_id": 7, "encoding_text": f"R1 GUT: {shared} honestly", "reflection_text": ""},
+        {"agent_id": 9, "encoding_text":
+            "R1 GUT: nothing here tells me the price and that is the whole problem",
+         "reflection_text": ""},
+        # The recall half. Quotes are drawn from BOTH calls, and reading only
+        # the first would drop every R4/R5 quote — the same two fields
+        # synthesis_assess.build_corpus concatenates.
+        {"agent_id": 12, "encoding_text": "R1 GUT: fine I suppose",
+         "reflection_text":
+             "R4 STICKINESS: Honestly nothing stuck,\n   just the big grey tub shape"},
+    ]
+    pains = [
+        Pain(id="P1", pain="p", funnel_stage="attention", severity="execution",
+             evidence_quotes=[Quote(quote=shared, disposition="d", round=1, context="c")]),
+        Pain(id="P2", pain="p", funnel_stage="attention", severity="execution",
+             evidence_quotes=[Quote(quote="a line no simulated person ever wrote at all",
+                                    disposition="d", round=1, context="c")]),
+    ]
+    got = attribute_quotes_to_agents(pains, transcripts)
+    assert got["P1"] == [1], f"an ambiguous match must count ONE person, got {got['P1']}"
+    assert got["P2"] == [], "an ungrounded quote must attribute to nobody"
+
+    # A second, distinct person counts a second person — and this quote is
+    # NEAR-verbatim (real 40-char head, reworded tail), which is how opus
+    # actually quotes. Full-exact matching would drop it and silently undercount,
+    # the failure that looks honest and therefore never gets investigated.
+    pains[0].evidence_quotes.append(Quote(
+        quote="nothing here tells me the price and that is honestly where I bail",
+        disposition="d", round=1, context="c"))
+    # Sentence-cased and double-spaced against a lowercase transcript: the
+    # assess pass tidies quotes as it lifts them, so matching raw text would
+    # drop this one.
+    pains[0].evidence_quotes.append(Quote(
+        quote="Honestly nothing stuck,  just the big grey tub shape",
+        disposition="d", round=4, context="c"))
+    assert attribute_quotes_to_agents(pains, transcripts)["P1"] == [1, 9, 12], \
+        "near-verbatim and recall-half quotes must both attribute"
+    print("  OK  attribute_quotes_to_agents: ambiguous=1, ungrounded=0, near-verbatim=traced")
+
+
 def test_pain_references_catches_dangling() -> None:
     r = _make_painmap_fixture()
     assert verify_pain_references(r.top_3_changes, r.pain_map) == [], "clean refs flagged"
@@ -313,6 +363,7 @@ def main() -> None:
     test_validate_rejects_dangling_pain_reference()
     test_legacy_report_without_painmap_roundtrips()
     test_quote_authenticity_prefix_match()
+    test_attribution_counts_a_person_once_and_only_when_traced()
     test_pain_references_catches_dangling()
     test_lever_space_catches_out_of_scope()
     print("PASS — PainMap schema + grounding validators locked.")

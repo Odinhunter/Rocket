@@ -225,6 +225,17 @@ def blind_read_model(model: ReadModel, slot: str) -> ReadModel:
     `audience_aligned` gets no such pass. It quotes the declared audience the
     same way, and it is NOT a guardrail — it is the same check passing. So it
     is stripped with the rest of the identity.
+
+    ⚠ `homogeneity_note` is stripped too, and it is the one addition to "exactly
+    those and nothing else". It is not diagnosis — it reports how many EARLIER
+    runs this brand has on record, and that count is identity. A contact's own
+    ad is typically the first run under a newly-created brand profile, so it
+    reads "no baseline for this brand yet"; the decoy comes from a library brand
+    with a long history and reads "typical for this brand across 15 earlier
+    runs". That difference lets someone pick correctly WITHOUT reading either
+    diagnosis, which is precisely the measurement the decoy exists to make.
+    Everything the note says about the panel is meaningless without its
+    baseline anyway — the copy says so itself.
     """
     return replace(
         model,
@@ -235,6 +246,7 @@ def blind_read_model(model: ReadModel, slot: str) -> ReadModel:
         declared_targeting="",
         declared_audience="",
         audience_aligned=None,
+        homogeneity_note=None,
     )
 
 

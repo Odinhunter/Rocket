@@ -86,6 +86,71 @@ def verify_quote_authenticity(quotes: Iterable[Any], corpus: str) -> list[str]:
     return fabricated
 
 
+def _pain_quotes(pain: Any) -> list[Any]:
+    """Accept a Pain dataclass (`.evidence_quotes`) or a raw dict."""
+    if isinstance(pain, dict):
+        return list(pain.get("evidence_quotes", []) or [])
+    return list(getattr(pain, "evidence_quotes", []) or [])
+
+
+def _agent_blobs(transcripts: Iterable[Any]) -> list[tuple[int, str]]:
+    """One normalized text blob per agent, from the SAME two fields
+    `synthesis_assess.build_corpus` concatenates (encoding + reflection). If
+    those two ever diverge, a quote could verify against the corpus and fail to
+    attribute, which would silently undercount."""
+    blobs: list[tuple[int, str]] = []
+    for t in transcripts:
+        if isinstance(t, dict):
+            aid = t.get("agent_id")
+            enc, ref = t.get("encoding_text"), t.get("reflection_text")
+        else:
+            aid = getattr(t, "agent_id", None)
+            enc, ref = getattr(t, "encoding_text", None), getattr(t, "reflection_text", None)
+        if aid is None:
+            continue
+        blobs.append((int(aid), _norm(f"{enc or ''}\n{ref or ''}")))
+    return blobs
+
+
+def attribute_quotes_to_agents(
+    pains: Iterable[Any], transcripts: Iterable[Any]
+) -> dict[str, list[int]]:
+    """Map each pain id to the agent ids whose own reaction contains one of that
+    pain's evidence quotes. `{}` entries mean nothing traced.
+
+    ⚠ THIS IS A GROUNDING COUNT, NOT A PREVALENCE COUNT, and the distinction is
+    the whole reason it exists. The assess pass emits 2-4 quotes per pain (the
+    measured distribution across 110 pains is 2:9, 3:64, 4:37), so the result is
+    bounded by quotes SHOWN, never by how many of the ~100 agents actually
+    raised the pain. It answers "whose real words back this?", not "how many
+    people said it?" — the engine records nothing that can answer the second
+    question, because `cited_by` holds disposition LABELS and `Quote` carries no
+    agent id. Do not promote this number into a prevalence claim.
+
+    Matching reuses `_MIN_QUOTE_PREFIX`, exactly as `verify_quote_authenticity`
+    does: the assess model lightly rewords real reactions, so a full-exact match
+    false-rejects legitimate quotes and undercounts — which fails in the
+    honest-LOOKING direction and is therefore the dangerous one here. A quote
+    matching several agents counts as ONE (lowest id): resolving an ambiguous
+    match to every candidate would reintroduce exactly the inflation this
+    replaces.
+    """
+    blobs = _agent_blobs(transcripts)
+    out: dict[str, list[int]] = {}
+    for p in pains:
+        found: set[int] = set()
+        for q in _pain_quotes(p):
+            nq = _norm(_quote_text(q))
+            if not nq:
+                continue
+            probe = nq if len(nq) <= _MIN_QUOTE_PREFIX else nq[:_MIN_QUOTE_PREFIX]
+            hits = [aid for aid, blob in blobs if probe in blob]
+            if hits:
+                found.add(min(hits))
+        out[_pain_id(p)] = sorted(found)
+    return out
+
+
 def verify_pain_references(changes: Iterable[Any], pains: Iterable[Any]) -> list[str]:
     """Return the pain ids cited by recommendations that don't exist in the
     PainMap. Empty list == referential integrity holds."""

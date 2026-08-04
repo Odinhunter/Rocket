@@ -27,7 +27,12 @@ from fastapi.staticfiles import StaticFiles
 from agent.config import build_run_config, default_asset_label
 from agent.progress import phase_view
 from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER, resolve_purpose
-from agent.read_model import build_read_model, purpose_scope_note
+from agent.read_model import (
+    HEADLINE_CAVEAT,
+    OUT_OF_TARGET_ONLY_NOTE,
+    build_read_model,
+    purpose_scope_note,
+)
 from agent.telemetry import runs_root as engine_runs_root
 from server import app_html, pages
 from server.auth import COOKIE_NAME, DEMO_ACCOUNT, Auth, RequireSignIn, safe_next
@@ -773,6 +778,14 @@ def create_app(
                     "decision": m.decision_name,
                     "trust": m.trust,
                     "headline": m.headline,
+                    # ⚠ The caveat travels WITH the number, and it matters more
+                    # here than on the page. This export is the Track-2
+                    # artifact — engine read against a known outcome — so this
+                    # figure lands in an analysis next to real CTR/ROAS, where a
+                    # bare number reads as a measurement. Its signal-to-noise is
+                    # 1.0 (scripts/gate_test.py). On the page the caveat is one
+                    # line below it; in a spreadsheet there is no "below".
+                    "headline_caveat": HEADLINE_CAVEAT if m.headline else None,
                     "verdict": m.report.verdict,
                     "confidence": m.report.confidence,
                     "asset_label": m.asset_label,
@@ -781,7 +794,15 @@ def create_app(
                          "severity": p.severity, "within_target": p.within_target}
                         for p in m.report.pain_map[:5]
                     ],
-                    "top_changes": [c.change for c in m.report.top_3_changes],
+                    # The prevalence floor applies HERE TOO. This is a
+                    # hand-assembled projection of ReadModel — the shape that
+                    # dropped two guardrails in sample_report.html — so reading
+                    # report.top_3_changes directly would export, as ranked, a
+                    # fix that both the read and the CLI demote.
+                    "top_changes": [c.change for c in m.ranked_changes],
+                    "unranked_changes": [c.change for c in m.unranked_changes],
+                    "unranked_reason": (OUT_OF_TARGET_ONLY_NOTE
+                                        if m.unranked_changes else None),
                 }
             except (ValueError, FileNotFoundError) as exc:
                 engine = {"available": False, "error": str(exc)}

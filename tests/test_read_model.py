@@ -22,10 +22,11 @@ from agent.read_model import (
     headline_metric_line,
     inconclusive_lines,
     purpose_scope_note,
+    split_changes_by_target,
     trust_line,
     within_target_glance,
 )
-from agent.schema import Decision, Pain, Report, TargetMatch, TopChange
+from agent.schema import Decision, Pain, Quote, Report, TargetMatch, TopChange
 
 
 def _decision(**kw) -> Decision:
@@ -55,9 +56,12 @@ def _run_dir(
     report: Report | None, *, tmp: Path, status: str = "complete",
     purpose: str = "direct_sell", l3: dict | None = None,
     replay: Report | None = None, panel_health: dict | None = None,
+    transcripts: list | None = None,
 ) -> Path:
     rd = tmp / "run_x"
     rd.mkdir(parents=True, exist_ok=True)
+    if transcripts is not None:
+        (rd / "transcripts.json").write_text(json.dumps(transcripts))
     (rd / "run.json").write_text(json.dumps({
         "run_id": "run_x", "status": status,
         "updated_at": "2026-07-25T00:00:00+00:00",
@@ -336,6 +340,191 @@ def test_diagnosis_overview_summary_reads_correctly_at_the_edges() -> None:
     ov = build_diagnosis_overview(rep)
     assert ov.is_empty and ov.summary == "", "an empty diagnosis says nothing"
     print("  overview copy handles singular, all-outside, all-within, empty ✓")
+
+
+# ---- brand-relative panel agreement -------------------------------------
+
+
+def _homog_run(brand: Path, name: str, tight: int, total: int = 10,
+               protocol: str | None = "reaction-v3") -> Path:
+    """One sibling run carrying nothing but what the baseline reads."""
+    rd = brand / name
+    rd.mkdir(parents=True, exist_ok=True)
+    (rd / "run.json").write_text(json.dumps({
+        "run_id": name, "status": "complete",
+        "reaction_protocol_version": protocol,
+        "config": {"segment_granularity": "disposition_chaos_band"},
+        "report": _report().to_dict(),
+    }))
+    (rd / "l3_summary.json").write_text(json.dumps({
+        "confidence_signals": {"homogenization_flag_count": tight,
+                               "total_segments": total}}))
+    return rd
+
+
+def test_panel_agreement_says_so_when_the_brand_has_no_baseline_yet() -> None:
+    """A new customer's FIRST read is this case. A comparison that silently
+    does not appear is indistinguishable from one that appeared and passed, so
+    the absence of a baseline has to be stated rather than left blank."""
+    with tempfile.TemporaryDirectory() as td:
+        brand = Path(td) / "acct" / "brand"
+        for i in range(3):                       # 3 earlier runs — under the floor
+            _homog_run(brand, f"2026080{i}_000000_seed71_x", tight=5)
+        rd = _homog_run(brand, "20260809_000000_seed71_x", tight=9)
+        note = build_read_model(rd).homogeneity_note
+    assert note is not None and "90%" in note
+    assert "no baseline for this brand yet" in note
+    assert "3 earlier comparable runs" in note
+    assert "typical for this brand" not in note, \
+        "compared against a baseline that does not exist"
+    print("  panel agreement states the absence of a baseline rather than hiding it ✓")
+
+
+def test_panel_agreement_compares_only_against_earlier_comparable_runs() -> None:
+    """Three ways this goes quietly wrong: a run in its own baseline pulls the
+    average toward itself; a LATER run in the baseline means re-rendering an old
+    read cites its own future; and a different reaction protocol is a different
+    instrument (v2 and v3 measure 0.60 vs 0.69 on the same brand)."""
+    with tempfile.TemporaryDirectory() as td:
+        brand = Path(td) / "acct" / "brand"
+        for i in range(5):                       # five earlier peers, all at 40%
+            _homog_run(brand, f"2026080{i}_000000_seed71_x", tight=4)
+        # noise that must NOT reach the baseline
+        _homog_run(brand, "20260801_120000_seed71_old_protocol", tight=10, protocol=None)
+        _homog_run(brand, "20260899_000000_seed71_later", tight=10)
+        _homog_run(brand, "20260802_000000_seed71_x_replay", tight=10)
+        (brand / "20260803_120000_seed71_broken").mkdir(parents=True)
+        (brand / "20260803_120000_seed71_broken" / "run.json").write_text("{ not json")
+
+        rd = _homog_run(brand, "20260809_000000_seed71_mine", tight=10)
+        note = build_read_model(rd).homogeneity_note
+
+    assert note == ("Segments in this run reacted alike 100% of the time, against "
+                    "40% typical for this brand across 5 earlier runs."), note
+    print("  baseline excludes self, later runs, replays, other protocols, junk ✓")
+
+
+# ---- the prevalence floor -----------------------------------------------
+
+
+def _changes(*specs: list[str]) -> list[TopChange]:
+    return [TopChange(change=f"change {i}", why="w", derives_from_pains=list(s))
+            for i, s in enumerate(specs)]
+
+
+def test_a_fix_resting_only_on_outsiders_is_not_ranked() -> None:
+    """The only prevalence floor in the pipeline. A recommendation built purely
+    on problems from people outside the declared target is still shown — it is
+    real output — but it must not be ranked alongside fixes for the audience
+    actually being bought."""
+    rep = _report(top_3_changes=_changes(["P1"], ["P2"], ["P1", "P2"]))
+    rep.pain_map = [_pain("P1", "attention", "execution", within=True),
+                    _pain("P2", "conversion", "execution", within=False)]
+    ranked, unranked = split_changes_by_target(rep)
+    assert [c.change for c in unranked] == ["change 1"], \
+        "the outsider-only fix must be demoted"
+    assert [c.change for c in ranked] == ["change 0", "change 2"], \
+        "a MIXED fix stays ranked — 8 of 51 changes on disk are mixed"
+    assert len(rep.top_3_changes) == 3, \
+        "the floor is a presentation split; prescribe still requires exactly 3"
+    print("  a fix resting only on out-of-target problems is not ranked ✓")
+
+
+def test_the_floor_abstains_rather_than_demoting_on_missing_evidence() -> None:
+    """Two absences that must NOT read as 'out of target': a pre-2.2 report with
+    no pain references at all, and an id that resolves to nothing. Demoting on
+    either would be punishing a fix for a gap in the data about it."""
+    rep = _report(top_3_changes=_changes([], ["P9"], ["P1"]))
+    rep.pain_map = [_pain("P1", "attention", "execution", within=False)]
+    ranked, unranked = split_changes_by_target(rep)
+    assert [c.change for c in ranked] == ["change 0", "change 1"], \
+        "no references and dangling references must both stay ranked"
+    assert [c.change for c in unranked] == ["change 2"]
+    print("  the floor abstains on missing or dangling pain references ✓")
+
+
+# ---- the breadth chip: a denominator, and evidence that traces -----------
+
+
+def _quoted_pain(pid: str, cited: list[str], quotes: list[str], within: bool = True) -> Pain:
+    return Pain(id=pid, pain=f"{pid} pain.", funnel_stage="attention",
+                severity="execution", within_target=within, cited_by=cited,
+                evidence_quotes=[Quote(quote=q, disposition=cited[0] if cited else "d",
+                                       round=3, context="commute_scroll")
+                                 for q in quotes])
+
+
+def _transcript(agent_id: int, disposition: str, encoding: str) -> dict:
+    return {"agent_id": agent_id, "disposition_label": disposition,
+            "context_label": "commute_scroll", "encoding_text": encoding,
+            "reflection_text": ""}
+
+
+# Long enough to clear grounding._MIN_QUOTE_PREFIX (40 chars) — a shorter probe
+# matches on its whole self and would not exercise the head-prefix path.
+_Q1 = "the big grey tub reads as gym-bro kit and that is not me at all"
+_Q2 = "already running low on my usual so there is no reason to switch brands"
+
+
+def test_breadth_chip_carries_a_denominator_and_a_traced_evidence_count() -> None:
+    """"1 type" said nothing: one of two types and one of seven rendered
+    identically, with no indication of how much evidence sat behind either."""
+    rep = _report()
+    rep.pain_map = [_quoted_pain("P1", ["enthusiast_macros_lifter"], [_Q1, _Q2])]
+    with tempfile.TemporaryDirectory() as td:
+        rd = _run_dir(rep, tmp=Path(td), l3={"segment_behavioral_distributions": _dists()}, transcripts=[
+            _transcript(0, "enthusiast_macros_lifter", _Q1),
+            _transcript(1, "enthusiast_macros_lifter", _Q2),
+            _transcript(2, "skeptic_lapsed_protein", "nothing relevant here"),
+        ])
+        m = build_read_model(rd)
+    assert m.breadth_line(rep.pain_map[0]) == "1 of 3 consumer types · quoted from 2 people"
+    print("  breadth chip carries its denominator and its evidence count ✓")
+
+
+def test_breadth_chip_ignores_a_consumer_type_that_never_ran() -> None:
+    """`cited_by` is model-authored and unvalidated. On 2 of 183 citations
+    across the runs on disk the assess pass named a type absent from that run's
+    panel, inflating the chip by one — counted against the real panel, not the
+    model's list."""
+    rep = _report()
+    rep.pain_map = [_quoted_pain(
+        "P1", ["enthusiast_macros_lifter", "purist_food_first"], [_Q1])]
+    with tempfile.TemporaryDirectory() as td:
+        rd = _run_dir(rep, tmp=Path(td), l3={"segment_behavioral_distributions": _dists()}, transcripts=[
+            _transcript(0, "enthusiast_macros_lifter", _Q1)])
+        line = build_read_model(rd).breadth_line(rep.pain_map[0])
+    assert line.startswith("1 of 3 consumer types"), \
+        f"the invented type was counted: {line!r}"
+    print("  a cited consumer type that never ran is not counted ✓")
+
+
+def test_evidence_count_is_omitted_not_zeroed_when_transcripts_are_gone() -> None:
+    """An absent transcripts.json means UNKNOWN, and 'quoted from 0 people'
+    would read as 'nobody said this' — a claim the run does not support."""
+    rep = _report()
+    rep.pain_map = [_quoted_pain("P1", ["enthusiast_macros_lifter"], [_Q1])]
+    with tempfile.TemporaryDirectory() as td:
+        rd = _run_dir(rep, tmp=Path(td), l3={"segment_behavioral_distributions": _dists()})   # no transcripts written
+        m = build_read_model(rd)
+    assert m.quoted_people == {}
+    assert m.breadth_line(rep.pain_map[0]) == "1 of 3 consumer types"
+    assert "quoted from" not in m.breadth_line(rep.pain_map[0])
+    print("  evidence count vanishes rather than rendering a zero ✓")
+
+
+def test_an_unquotable_pain_gets_no_evidence_clause() -> None:
+    """A quote that traces to no transcript is not evidence. Grounding is a
+    filter, and this is the read-side half of it."""
+    rep = _report()
+    rep.pain_map = [_quoted_pain("P1", ["enthusiast_macros_lifter"],
+                                 ["a sentence no simulated person ever wrote here"])]
+    with tempfile.TemporaryDirectory() as td:
+        rd = _run_dir(rep, tmp=Path(td), l3={"segment_behavioral_distributions": _dists()}, transcripts=[
+            _transcript(0, "enthusiast_macros_lifter", _Q1)])
+        m = build_read_model(rd)
+    assert m.quoted_people == {}, "an ungrounded quote must not count as a person"
+    print("  an ungrounded quote counts nobody ✓")
 
 
 def test_report_source_run_json_replay_and_loud_failure() -> None:

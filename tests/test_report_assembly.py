@@ -31,8 +31,10 @@ from agent.synthesis_assess import AssessResult, frozen_painmap_from_report
 from agent.synthesis_l4 import _assemble_report, _build_target_match
 from agent.synthesis_prescribe import PrescribeResult
 from agent.render import RENDER_PROMPT_VERSION
-from agent.run_service import _run_json_payload
+from agent.provenance import _stable_text
+from agent.run_service import _run_json_payload, stamp_config_provenance
 from agent.runtime import REACTION_PROTOCOL_VERSION
+from agent.vectors import VECTOR_SCHEMA_VERSION
 from agent.synthesis_types import (
     DispositionTarget,
     InferredAudience,
@@ -175,6 +177,103 @@ def test_run_json_stamps_all_versions() -> None:
           "+ decision + purpose (+ legacy l4)")
 
 
+def test_run_json_freezes_the_configuration_not_just_its_version_labels() -> None:
+    """§5.1. The eight version strings above are hand-bumped, so an edited
+    prompt with an unbumped constant is invisible in the record. These are the
+    things that actually pin what produced a run — and each was a real gap:
+    `panel_version` lived only in preparation.json, `funnel_enabled` was a field
+    that never serialised at all, and nothing fingerprinted prompt TEXT."""
+    cfg = RunConfig(
+        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        archetype="unspecified", category="personal_audio",
+    )
+    cfg.panel_version = "abc123def456"
+    payload = _run_json_payload(cfg, "rid123", status="complete", report=None)
+    config = payload["config"]
+    assert config["panel_version"] == "abc123def456"
+    assert config["funnel_enabled"] is False
+    assert config["vector_schema_version"] == VECTOR_SCHEMA_VERSION
+
+    fp = payload["prompt_fingerprints"]
+    assert fp, "no prompt fingerprints in the run record"
+    # Every template must RESOLVE. "unavailable" is what a renamed or moved
+    # constant produces, and it is recorded rather than dropped precisely so it
+    # shows up here instead of quietly shrinking the record.
+    unresolved = sorted(k for k, v in fp.items() if v == "unavailable")
+    assert not unresolved, f"prompt templates no longer resolve: {unresolved}"
+    # Both halves of the purpose-conditional reflection prompt are covered
+    # separately, so a change is attributable to the block it happened in.
+    for expected in ("assess.system", "prescribe.system", "agent.encoding",
+                     "agent.reflection_base", "agent.reflection_novelty",
+                     "agent.reflection_brand_check", "render.persona_system"):
+        assert expected in fp, f"{expected} is not fingerprinted"
+
+    # A fingerprint must track CONTENT. Templates are not all plain strings —
+    # `agent.cycle_prose` is a dict — and a hash that only saw its shape would
+    # look like provenance while missing every edit to the prose inside it.
+    a = _stable_text({"running_low": "nearly out", "just_bought": "stocked up"})
+    b = _stable_text({"running_low": "REWORDED", "just_bought": "stocked up"})
+    assert a != b, "editing a dict template's text left the fingerprint unchanged"
+    # ...and not on Python's iteration order, or every run would differ.
+    assert _stable_text({"x": "1", "y": "2"}) == _stable_text({"y": "2", "x": "1"})
+    print(f"  OK  run.json freezes panel/funnel/vector + {len(fp)} prompt fingerprints")
+
+
+def test_config_provenance_records_which_inputs_the_run_read() -> None:
+    """`disposition_version` has been the literal string "auto" on every run
+    ever made — the field and its hash existed, nothing called it. Two runs
+    whose disposition library text differs must not look identical in the
+    record."""
+    cfg = RunConfig(
+        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        archetype="unspecified", category="personal_audio",
+    )
+    assert cfg.disposition_version == "auto", "the untouched default changed"
+    pool = [("aspirant_clean_label", "wants clean labels"),
+            ("skeptic_lapsed_protein", "burned by a previous tub")]
+    stamp_config_provenance(cfg, pool, "panelv1")
+
+    assert cfg.disposition_version != "auto", "the run never recorded its library"
+    assert cfg.panel_version == "panelv1"
+    first = cfg.disposition_version
+
+    # Same pool, same hash — otherwise the field is noise and no two runs can
+    # ever be declared comparable.
+    stamp_config_provenance(cfg, list(reversed(pool)), "panelv1")
+    assert cfg.disposition_version == first, "hash is not stable across orderings"
+
+    # Edited disposition TEXT, same labels: the case the field exists for.
+    stamp_config_provenance(
+        cfg, [("aspirant_clean_label", "wants clean labels AND a price"),
+              ("skeptic_lapsed_protein", "burned by a previous tub")], "panelv1")
+    assert cfg.disposition_version != first, \
+        "edited disposition text left the run record unchanged"
+    print("  OK  config provenance stamps disposition_version + panel_version")
+
+
+def test_a_broken_fingerprint_never_costs_a_paid_run() -> None:
+    """The most expensive trap in this codebase: something that raises at the
+    END of the paid path replaces the return value of a synthesis already paid
+    for. A provenance record is worth a lot; it is not worth a ~$4 run."""
+    import agent.run_service as rs
+
+    original = rs.prompt_fingerprints
+    try:
+        rs.prompt_fingerprints = lambda: 1 / 0        # noqa: E731
+        cfg = RunConfig(
+            asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+            archetype="unspecified", category="personal_audio",
+        )
+        payload = _run_json_payload(cfg, "rid123", status="complete", report=None)
+    finally:
+        rs.prompt_fingerprints = original
+    assert payload["status"] == "complete", "a broken fingerprint killed the run record"
+    assert payload["prompt_fingerprints"] is None, \
+        "an unavailable record must be null, never a half-built dict"
+    assert payload["config"]["category"] == "personal_audio", "the rest of the record survived"
+    print("  OK  a raising fingerprint helper degrades to null, run record intact")
+
+
 def main() -> None:
     print("=== assess+prescribe -> Report assembly (rocket-2.3.0) ===")
     test_build_target_match_buckets()
@@ -183,6 +282,9 @@ def main() -> None:
     test_painmap_deliverable_roundtrips_from_report()
     test_methodology_gap_empty_prescription()
     test_run_json_stamps_all_versions()
+    test_run_json_freezes_the_configuration_not_just_its_version_labels()
+    test_config_provenance_records_which_inputs_the_run_read()
+    test_a_broken_fingerprint_never_costs_a_paid_run()
     print("PASS — report assembly + version stamps locked.")
 
 

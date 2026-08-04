@@ -20,6 +20,7 @@ from typing import Literal
 
 from agent.entities import AudienceSpec
 from agent.purpose import DEFAULT_PURPOSE, resolve_purpose
+from agent.vectors import VECTOR_SCHEMA_VERSION
 
 
 # Anthropic API enforces 5 MB *after* base64 encoding. Base64 inflates by
@@ -280,6 +281,11 @@ class RunConfig:
     # detectable downstream.
     protocol_version: str = PROTOCOL_VERSION
     disposition_version: str = "auto"
+    # panel_version: SHA-1 of the fully resolved panel inputs, computed in
+    # RunService.prepare. It has always been written to preparation.json; it is
+    # carried here too so run.json — the record that travels with the report,
+    # and the only one a reader of a finished run opens — is self-sufficient.
+    panel_version: str = ""
     model_versions: dict[str, str] = field(
         default_factory=lambda: dict(DEFAULT_MODEL_VERSIONS)
     )
@@ -400,6 +406,13 @@ class RunConfig:
             "mode": self.mode,
             "protocol_version": self.protocol_version,
             "disposition_version": self.disposition_version,
+            "panel_version": self.panel_version,
+            # funnel_enabled was a field that never serialised, so a reader of a
+            # finished run could not tell whether the projection was attached to
+            # the report or merely logged — a freeze that omits a switch is not
+            # a freeze.
+            "funnel_enabled": self.funnel_enabled,
+            "vector_schema_version": VECTOR_SCHEMA_VERSION,
             "model_versions": dict(self.model_versions),
             "temperatures": dict(self.temperatures),
             "efforts": dict(self.efforts),

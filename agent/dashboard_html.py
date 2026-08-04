@@ -43,6 +43,13 @@ Guardrail → where it lives in this design:
   | decoupling note                  | ADDED — under the panel table         |
   | panel denominator summary        | ADDED — under the panel heading       |
   | why trust is DIRECTIONAL         | ADDED — a methodology row             |
+  | HEADLINE_CAVEAT, every state     | directly under the headline number     |
+  |   with a headline                |   (the number keeps its place)        |
+  | SEGMENT_CAVEAT                   | above the panel table, and under the  |
+  |                                  |   champion line, which can stand alone|
+  | OUT_OF_TARGET_ONLY_NOTE          | ADDED — the NOT RANKED block in fixes |
+  | breadth + traced evidence count  | the chip on both problem surfaces     |
+  | brand-relative panel agreement   | ADDED — a methodology row             |
 
 Everything rendered comes from `ReadModel`. Never reach past it into raw run
 JSON: the model is where the guardrails live, and going around it is how a
@@ -56,7 +63,8 @@ import html
 from pathlib import Path
 
 from agent.read_model import (
-    FUNNEL_STAGE_ORDER, VERDICT_CAVEAT, Glance, ReadModel, client_pain_text,
+    FUNNEL_STAGE_ORDER, HEADLINE_CAVEAT, OUT_OF_TARGET_ONLY_NOTE,
+    SEGMENT_CAVEAT, VERDICT_CAVEAT, Glance, ReadModel, client_pain_text,
     humanize,
 )
 
@@ -633,10 +641,22 @@ def _result(m: ReadModel) -> str:
         out.append(f'<div class="rk-sub" style="margin-top:2px">{_e(m.trust_note)}</div>')
     out.append('<hr class="rk-hr">')
     out.append(f'<div class="rk-headline">{_e(m.headline.strip())}</div>')
+    # The headline's own caveat, directly beneath it and never conditional. The
+    # number does not discriminate between ads (read_model.HEADLINE_CAVEAT has
+    # the measurement); it keeps its position and carries its limitation with
+    # it, exactly as the verdict above does. Do not make this depend on the
+    # decision, and do not move it to the methodology block.
+    out.append(f'<div class="rk-under">{_e(HEADLINE_CAVEAT)}</div>')
     if m.research_line:      # A3 — research reported separately, never as a sale
         out.append(f'<div class="rk-under">{_e(m.research_line)}</div>')
     if m.champion_line:
+        # The single strongest between-segment claim the read makes — "right ad,
+        # wrong person" — and the one that drives a RETARGET decision. It can
+        # render on its own, far above the panel table that carries the same
+        # caveat, so it gets its own copy rather than relying on the reader
+        # scrolling to find the qualifier.
         out.append(f'<div class="rk-under">{_e(m.champion_line)}</div>')
+        out.append(f'<div class="rk-sub" style="margin-top:4px">{_e(SEGMENT_CAVEAT)}</div>')
     elif m.narrow_frame_line:
         out.append(f'<div class="rk-under">{_e(m.narrow_frame_line)}</div>')
 
@@ -682,6 +702,13 @@ def _result(m: ReadModel) -> str:
                 f'<div class="rk-k rk-num" style="margin-top:6px;font-size:12px">'
                 f'{_e(_outside_legend(m))}</div>'
             )
+            # Target vs EVERYONE ELSE is a between-segment comparison, and it
+            # can be the only one on the page: the champion line fires on
+            # RETARGET alone, and the panel table that carries this caveat is a
+            # long scroll below. Two bars side by side invite exactly the
+            # comparison the caveat qualifies.
+            out.append(f'<div class="rk-sub" style="margin-top:8px">'
+                       f'{_e(SEGMENT_CAVEAT)}</div>')
 
     next_rows = m.panel.next_steps_in_target()
     if next_rows or m.cycle_rows:
@@ -769,10 +796,15 @@ def _cycle_col(m: ReadModel) -> str:
 # ---- the problem map — the hero of the page ------------------------------
 
 
-def _marker(p) -> dict:
+def _marker(p, m: ReadModel) -> dict:
     """The visual state of one problem: execution vs structural, load-bearing
     or not, in or out of target. Shared by the map and the cards so the two
-    can never disagree about what a problem is."""
+    can never disagree about what a problem is.
+
+    `types` is composed by `ReadModel.breadth_line`, not here: it carries a
+    denominator and an evidence count that are model decisions, and a renderer
+    that writes its own version of that string is how a surface drifts from the
+    read model that owns it."""
     exec_ = (p.severity or "").lower() != "structural"
     return {
         "sev_label": (p.severity or "").upper(),
@@ -780,12 +812,12 @@ def _marker(p) -> dict:
         "sev_bg": "var(--exectagbg)" if exec_ else "var(--structtagbg)",
         "card_bg": "var(--execbg)" if exec_ else "var(--structstripe)",
         "card_line": "var(--execline)" if exec_ else "var(--structline)",
-        "types": f"{len(p.cited_by)} type" + ("" if len(p.cited_by) == 1 else "s"),
+        "types": m.breadth_line(p),
     }
 
 
-def _map_card(p, load_bearing: str, small: bool) -> str:
-    mk = _marker(p)
+def _map_card(p, m: ReadModel, load_bearing: str, small: bool) -> str:
+    mk = _marker(p, m)
     border = ("1.5px solid var(--loadring)" if p.id == load_bearing
               else f"1px solid {mk['card_line']}")
     lb = ('<span class="rk-chip" style="color:var(--onload);background:var(--loadring);'
@@ -853,8 +885,8 @@ def _problem_map(m: ReadModel) -> str:
         outside = [p for p in at if not p.within_target]
         width = _PILL_W[i] if i < len(_PILL_W) else _PILL_W[-1]
 
-        left = "".join(_map_card(p, load_bearing, small=False) for p in within)
-        right = "".join(_map_card(p, load_bearing, small=True) for p in outside)
+        left = "".join(_map_card(p, m, load_bearing, small=False) for p in within)
+        right = "".join(_map_card(p, m, load_bearing, small=True) for p in outside)
 
         if at:
             n = len(at)
@@ -940,7 +972,7 @@ def _problem_cards(m: ReadModel) -> str:
 
     cards = []
     for p in sorted(pains, key=key):
-        mk = _marker(p)
+        mk = _marker(p, m)
         border = ("1.5px solid var(--loadring)" if p.id == load_bearing
                   else f"1px solid {mk['card_line']}")
         lb = ('<span class="rk-chip" style="color:var(--onload);'
@@ -1000,8 +1032,10 @@ def _fixes(m: ReadModel) -> str:
     READ:" on INCONCLUSIVE), so separating them reads as two competing
     prescriptions.
     """
-    levers, changes = m.report.bet_ranking, m.report.top_3_changes
-    if not levers and not changes:
+    # `bet_ranking` is passed through untouched and unreordered — see
+    # read_model.OUT_OF_TARGET_ONLY_NOTE for why the floor cannot reach it.
+    levers = m.report.bet_ranking
+    if not levers and not (m.ranked_changes or m.unranked_changes):
         return ""
     out = [f'<div class="rk-card" style="padding:20px 24px 24px">'
            f'<div style="font-size:11px;font-weight:700;letter-spacing:.08em;'
@@ -1013,44 +1047,59 @@ def _fixes(m: ReadModel) -> str:
                        f'<span style="font-size:13px;line-height:1.55;color:var(--body);'
                        f'text-wrap:pretty">{_e(text)}</span></div>')
         out.append("</div>")
-    if changes:
+    if m.ranked_changes:
         if levers:
             out.append('<hr class="rk-hr">')
         out.append('<div class="rk-k">DETAILED CHANGES</div>')
-        for c in changes:
-            lever = (c.lever_class or "creative").lower()
-            creative = lever == "creative"
-            solves = "".join(
-                f'<span class="rk-id" style="font-size:10px;padding:2px 6px">{_e(pid)}</span>'
-                for pid in getattr(c, "derives_from_pains", []) or []
-            )
-            traced = (f'<span style="margin-left:8px;font-size:9px;font-weight:700;'
-                      f'letter-spacing:.07em;color:var(--ghost)">SOLVES</span>{solves}'
-                      if solves else "")
-            # The design's card carries the change and its traceability only.
-            # `why` and the target's own corroboration are real engine output,
-            # so they fold into the same disclosure the problem cards use
-            # rather than being dropped.
-            extra = ""
-            detail = _e(c.why or "")
-            if getattr(c, "within_target_corroboration", ""):
-                detail += (f'<br><span style="color:var(--body)">What your target '
-                           f'said:</span> {_e(c.within_target_corroboration)}')
-            if detail:
-                extra = (f'<details class="rk-why"><summary>Why this change ▾</summary>'
-                         f'<div class="x">{detail}</div>{_quotes(c.evidence_quotes)}'
-                         f"</details>")
-            out.append(
-                f'<div class="rk-fix"><div class="ch">{_e(c.change)}</div>'
-                f'<div style="margin-top:10px;display:flex;align-items:center;gap:6px;'
-                f'flex-wrap:wrap">'
-                f'<span class="rk-chip" style="color:'
-                f'{"var(--accent-deep)" if creative else "var(--structtag)"};background:'
-                f'{"var(--accent-tint)" if creative else "var(--structtagbg)"}">'
-                f'{_e(humanize(lever).upper())}</span>{traced}</div>{extra}</div>'
-            )
+        out.extend(_fix_card(c) for c in m.ranked_changes)
+    # The prevalence floor. A fix resting only on out-of-target problems is
+    # shown — it is real engine output and often the most interesting thing on
+    # the page — but it is separated from the ranked ones and wears the reason,
+    # so it can never be read as a recommendation about the audience being
+    # bought. See read_model.OUT_OF_TARGET_ONLY_NOTE.
+    if m.unranked_changes:
+        out.append('<hr class="rk-hr">')
+        out.append('<div class="rk-k">NOT RANKED</div>')
+        out.append(f'<div class="rk-sub" style="margin:6px 0 4px">'
+                   f'{_e(OUT_OF_TARGET_ONLY_NOTE)}</div>')
+        out.extend(_fix_card(c) for c in m.unranked_changes)
     out.append("</div>")
     return "".join(out)
+
+
+def _fix_card(c) -> str:
+    """One detailed change. Shared by the ranked and unranked lists so the two
+    can never drift into looking like different kinds of object."""
+    lever = (c.lever_class or "creative").lower()
+    creative = lever == "creative"
+    solves = "".join(
+        f'<span class="rk-id" style="font-size:10px;padding:2px 6px">{_e(pid)}</span>'
+        for pid in getattr(c, "derives_from_pains", []) or []
+    )
+    traced = (f'<span style="margin-left:8px;font-size:9px;font-weight:700;'
+              f'letter-spacing:.07em;color:var(--ghost)">SOLVES</span>{solves}'
+              if solves else "")
+    # The design's card carries the change and its traceability only. `why` and
+    # the target's own corroboration are real engine output, so they fold into
+    # the same disclosure the problem cards use rather than being dropped.
+    extra = ""
+    detail = _e(c.why or "")
+    if getattr(c, "within_target_corroboration", ""):
+        detail += (f'<br><span style="color:var(--body)">What your target '
+                   f'said:</span> {_e(c.within_target_corroboration)}')
+    if detail:
+        extra = (f'<details class="rk-why"><summary>Why this change ▾</summary>'
+                 f'<div class="x">{detail}</div>{_quotes(c.evidence_quotes)}'
+                 f"</details>")
+    return (
+        f'<div class="rk-fix"><div class="ch">{_e(c.change)}</div>'
+        f'<div style="margin-top:10px;display:flex;align-items:center;gap:6px;'
+        f'flex-wrap:wrap">'
+        f'<span class="rk-chip" style="color:'
+        f'{"var(--accent-deep)" if creative else "var(--structtag)"};background:'
+        f'{"var(--accent-tint)" if creative else "var(--structtagbg)"}">'
+        f'{_e(humanize(lever).upper())}</span>{traced}</div>{extra}</div>'
+    )
 
 
 def _what_worked(m: ReadModel) -> str:
@@ -1130,6 +1179,7 @@ def _panel_table(m: ReadModel) -> str:
   <div class="rk-k">PANEL — {m.panel.panel_n} SIMULATED CONSUMERS</div>
   <div style="margin-top:6px;font-size:12px;line-height:1.55;color:var(--muted)">
     {_e(p.summary)}</div>
+  <div class="rk-sub" style="margin-top:8px">{_e(SEGMENT_CAVEAT)}</div>
   <div class="rk-tblwrap"><table class="rk-tbl">
     <thead><tr><th>CONSUMER TYPE</th><th>N</th><th>SCROLLED PAST</th>
     <th>STOPPED</th><th>SAVED</th><th>NEXT STEP</th></tr></thead>
@@ -1202,6 +1252,8 @@ def _methodology(m: ReadModel) -> str:
                      + ", so the read rests on a narrow attitudinal base. Enough "
                        "to point a direction and name the leak; not enough to "
                        "stake a precise number on."))
+    if m.homogeneity_note:
+        rows.append(("PANEL AGREEMENT", m.homogeneity_note))
     if m.flag_lines:
         rows.append(("FLAGS", " ".join(m.flag_lines)))
     if m.report.provisional_dispositions:

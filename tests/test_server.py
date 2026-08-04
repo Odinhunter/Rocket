@@ -429,23 +429,40 @@ def test_blind_read_model_leaves_the_diagnosis_untouched() -> None:
     """Unit-level companion to the page test: the blinding must be surgical."""
     from agent.read_model import ReadModel
 
+    from agent.schema import TopChange
+
     model = ReadModel(run_id="run_x", run_dir=Path("."), report=_report(),
                       report_source="run.json", asset_label=REAL_LABEL,
                       asset_path=Path("assets/x.png"),
                       declared_targeting=REAL_TARGETING,
                       declared_audience=REAL_TARGETING,
-                      decision_name="ITERATE", headline="11% would buy")
+                      decision_name="ITERATE", headline="11% would buy",
+                      quoted_people={"P1": 3},
+                      ranked_changes=[TopChange(change="ranked", why="w")],
+                      unranked_changes=[TopChange(change="demoted", why="w")],
+                      homogeneity_note="…across 15 earlier runs.")
     blinded = blind_read_model(model, "B")
 
     assert blinded.asset_label == "Read B"
     assert blinded.asset_path is None
     assert blinded.run_id == "read-B"
     assert blinded.declared_targeting == "" and blinded.declared_audience == ""
-    # Untouched:
+    # How many EARLIER runs this brand has is identity, not diagnosis: a
+    # contact's own ad is the first run under a fresh brand profile and reads
+    # "no baseline yet", while the library decoy has years of history. That
+    # difference is pickable without reading either diagnosis.
+    assert blinded.homogeneity_note is None, "blinded read leaks the brand's run history"
+    # Untouched — every part of the diagnosis, including the ones added with
+    # the prevalence floor. A blinded read that quietly re-ranks a demoted fix
+    # or drops the evidence counts is a DIFFERENT read, and the decoy would be
+    # measuring the difference between two renderers, not two ads.
     assert blinded.report is model.report
     assert blinded.decision_name == "ITERATE"
     assert blinded.headline == "11% would buy"
-    print("  blind_read_model replaces identity fields only ✓")
+    assert blinded.quoted_people == {"P1": 3}
+    assert [c.change for c in blinded.ranked_changes] == ["ranked"]
+    assert [c.change for c in blinded.unranked_changes] == ["demoted"]
+    print("  blind_read_model strips identity + brand history, keeps the diagnosis ✓")
 
 
 # ---- storage ----------------------------------------------------------
@@ -486,6 +503,53 @@ def test_export_carries_the_engine_half_of_the_capture_row(env) -> None:
     # Both halves in one row.
     assert row["prediction"]["predicted_verdict"] == "REBUILD"
     print("  export carries both halves of the capture row ✓")
+
+
+def test_export_applies_the_ranking_floor_and_caveats_its_number(env) -> None:
+    """The session export is a THIRD hand-assembled projection of ReadModel,
+    alongside the page and the CLI — the exact shape that dropped two
+    guardrails in sample_report.html, because it picks fields by hand and keeps
+    only what it thought to ask for.
+
+    It is also the Track-2 artifact: this row lands in an analysis beside real
+    CTR/ROAS. A fix the read demotes must not be exported as ranked, and a
+    headline whose signal-to-noise is 1.0 must not arrive as a bare number in a
+    spreadsheet, where there is no line below it to carry the caveat.
+    """
+    from agent.read_model import HEADLINE_CAVEAT, OUT_OF_TARGET_ONLY_NOTE
+
+    rep = _report(
+        top_3_changes=[
+            TopChange(change="fix for the target", why="w",
+                      derives_from_pains=["P1"]),
+            TopChange(change="fix for outsiders only", why="w",
+                      derives_from_pains=["P2"]),
+        ],
+        pain_map=[
+            Pain(id="P1", pain="in-target problem", funnel_stage="conversion",
+                 severity="execution", within_target=True),
+            Pain(id="P2", pain="outsider problem", funnel_stage="attention",
+                 severity="execution", within_target=False),
+        ],
+    )
+    _write_run(env.__dict__["runs_root"], account="demo", brand="hw",
+               run_id=REAL_RUN_ID, label=REAL_LABEL, targeting=REAL_TARGETING,
+               report=rep, asset_rel="assets/creative.png")
+
+    sid = _start(env)
+    env.post(f"/sessions/{sid}/predict", data=_PREDICTION, follow_redirects=False)
+    engine = env.get(f"/sessions/{sid}/export").json()["engine"]
+
+    assert engine["top_changes"] == ["fix for the target"], \
+        f"the export ranked an outsider-only fix: {engine['top_changes']}"
+    assert engine["unranked_changes"] == ["fix for outsiders only"], \
+        "the demoted fix was dropped from the export rather than separated"
+    assert engine["unranked_reason"] == OUT_OF_TARGET_ONLY_NOTE
+
+    assert engine["headline"], "no headline — the caveat assertion would be vacuous"
+    assert engine["headline_caveat"] == HEADLINE_CAVEAT, \
+        "the export carries the buy figure with no caveat attached"
+    print("  export applies the ranking floor and caveats its headline ✓")
 
 
 def test_export_survives_a_read_that_has_gone_missing(env) -> None:

@@ -36,6 +36,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from agent.grounding import attribute_quotes_to_agents
 from agent.purpose import resolve_purpose
 from agent.schema import Report
 
@@ -99,6 +100,65 @@ PURPOSE_SCOPE_NOTE = {
 # the caveat travels with the claim instead of sitting in a block above it.
 # Wording is the user's own, from the report design they specified. Keep it.
 VERDICT_CAVEAT = "Didn't separate a known-bad control — tiebreaker, not gate."
+
+# The headline buy-intent number cannot tell one ad from another, and this is
+# measured, not suspected. Restricted to reaction-v3 runs on disk: the SAME ad
+# run four times read 11.1%, 0%, 5.3%, 0% — a spread of 0.111. Six DIFFERENT
+# ads read 11.1%, 0%, 0%, 0%, 0%, 0% — a spread of 0.111. Signal-to-noise 1.0,
+# and the only non-zero ad in the between-ad set is the same one whose own
+# repeats span 0-11%, so the entire "difference between ads" is one ad's
+# run-to-run noise. Method and caveats: docs/v3_engine_improvement_plan.md §0a.
+#
+# The number STAYS where it is, under the verdict — the user's call, 2026-08-04,
+# taken over moving it or demoting it to the methodology block. It keeps its
+# place and wears its limitation, the same bargain VERDICT_CAVEAT strikes one
+# line above it. A page that shows this number bare is claiming a precision the
+# instrument does not have.
+HEADLINE_CAVEAT = (
+    "Re-runs of the same ad moved this number as much as different ads did — "
+    "read it as a rough gauge, not a measurement."
+)
+
+# Differences BETWEEN consumer types are the least reliable class of finding a
+# simulated panel produces, and the failure is one-directional: the literature
+# reports between-segment gaps inflated 2-4x, the wrong segment picked in 50-72%
+# of pairwise comparisons, and splits MANUFACTURED that do not exist in up to
+# 41% of cases (docs/v3_engine_improvement_plan.md §1.4). This read reports
+# those differences as findings — the panel table, the champion line, the
+# decoupling note — so the caveat is not optional.
+#
+# ⚠ Until now the only statement of this lived in a DOCSTRING on
+# `PanelResponse.decoupling_note` ("a lead worth chasing, not a verdict"), which
+# tells a developer and tells the customer nothing. A guardrail that is only
+# addressed to the person maintaining the code is not a guardrail.
+SEGMENT_CAVEAT = (
+    "Differences between consumer types are the least certain thing on this "
+    "page — simulated panels overstate the gaps between groups, and sometimes "
+    "invent ones that aren't there. Treat these as leads to check, not findings."
+)
+
+# The prevalence floor, and the only one in the pipeline. Nothing else anywhere
+# gates a signal on how many people carry it: a pain raised by a handful of
+# simulated consumers has always been able to become a ranked recommendation,
+# which is how a disposition-corpus artefact ("search for it on Nykaa", planted
+# by us and said by 5 agents of 100) shipped as a top-3 ranked change.
+#
+# The rule the data supports is narrow and deterministic: a fix built ONLY on
+# problems from people outside the declared target does not get ranked. Across
+# the runs on disk that is 2 of 51 ranked changes outright, with 8 more mixing
+# insiders and outsiders. It is not a claim the fix is wrong — an out-of-target
+# problem is often the most interesting thing on the page — it is a refusal to
+# rank a recommendation for a buy against people that buy was not for.
+#
+# ⚠ It applies to the DETAILED CHANGES only. `bet_ranking` is free text with no
+# reference back to any pain id, so there is no deterministic way to tell
+# whether a numbered lever leans on a demoted fix; it is deliberately left
+# untouched rather than reordered on a guess. Closing that needs bets to carry
+# `derives_from_pains`, which is an engine change.
+OUT_OF_TARGET_ONLY_NOTE = (
+    "Not ranked: this rests only on problems raised by people outside the "
+    "audience you're buying. Worth reading — it is not evidence about your target."
+)
 
 # The stages of the funnel, in the order a buyer moves through them. Defined
 # here rather than in a renderer: both the diagnosis overview and the pain
@@ -628,7 +688,13 @@ class DiagnosisOverview:
     stages: list[str] = field(default_factory=list)   # present only, funnel order
     load_bearing_id: str = ""
     load_bearing_stage: str = ""
-    widest_breadth: int = 0      # most consumer types to raise any one problem
+    # Most consumer types to raise any one problem. ⚠ This is the RAW count of
+    # `cited_by`, unfiltered — while the chip a reader sees (ReadModel.breadth_line)
+    # counts only types that were actually in the panel, because the assess pass
+    # sometimes names one that never ran. The two therefore disagree by design.
+    # Nothing renders this today; if that changes, decide which of the two
+    # numbers is meant first, or the page will contradict itself.
+    widest_breadth: int = 0
 
     @property
     def is_empty(self) -> bool:
@@ -659,6 +725,38 @@ class DiagnosisOverview:
             bits.append(f"{n} {'is' if n == 1 else 'are'} structural — no change "
                         f"to the creative fixes {'that one' if n == 1 else 'those'}.")
         return " ".join(bits)
+
+
+def split_changes_by_target(report: Report) -> tuple[list, list]:
+    """Split `top_3_changes` into (ranked, unranked) — see OUT_OF_TARGET_ONLY_NOTE.
+
+    A change is unranked ONLY when every pain it derives from resolves to a real
+    pain in this report's own pain_map AND every one of those is out of target.
+    Three deliberate abstentions, each of which would otherwise demote a fix on
+    an absence of evidence rather than on evidence:
+
+      * no `derives_from_pains` at all — every pre-2.2 report, which had no pain
+        layer to reference;
+      * ids that resolve to nothing (a dangling reference is a bug in the
+        prescribe pass, not a signal about the audience);
+      * any single in-target pain among them — a mixed fix stays ranked, and 8
+        of 51 changes on disk are mixed.
+
+    Returns the report's own list objects, order preserved. It reads the report
+    and mutates nothing: `top_3_changes` still holds all three, because
+    `_validate_prescription` requires exactly three and this is a presentation
+    decision, not a re-run of the prescribe pass.
+    """
+    by_id = {p.id: p for p in report.pain_map}
+    ranked, unranked = [], []
+    for c in report.top_3_changes:
+        pains = [by_id[pid] for pid in (getattr(c, "derives_from_pains", []) or [])
+                 if pid in by_id]
+        if pains and not any(p.within_target for p in pains):
+            unranked.append(c)
+        else:
+            ranked.append(c)
+    return ranked, unranked
 
 
 def build_diagnosis_overview(report: Report) -> DiagnosisOverview:
@@ -748,6 +846,17 @@ class ReadModel:
     # the diagnosis, counted (derived from report.pain_map)
     diagnosis: DiagnosisOverview = field(default_factory=DiagnosisOverview)
 
+    # The detailed changes, split by the prevalence floor. `report.top_3_changes`
+    # still holds all three; these two say which of them may be RANKED.
+    ranked_changes: list = field(default_factory=list)
+    unranked_changes: list = field(default_factory=list)
+
+    # pain id -> how many simulated people's own words back that pain. Derived
+    # at read time from the run's own transcripts.json; EMPTY when that file is
+    # absent, and an absent entry must render as no clause rather than a zero.
+    # ⚠ A grounding count, not prevalence — see grounding.attribute_quotes_to_agents.
+    quoted_people: dict[str, int] = field(default_factory=dict)
+
     # every consumer type in the panel, in AND out of target (from L3)
     panel: PanelResponse = field(default_factory=PanelResponse)
 
@@ -769,6 +878,10 @@ class ReadModel:
     audience_aligned: str | None = None
     declared_audience: str = ""
     inferred_audience: str = ""
+    # How alike the panel's segments were, against this brand's own earlier
+    # runs. An observation for the methodology block, never a flag — see
+    # homogeneity_observation.
+    homogeneity_note: str | None = None
 
     @property
     def within_label(self) -> str:
@@ -795,6 +908,47 @@ class ReadModel:
     def flag_lines(self) -> list[str]:
         """Methodology flags in plain words, for a surface a client reads."""
         return [flag_text(f) for f in self.report.methodology_flags]
+
+    @property
+    def panel_type_labels(self) -> set[str]:
+        """The consumer types that actually ran, from the panel itself."""
+        return {t.disposition for t in self.panel.types}
+
+    def breadth_line(self, pain) -> str:
+        """The breadth chip for one problem — built HERE, never in a renderer.
+
+        Replaces a bare "1 type", which had no denominator: one of two types and
+        one of seven read identically, and neither said how much evidence sat
+        behind it. Two numbers, both checkable, neither pretending to be
+        prevalence:
+
+          "3 of 5 consumer types  ·  quoted from 4 people"
+
+        ⚠ The second clause is a GROUNDING count bounded by quotes shown (2-4),
+        NOT a count of everyone who raised the pain — the engine records nothing
+        that could answer that. It is omitted entirely, never rendered as 0,
+        when the run's transcripts are unavailable. See
+        grounding.attribute_quotes_to_agents.
+
+        `cited_by` is model-authored and unvalidated: on 2 of 183 citations
+        across the runs on disk the assess pass named a consumer type that was
+        not in that run's panel at all, inflating the chip by one. Labels are
+        counted against the panel that really ran, and only when the panel is
+        known — filtering against an empty set would zero every chip.
+        """
+        known = self.panel_type_labels
+        cited = list(getattr(pain, "cited_by", []) or [])
+        if known:
+            cited = [c for c in cited if c in known]
+        n = len(cited)
+        if known:
+            base = f"{n} of {len(known)} consumer types"
+        else:
+            base = f"{n} type" + ("" if n == 1 else "s")
+        k = self.quoted_people.get(getattr(pain, "id", ""), 0)
+        if k:
+            base += f" · quoted from {k} {'person' if k == 1 else 'people'}"
+        return base
 
 
 def _load_report(run_dir: Path) -> tuple[Report, dict, str]:
@@ -825,6 +979,126 @@ def _load_report(run_dir: Path) -> tuple[Report, dict, str]:
         "Recover it with replay_synthesis before rendering — do NOT render a "
         "partial read."
     )
+
+
+# How many EARLIER runs of the same brand are needed before "typical for this
+# brand" is a claim rather than a coincidence. Below it the read says so, out
+# loud — a new customer's first read is exactly this case, and a comparison
+# that silently doesn't appear is indistinguishable from one that passed.
+_HOMOGENEITY_MIN_BASELINE = 5
+
+
+def _tight_fraction(run_dir: Path) -> float | None:
+    """The share of this run's segments whose reactions came back "tight" —
+    i.e. how much the panel agreed with itself. Straight off L3's own
+    confidence signals; None when they are missing."""
+    path = run_dir / "l3_summary.json"
+    if not path.exists():
+        return None
+    try:
+        signals = (json.loads(path.read_text()).get("confidence_signals") or {})
+        total = signals.get("total_segments") or 0
+        if not total:
+            return None
+        return signals["homogenization_flag_count"] / total
+    except (OSError, ValueError, KeyError, TypeError, ZeroDivisionError):
+        return None
+
+
+def homogeneity_observation(run_dir: Path, raw: dict) -> str | None:
+    """How alike this panel's segments were, against this brand's own history.
+
+    An OBSERVATION, deliberately, and not a methodology flag. `homogenization_high`
+    has been suppressed in two places since the per-(disposition x chaos-band)
+    layout landed, because a global threshold cannot answer a brand-relative
+    question — each brand has its own structural baseline. ROADMAP proposed
+    replacing it with a >2 sigma detector, and the data on disk says that flag
+    would NEVER FIRE: across 15 v3 runs of health_wellness_demo the tight
+    fraction is mean 0.69, sd 0.16, max 0.87, against a 2-sigma bar of 1.01. A
+    guardrail that cannot fire is worse than none, because it reads as a check
+    that passed. So the honest deliverable is the number and its context, and
+    the flag stays suppressed.
+
+    Scoped to the same account, brand, reaction protocol AND segment
+    granularity: v2 and v3 baselines genuinely differ (0.60 vs 0.69 on the same
+    brand), so pooling them would compare this run against a different
+    instrument.
+
+    ⚠ Only runs EARLIER than this one count. Comparing a run against a set
+    containing itself pulls the baseline toward it, and letting later runs in
+    means re-rendering an old read cites its own future — the same read would
+    say different things on different days.
+
+    Never raises: it walks sibling directories, and a read must not fail
+    because a neighbouring run is half-written.
+    """
+    mine = _tight_fraction(run_dir)
+    if mine is None:
+        return None
+    config = raw.get("config", {}) or {}
+    protocol = raw.get("reaction_protocol_version")
+    granularity = config.get("segment_granularity")
+    peers: list[float] = []
+    try:
+        for sibling in sorted(run_dir.parent.iterdir()):
+            # Run ids start with a UTC timestamp, so the name sorts
+            # chronologically. A *_replay directory is the SAME run recovered
+            # after a crash — counting it would double-weight one measurement.
+            if (not sibling.is_dir() or sibling.name >= run_dir.name
+                    or sibling.name.endswith("_replay")):
+                continue
+            try:
+                peer_raw = json.loads((sibling / "run.json").read_text())
+            except (OSError, ValueError):
+                continue
+            peer_config = peer_raw.get("config", {}) or {}
+            if (peer_raw.get("reaction_protocol_version") != protocol
+                    or peer_config.get("segment_granularity") != granularity):
+                continue
+            frac = _tight_fraction(sibling)
+            if frac is not None:
+                peers.append(frac)
+    except OSError:
+        peers = []
+
+    alike = f"Segments in this run reacted alike {mine:.0%} of the time"
+    if len(peers) < _HOMOGENEITY_MIN_BASELINE:
+        earlier = (f"{len(peers)} earlier comparable run"
+                   + ("" if len(peers) == 1 else "s"))
+        return (f"{alike}. There is no baseline for this brand yet — "
+                f"{earlier} on record, and a comparison needs at least "
+                f"{_HOMOGENEITY_MIN_BASELINE}. On its own the number says "
+                f"little: some agreement is structural, not a finding.")
+    typical = sum(peers) / len(peers)
+    return (f"{alike}, against {typical:.0%} typical for this brand across "
+            f"{len(peers)} earlier runs.")
+
+
+def _quoted_people(run_dir: Path, report: Report) -> dict[str, int]:
+    """How many simulated people's own words back each pain, re-derived from the
+    run's own transcripts.
+
+    Read-time, deliberately. Persisting this on `Pain` was the first design and
+    it is wrong: `frozen_painmap_from_report` calls `Pain.to_dict()` and that
+    dict IS the prescribe pass's prompt input, so a new field would silently
+    change what the prescribe model reads — an engine change, testable only by
+    paying for a run. Re-deriving costs one JSON parse against a page that
+    already inlines ~941KB of creative.
+
+    Degrades to `{}` — a missing or unreadable transcripts.json means the clause
+    is omitted, never that the count is zero.
+    """
+    path = run_dir / "transcripts.json"
+    if not path.exists() or not report.pain_map:
+        return {}
+    try:
+        transcripts = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(transcripts, list):
+        return {}
+    attributed = attribute_quotes_to_agents(report.pain_map, transcripts)
+    return {pid: len(ids) for pid, ids in attributed.items() if ids}
 
 
 def build_read_model(run_dir: str | Path) -> ReadModel:
@@ -867,6 +1141,9 @@ def build_read_model(run_dir: str | Path) -> ReadModel:
     # decision layer but still carries a pain_map, and the diagnosis is
     # exactly the layer that survives when the decision one doesn't.
     model.diagnosis = build_diagnosis_overview(report)
+    model.quoted_people = _quoted_people(run_dir, report)
+    model.ranked_changes, model.unranked_changes = split_changes_by_target(report)
+    model.homogeneity_note = homogeneity_observation(run_dir, raw)
 
     am = report.audience_match
     if am is not None:
