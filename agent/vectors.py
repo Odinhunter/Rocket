@@ -296,6 +296,19 @@ class NamedDisposition:
     notes: str = ""
     anchor: str = ""
     demographic_bundles: list["DemographicBundle"] = field(default_factory=list)
+    # §2.3 — the sub-category this disposition was AUTHORED FOR, as free-text
+    # product words ("collagen", "biotin", "hair supplement"). A library is one
+    # CATEGORY, so the category cannot express this: the damage measured was
+    # *within* health-wellness-nutrition — a beauty-supplement persona written
+    # for collagen/biotin, correct there, applied unchanged to a protein bar,
+    # after which 43 of 100 persona cores carried its vocabulary before seeing
+    # any ad.
+    #
+    # ⚠ EMPTY MEANS UNSCOPED, NEVER MISMATCHED. Every disposition in every
+    # library starts empty, so an advisory that fired on absence would light up
+    # every run at once and mean nothing. Scoping is an authoring act, opted
+    # into one disposition at a time.
+    authored_for: list[str] = field(default_factory=list)
 
     def validate(self) -> None:
         if not self.label or not self.label.strip():
@@ -303,9 +316,15 @@ class NamedDisposition:
         self.vector.validate()
         for bundle in self.demographic_bundles:
             bundle.validate()
+        for scope in self.authored_for:
+            if not isinstance(scope, str) or not scope.strip():
+                raise ValueError(
+                    f"NamedDisposition.authored_for entries must be non-empty "
+                    f"strings, got {scope!r} on {self.label!r}"
+                )
 
     def to_dict(self) -> dict:
-        return {
+        out = {
             "label": self.label,
             "vector": self.vector.to_dict(),
             "provisional": self.provisional,
@@ -313,6 +332,16 @@ class NamedDisposition:
             "anchor": self.anchor,
             "demographic_bundles": [b.to_dict() for b in self.demographic_bundles],
         }
+        # ⚠ OMITTED WHEN EMPTY, DELIBERATELY. `panel.compute_panel_version`
+        # digests these dicts, so emitting `"authored_for": []` unconditionally
+        # would shift the panel version of every brand on disk — announcing a
+        # composition change that did not happen, right before a paid
+        # before/after run has to be read. Unscoped libraries stay byte-identical;
+        # scoping one disposition moves that library's version, which is correct
+        # because the library really did change.
+        if self.authored_for:
+            out["authored_for"] = list(self.authored_for)
+        return out
 
     @classmethod
     def from_dict(cls, data: dict) -> "NamedDisposition":
@@ -326,6 +355,7 @@ class NamedDisposition:
                 DemographicBundle.from_dict(b)
                 for b in data.get("demographic_bundles", [])
             ],
+            authored_for=list(data.get("authored_for") or []),
         )
 
 

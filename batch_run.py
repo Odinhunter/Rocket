@@ -360,6 +360,13 @@ def _print_preparation(prep: RunPreparation) -> None:
         print("⚠  TRUST CEILING  —  a confident 'ship it' is unreachable with this panel")
         print(f"   {prep.trust_ceiling_warning}")
         print("~" * 78)
+    if prep.disposition_scope_warning is not None:
+        s = prep.disposition_scope_warning
+        print("\n" + "~" * 78)
+        print(f"⚠  DISPOSITION SCOPE  —  {len(s.out_of_scope)} of {s.scoped_count} "
+              f"scoped consumer types are outside the product they were written for")
+        print(f"   {s.message}")
+        print("~" * 78)
     print(f"\nEstimated cost: ~${prep.estimated_cost_usd:.2f}   "
           f"(persona cores rendered: {prep.persona_cores_rendered})")
     print("=" * 78)

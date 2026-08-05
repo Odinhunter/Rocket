@@ -140,8 +140,14 @@ def test_persona_system_render_6_contract() -> None:
     inherits. Offline can only pin the CONTRACT — that the instructions are
     present. Whether the register actually lands is a LIVE check
     (test_render_smoke); whether it stays un-parroted is the 2-persona live
-    check that gates this step."""
-    assert RENDER_PROMPT_VERSION == "render-6", RENDER_PROMPT_VERSION
+    check that gates this step).
+
+    ⚠ The version is render-7, but every assertion below is still the render-6
+    contract and must keep passing: render-7 (§2.6, income withheld from the
+    persona writer) changed the USER PAYLOAD only and left `_PERSONA_SYSTEM`
+    untouched. If a later bump ever makes one of these fail, that is a real
+    regression, not a version-number chore."""
+    assert RENDER_PROMPT_VERSION == "render-7", RENDER_PROMPT_VERSION
 
     # C3 — BOTH leaking registers are banned. NOTE: the banned analyst words
     # ("aspirational", "gateway brand", ...) appear in _PERSONA_SYSTEM ON
@@ -188,6 +194,56 @@ def test_persona_system_render_6_contract() -> None:
         "catalogues — a medium/low buyer must not know varietals/estates/V60"
     )
     print("  OK  _PERSONA_SYSTEM: render-6 C1+C3 + expertise gate, render-3/4/5 intact")
+
+
+def test_render_7_withholds_income_from_the_persona_writer() -> None:
+    """§2.6. SimBench measures a per-axis penalty for conditioning a simulated
+    persona on a demographic axis: income −4.51, against age −1.50 and gender
+    −1.24 (the safest two). Every persona we rendered carried an LPA band.
+
+    ⚠ Three separate things have to be true at once, and each is a way this
+    change could be real in one place and undone in another:
+      1. the WRITER's payload carries no income;
+      2. `DemographicPoint.to_dict()` still DOES — it is the serialization
+         contract for panel.json, persona_core_hash and the from_dict round
+         trip, so narrowing it would break panel selection and replay;
+      3. income still KEYS the cache, so two people who differ only in what
+         they earn cannot collapse onto one cached core."""
+    demo = _demo()
+    payload = render_mod._persona_user_payload(
+        demo, _disposition(), _chaos(), load_pack("coffee")
+    )
+
+    # 1 — nothing income-shaped reaches the writer.
+    for token in ("income", "lpa", "LPA"):
+        assert token not in payload, (
+            f"§2.6: {token!r} still reaches the persona writer:\n{payload[:400]}"
+        )
+    # ...while the axes SimBench found safest are untouched. Without this, a
+    # redaction that stripped the whole demographic block would pass above.
+    assert "gender" in payload and "age_min" in payload, (
+        "§2.6 withholds INCOME only — age and gender are the two safest axes "
+        "and removing them would be a different, unmeasured change"
+    )
+
+    # 2 — the serialization contract is intact.
+    full = demo.to_dict()
+    assert "income_lpa_min" in full and "income_lpa_max" in full, (
+        "DemographicPoint.to_dict() must keep income: panel.json, "
+        "persona_core_hash and every replay of a run on disk depend on it"
+    )
+
+    # 3 — income still keys the cache (over-keying is harmless; under-keying
+    # would serve one core for two different people).
+    poor = DemographicPoint(**{**full, "income_lpa_min": 2.0, "income_lpa_max": 5.0})
+    rich = DemographicPoint(**{**full, "income_lpa_min": 60.0, "income_lpa_max": 90.0})
+    assert (persona_core_hash(poor, _disposition(), _chaos(), "coffee")
+            != persona_core_hash(rich, _disposition(), _chaos(), "coffee")), (
+        "income dropped out of persona_core_hash — two different people would "
+        "now share one cached persona core"
+    )
+    print("  OK  render-7 withholds income from the writer, keeps it for "
+          "selection, replay and the cache key")
 
 
 def test_context_system_de_literarised() -> None:
@@ -264,6 +320,7 @@ def main() -> None:
     test_persona_core_hash_sensitive()
     test_prompt_version_invalidates_cache()
     test_persona_system_render_6_contract()
+    test_render_7_withholds_income_from_the_persona_writer()
     test_context_system_de_literarised()
     test_context_render_hash_sensitive()
     test_cache_roundtrip()

@@ -293,6 +293,41 @@ class PurposeMismatch:
 
 
 @dataclass
+class DispositionScopeWarning:
+    """§2.3: one or more dispositions in the run pool are being used OUTSIDE the
+    sub-category they were authored for. Deterministic, pre-run, advisory —
+    never blocks, exactly like CoverageWarning and PurposeMismatch.
+
+    The failure it names was measured: a beauty-supplement persona written for
+    collagen/biotin — correct there — applied unchanged to a protein bar, after
+    which 43 of 100 persona cores carried its vocabulary before seeing any ad.
+    The panel arrived pre-loaded with the wrong product's language, so the
+    reaction was contaminated at composition time, upstream of everything the
+    read reports.
+
+    ⚠ A disposition with an EMPTY `authored_for` is UNSCOPED and never appears
+    here. Firing on absence would flag every disposition in every library on the
+    first run and train the reader to ignore the whole row."""
+    out_of_scope: list[tuple[str, list[str]]]  # (disposition label, authored_for)
+    scoped_count: int      # dispositions in the pool that declared a scope
+    total_count: int       # dispositions in the pool
+    haystack: str          # the run text the scopes were matched against
+    message: str
+
+    def to_dict(self) -> dict:
+        return {
+            "out_of_scope": [
+                {"label": label, "authored_for": list(scopes)}
+                for label, scopes in self.out_of_scope
+            ],
+            "scoped_count": self.scoped_count,
+            "total_count": self.total_count,
+            "haystack": self.haystack,
+            "message": self.message,
+        }
+
+
+@dataclass
 class CoverageWarning:
     """A deterministic pre-run advisory that the DECLARED audience intersects
     too few library personas to compose a diverse marketer-led panel — a

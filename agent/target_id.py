@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,7 @@ from agent.purpose import DIRECT_SELL, PURPOSE_ORDER, resolve_purpose
 from agent.synthesis_types import (
     CoverageWarning,
     DemographicMismatch,
+    DispositionScopeWarning,
     DispositionTarget,
     InferredAudience,
     PurposeMismatch,
@@ -435,6 +437,79 @@ def _range_gap(a0: float, a1: float, b0: float, b1: float) -> float:
     if b1 < a0:
         return a0 - b1
     return 0.0
+
+
+_SCOPE_NORMALIZE = re.compile(r"[^a-z0-9]+")
+
+
+def _normalize_scope_text(text: str) -> str:
+    """Lowercase, punctuation to single spaces, padded — so a whole-word test is
+    a plain substring test. `"proski_protein_cereal"` -> `" proski protein
+    cereal "`, in which `" protein "` matches and `" bar "` does not (which is
+    the point: `"bar"` must not match `"barista"`)."""
+    return f" {_SCOPE_NORMALIZE.sub(' ', text.lower()).strip()} "
+
+
+def detect_out_of_scope_dispositions(
+    dispositions: list[NamedDisposition],
+    *,
+    asset_label: str,
+    category: str,
+) -> "DispositionScopeWarning | None":
+    """§2.3 — flag dispositions used outside the sub-category they were authored
+    for. Deterministic, no model call, no cost. Returns None when nothing in the
+    pool declares a scope, or when every declared scope matches the run.
+
+    ⚠ Matched against the ASSET LABEL + CATEGORY, not against the target
+    classifier's `inferred_target_description`. The classifier's read is richer
+    and it is already computed by the time this runs — and it is MODEL OUTPUT,
+    so the same library and the same ad could flag on one run and not the next.
+    Every other pre-run guard here is reproducible from the config alone; a
+    guard that flickers is one a marketer learns to ignore.
+
+    ⚠ No new form field. The audience form's four questions are a shipped user
+    decision (`v3 #38`); a fifth is theirs to authorize, not ours to add. The
+    label the marketer already types is the signal."""
+    scoped = [d for d in dispositions if d.authored_for]
+    if not scoped:
+        return None
+
+    haystack_raw = f"{asset_label} {category}".strip()
+    haystack = _normalize_scope_text(haystack_raw)
+    out_of_scope = [
+        (d.label, list(d.authored_for))
+        for d in scoped
+        # ⚠ BOTH sides stay PADDED. Stripping the needle is what makes "bar"
+        # match inside "barista" — and a scope guard that passes on a
+        # coincidence is worse than one that fires, because a silent guard is
+        # never re-checked.
+        if not any(
+            _normalize_scope_text(scope) in haystack
+            for scope in d.authored_for
+        )
+    ]
+    if not out_of_scope:
+        return None
+
+    names = ", ".join(
+        f"{label} (authored for {' / '.join(scopes)})"
+        for label, scopes in out_of_scope
+    )
+    plural = "s" if len(out_of_scope) > 1 else ""
+    message = (
+        f"{len(out_of_scope)} consumer type{plural} in this panel {'were' if plural else 'was'} "
+        f"written for a different product: {names}. Nothing in "
+        f"\"{haystack_raw}\" matches. They will still run — but they arrive "
+        f"already talking about the product they were authored for, so treat "
+        f"their language as borrowed rather than as a finding about this ad."
+    )
+    return DispositionScopeWarning(
+        out_of_scope=out_of_scope,
+        scoped_count=len(scoped),
+        total_count=len(dispositions),
+        haystack=haystack_raw,
+        message=message,
+    )
 
 
 def detect_gross_demographic_mismatch(

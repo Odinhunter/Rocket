@@ -64,11 +64,13 @@ from agent.synthesis_prescribe import PRESCRIBE_PROMPT_VERSION
 from agent.synthesis_types import (
     CoverageWarning,
     DemographicMismatch,
+    DispositionScopeWarning,
     PurposeMismatch,
     TargetClassification,
 )
 from agent.target_id import (
     detect_gross_demographic_mismatch,
+    detect_out_of_scope_dispositions,
     detect_purpose_mismatch,
     detect_thin_coverage,
     identify_target,
@@ -195,6 +197,11 @@ class RunPreparation:
     # Deterministic, advisory, non-blocking; computed post-target_id. A message
     # string (None when >=2 within-target dispositions). docs/v3_protocol.md §8.
     trust_ceiling_warning: str | None = None
+    # §2.3: a disposition in the pool is being used outside the sub-category it
+    # was authored for (deterministic, advisory, no model call). None when no
+    # disposition in the pool declares a scope — see DispositionScopeWarning on
+    # why absence must never read as a mismatch.
+    disposition_scope_warning: DispositionScopeWarning | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -220,6 +227,10 @@ class RunPreparation:
                 if self.purpose_mismatch is not None else None
             ),
             "trust_ceiling_warning": self.trust_ceiling_warning,
+            "disposition_scope_warning": (
+                self.disposition_scope_warning.to_dict()
+                if self.disposition_scope_warning is not None else None
+            ),
         }
 
 
@@ -461,6 +472,21 @@ class RunService:
         if purpose_mismatch is not None:
             _log.warning("purpose mismatch: %s", purpose_mismatch.message)
 
+        # §2.3: is any disposition being used outside the sub-category it was
+        # authored for? Deterministic, no model call, no cost — and computed
+        # from the config alone (asset label + category) so it reads the same on
+        # every re-run of the same setup. None when nothing in the pool declares
+        # a scope, which is the state of every library until one is authored.
+        disposition_scope_warning = detect_out_of_scope_dispositions(
+            dispositions,
+            asset_label=config.asset.label,
+            category=config.category,
+        )
+        if disposition_scope_warning is not None:
+            _log.warning(
+                "disposition scope mismatch: %s", disposition_scope_warning.message
+            )
+
         # v3 (A6): a HIGH-trust verdict needs >=2 within-target dispositions.
         # If the resolved panel has fewer, SCALE ('ship it') is unreachable
         # regardless of ad quality — disclose it now, on the pre-run surface,
@@ -519,6 +545,7 @@ class RunService:
             coverage_warning=coverage_warning,
             purpose_mismatch=purpose_mismatch,
             trust_ceiling_warning=trust_ceiling_warning,
+            disposition_scope_warning=disposition_scope_warning,
         )
         _persist_json(rd / "preparation.json", prep.to_dict())
         _persist_json(rd / "panel.json", [a.to_dict() for a in panel])

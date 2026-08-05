@@ -320,6 +320,26 @@ def _library() -> DispositionLibrary:
                 "shedding doesn't visibly slow."
             ),
             demographic_bundles=_BUNDLES_SWITCHER,
+            # §2.3 — THE DISPOSITION THE SCOPE FIELD EXISTS FOR, and the only
+            # one scoped so far. This anchor is a BEAUTY-SUPPLEMENT persona:
+            # every artifact in it (OZiva, Power Gummies, Plix collagen, Setu,
+            # HK Vitals, biotin, shedding, Nykaa review density) is
+            # collagen/biotin. It is correct there. It was then run unchanged
+            # against a PROTEIN BAR, and 43 of 100 persona cores carried its
+            # vocabulary before seeing any ad — the panel arrived pre-loaded
+            # with the wrong product's language.
+            #
+            # ⚠ Scoping is opt-in, ONE disposition at a time, on evidence. The
+            # other six here stay unscoped deliberately: an advisory that fired
+            # everywhere on its first run would be noise, and a guess at a scope
+            # is worse than no scope. `doctor_triggered_vitamin` is the obvious
+            # next candidate (Calcirol / Livogen / Shelcal is a deficiency
+            # persona, not a protein one) — but nobody has MEASURED that one
+            # leaking, so it is left for whoever does.
+            authored_for=[
+                "collagen", "biotin", "hair supplement", "skin supplement",
+                "beauty supplement",
+            ],
         ),
         # 4 — MEDIUM. Coherence: neutral + price_first + function + family =
         # brand-indifferent, doctor-driven, "medicine not lifestyle".

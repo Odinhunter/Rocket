@@ -92,7 +92,17 @@ _log = logging.getLogger(__name__)
 #           way the core is — the "soft conveyor belt" register leaked from the
 #           context block, which is read by the very person it describes.
 #           docs/v3_input_audit.md.
-RENDER_PROMPT_VERSION = "render-6"
+# render-7: §2.6 — INCOME IS NO LONGER SHOWN TO THE PERSONA WRITER. SimBench
+#           measures a per-axis penalty for conditioning a simulated persona on
+#           a demographic axis, and income is among the worst of them
+#           (ΔS −4.51) while age (−1.50) and gender (−1.24) are the safest.
+#           Every persona we rendered carried an LPA band. See
+#           docs/research/04_simbench_read.md §3 and the plan's §2.6.
+#           ⚠ THE BUMP IS THE CHANGE. Renders are cached by persona_core_hash,
+#           which digests this constant — editing the payload without bumping
+#           here would serve every core from the old prompt and the change
+#           would be completely invisible (agent/provenance.py's whole point).
+RENDER_PROMPT_VERSION = "render-7"
 
 # Fits the prose + the HOW THEY TALK block. Brevity is enforced by the
 # sentence-count instruction, not by the ceiling — the ceiling only exists so
@@ -404,6 +414,37 @@ def _pack_brief(pack: CategoryArtifactPack) -> str:
     return "\n".join(lines)
 
 
+# §2.6 — the axes withheld from the persona WRITER. SimBench's conditioning
+# penalties: income −4.51 (with political −4.97 and religiosity −9.91 worse, and
+# neither is an axis we carry), against age −1.50 and gender −1.24, the two
+# safest. Income was in every persona we rendered.
+#
+# ⚠ INCOME IS NOT REMOVED FROM THE ENGINE — only from this one prompt. It still
+# selects the panel (`panel.demographic_overlap` matches on gender × age ×
+# income), still keeps each demographic bundle internally coherent, still rides
+# in `panel.json`, still keys `persona_core_hash`, and still reaches the
+# target-ID classifier through `declared_targeting`. Those are SELECTION and
+# CLASSIFICATION. The measured penalty is a SIMULATION penalty, and it is only
+# paid where a model is asked to BE the person — which is here.
+_WRITER_SUPPRESSED_DEMOGRAPHIC_KEYS = frozenset({
+    "income_lpa_min", "income_lpa_max", "income_tier",
+})
+
+
+def persona_writer_demographics(demo: DemographicPoint) -> dict:
+    """The demographic point AS THE PERSONA WRITER SEES IT.
+
+    ⚠ Built here rather than by narrowing `DemographicPoint.to_dict()`: that
+    dict is the serialization contract for `panel.json`, for
+    `persona_core_hash`, and for the `from_dict` round-trip, so narrowing it
+    would break panel selection and replay of every run already on disk. The
+    redaction belongs at the prompt seam and nowhere else."""
+    return {
+        k: v for k, v in demo.to_dict().items()
+        if k not in _WRITER_SUPPRESSED_DEMOGRAPHIC_KEYS
+    }
+
+
 def _persona_user_payload(
     demo: DemographicPoint,
     disposition: DispositionVector,
@@ -413,7 +454,7 @@ def _persona_user_payload(
 ) -> str:
     parts = [
         "DEMOGRAPHIC POINT:",
-        json.dumps(demo.to_dict(), indent=2),
+        json.dumps(persona_writer_demographics(demo), indent=2),
         "",
         "DISPOSITION VECTOR (category-attitudinal stance):",
         json.dumps(disposition.to_dict(), indent=2),
