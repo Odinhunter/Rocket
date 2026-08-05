@@ -246,8 +246,17 @@ collagen / biotin / hair supplement / skin supplement / beauty supplement.
 - ⚠ **`to_dict` omits an empty `authored_for` on purpose** — `compute_panel_version` digests these
   dicts, and emitting `[]` unconditionally would shift the panel version of every brand on disk
   right before a before/after run has to be read.
-- ⚠ **NOT on the customer review screen.** `_prep_flags`' rule is "their input, not our instrument",
-  and that screen is the user's curation — adding a row is their call.
+- ⚠ **CLI-ONLY AS BUILT, and that is a real limit, not a nuance.** It is computed and persisted on
+  every path, but it is only *displayed* by `batch_run._print_preparation`. **The app is the
+  product now — a "New read" goes through `server/app.py`, so no app user ever sees this
+  advisory.** It was kept off `_prep_flags` because that screen's rule is "their input, not our
+  instrument" and the user curated it personally — but "deliberately off the review screen" and
+  "unreachable except from the CLI" are different claims and only the second is true today.
+  **Open question for the user, not a decision to make for them.**
+- ⚠ **`disposition_version` does NOT move when a scope is added — `panel_version` does.** The
+  "disposition content hash" digests `(label, description)` only, and `authored_for` is in neither.
+  So `scripts/freeze_config.py` does record the scoping, via the **panel composition hash**. Do not
+  read an unchanged `disposition_version` as "the library did not change".
 - **Scoping the other six is an authoring act on evidence.** `doctor_triggered_vitamin` (Calcirol /
   Livogen / Shelcal — a deficiency persona, not a protein one) is the obvious next candidate, but
   nobody has measured it leaking. A guessed scope is worse than none.
