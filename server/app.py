@@ -24,7 +24,8 @@ from fastapi.responses import (
 )
 from fastapi.staticfiles import StaticFiles
 
-from agent.config import build_run_config, default_asset_label
+from agent.config import (
+    SUPPORTED_IMAGE_SUFFIXES, build_run_config, default_asset_label)
 from agent.progress import phase_view
 from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER, resolve_purpose
 from agent.read_model import (
@@ -429,9 +430,14 @@ def create_app(
         of those demographics can only ever want it on. A checkbox that must
         never be unticked is not a choice, it is a trap.
         """
+        # `asset_label` rides along so a rejection can put it back in the box.
+        # It is NOT an audience answer — `_resolve_audience` reads the keys it
+        # knows by name and ignores the rest — but the design's 4C state says
+        # "Kept as typed — the form does not clear", and it was the one field
+        # that did clear, because the markup rendered no `value`.
         answers_raw = {"brand": brand, "age_from": age_from, "age_to": age_to,
                        "gender": gender, "income": income, "geography": geography,
-                       "purpose": purpose}
+                       "purpose": purpose, "asset_label": asset_label}
         brands = _brand_choices()
         if not brands:
             return _html(_new_read_form(), 400)
@@ -446,13 +452,19 @@ def create_app(
         # "ad.png" apart, and keeps the run config pointing at a stable file
         # for as long as the report can be re-rendered from it.
         suffix = Path(asset.filename or "").suffix.lower()
-        if suffix not in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+        # ⚠ The ENGINE's set, imported, never a second list. This check used to
+        # carry its own copy that also allowed `.gif` — which `AssetSpec.
+        # validate()` refuses. A .gif therefore passed here, was written into
+        # `uploads/`, and died inside prepare on the generic "Could not prepare
+        # the read" page with the whole form lost: a failure landing *after*
+        # the operator did the work, which is exactly what `#29` forbids.
+        if suffix not in SUPPORTED_IMAGE_SUFFIXES:
             # Back to the form with the rejection stated and the reason next to
             # the drop target, rather than a dead-end error page — the design's
             # state 4C, and the whole point of it is that the form does not
             # clear what was already chosen.
             return _html(_new_read_form(
-                answers_raw, error="That's not a .png, .jpg or .webp.",
+                answers_raw, error=app_html.CREATIVE_REJECTED,
                 filename=asset.filename or ""), 400)
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         dest = uploads_dir / f"{stamp}_{secrets.token_hex(3)}{suffix}"

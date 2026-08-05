@@ -32,11 +32,29 @@ Stdlib only, matching the engine's no-template-dependency rule.
 from __future__ import annotations
 
 import html
+import json
 
+from agent.config import SUPPORTED_IMAGE_SUFFIXES
 from agent.dashboard_html import PAGE_CSS
 from agent.read_model import DECISION_TAGLINE
 from server import audience_form
 from server.runs import RunRef
+
+# ---- what the file picker may offer -------------------------------------
+# Derived from the ENGINE's own gate, never retyped. `.jpg` and `.jpeg` are one
+# format under two names, so the copy names it once — `CREATIVE_SHOWN` is what
+# a person reads and `SUPPORTED_IMAGE_SUFFIXES` is what the server enforces.
+# A test pins them to each other through `_ALIASES`, so adding a format to the
+# engine and forgetting the picker fails rather than silently under-offering.
+CREATIVE_ALIASES = {".jpeg": ".jpg"}
+# The ORDER is the design's, not alphabetical — `.PNG · .JPG · .WEBP` is what
+# the state stack draws and what the 4C copy reads. The test pins the SET, so
+# the order stays a design choice while the membership stays the engine's.
+CREATIVE_SHOWN = (".png", ".jpg", ".webp")
+CREATIVE_ACCEPT = ",".join(sorted(SUPPORTED_IMAGE_SUFFIXES))
+CREATIVE_EXTS = " · ".join(s.upper() for s in CREATIVE_SHOWN)
+CREATIVE_REJECTED = (
+    "That's not a " + ", ".join(CREATIVE_SHOWN[:-1]) + f" or {CREATIVE_SHOWN[-1]}.")
 
 # The design's two tokens that PAGE_CSS does not carry. `--leak-line` is the
 # warm hairline the flag stack is drawn with; `--stripe` is the placeholder
@@ -110,6 +128,13 @@ textarea{line-height:1.5;resize:vertical}
 .err b{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.07em;
   color:var(--leak);flex:none}
 .err span{font-size:12px;line-height:1.5;color:var(--muted)}
+/* Named hooks, because the rejection is written by BOTH the server and the
+   4B script and they have to address the same two slots. Structural selectors
+   were wrong here: `box.querySelector("div div")` matches the OUTER div, since
+   `box` is itself a div and satisfies the ancestor half. */
+.err .msg{color:var(--ink)}
+.err .fn{margin-top:3px;font-family:var(--font-mono);font-size:10.5px;
+  color:var(--faint)}
 
 /* ---- reads list ---- */
 .listhead{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
@@ -169,11 +194,50 @@ textarea{line-height:1.5;resize:vertical}
   border-radius:11px;background:var(--surface-2);padding:26px;cursor:pointer;
   text-align:center}
 .drop:hover{border-color:var(--accent);background:var(--accent-tint)}
+/* One spelling of the rejected tint, so the server-rendered 4C and the one the
+   script draws without a round trip cannot drift apart. */
+.drop--bad{border-color:var(--leak);background:var(--leak-tint)}
 .drop b{font-size:15px;font-weight:600;color:var(--ink)}
 .drop .exts{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.05em;
   color:var(--faint)}
 .drop input{width:auto;max-width:280px;font-size:12px;color:var(--muted);
   background:none;border:0;padding:0}
+/* ---- state 4B, the chosen creative ----
+   Rendered by script from the File the browser already holds: no upload, no
+   round trip, nothing spent. The input MOVES into `.upl` rather than being
+   duplicated — a second input would be a second file, and re-rendering the
+   region with innerHTML would destroy the selection it exists to show.
+   Visually hidden, never `display:none`: a `display:none` input is one some
+   browsers refuse to open from its label, and `required` on an unfocusable
+   control makes a form fail to submit with nothing said. */
+.upl{margin-top:14px;display:flex;gap:16px;align-items:flex-start;
+  border:1px solid var(--line);border-radius:11px;background:var(--surface-2);
+  padding:14px}
+/* ⚠ Load-bearing, and it looks redundant. The `hidden` ATTRIBUTE is honoured by
+   a User-Agent stylesheet rule, and ANY author rule setting `display` on the
+   same element overrides it — so `.upl{display:flex}` above would leave the
+   empty card on screen, broken thumbnail and all, before a file is chosen.
+   Higher specificity than `.upl`, so source order cannot betray it either. */
+.upl[hidden]{display:none}
+.upl input[type=file]{position:absolute;width:1px;height:1px;opacity:0;
+  overflow:hidden;padding:0;margin:0;border:0}
+.upl .shot{width:96px;height:96px;flex:none;border-radius:8px;
+  border:1px solid var(--line);background:var(--stripe);object-fit:cover;
+  display:block}
+.upl .meta{flex:1;min-width:0}
+.upl .nm{font-family:var(--font-mono);font-size:12px;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upl .dim{margin-top:4px;font-family:var(--font-mono);font-size:10.5px;
+  color:var(--faint)}
+.upl .acts{margin-top:12px;display:flex;gap:8px;align-items:center}
+.upl .repl{background:var(--surface);border:1px solid var(--line);
+  border-radius:7px;padding:6px 12px;font-size:12.5px;color:var(--ink);
+  cursor:pointer}
+.upl .repl:hover{border-color:var(--faint)}
+.upl .rm{background:none;border:0;padding:6px 4px;font-size:12.5px;
+  color:var(--muted);cursor:pointer;text-decoration:underline;
+  text-underline-offset:3px;font-family:inherit}
+.upl .rm:hover{color:var(--ink)}
 .check{margin-top:20px;border-top:1px solid var(--line);padding-top:16px;display:flex;
   gap:11px;align-items:flex-start}
 .check input{width:16px;height:16px;margin:1px 0 0;accent-color:#0f8a6d;flex:none}
@@ -677,19 +741,23 @@ def new_read_page(*, account: str, brands: list[tuple[str, str]],
     income_opts = _opts(audience_form.INCOME_BANDS, a["income"])
     geo_opts = _opts(audience_form.GEOGRAPHIES, a["geography"])
 
+    field = (f'<input id="creative" name="asset" type="file" '
+             f'accept="{_e(CREATIVE_ACCEPT)}" required>')
+    # The script checks the SAME list the POST handler enforces and says the
+    # SAME sentence — injected, not retyped, so a client-side card can never
+    # promise something the server then refuses.
+    accept_json = json.dumps(sorted(SUPPORTED_IMAGE_SUFFIXES))
+    rejected_json = json.dumps(CREATIVE_REJECTED)
     if error:
-        drop = f"""<label for="creative" class="drop"
-  style="border-color:var(--leak);background:var(--leak-tint)">
+        drop = f"""<label for="creative" class="drop drop--bad">
   <b>Drop the ad creative here</b>
-  <span class="exts">.PNG · .JPG · .WEBP</span>
-  <input id="creative" name="asset" type="file" accept=".png,.jpg,.jpeg,.webp"
-    required></label>
-<div class="err"><b>REJECTED</b><div><span
-  style="color:var(--ink)">{_e(error)}</span>
-  <div style="margin-top:3px;font-family:var(--font-mono);font-size:10.5px;
-    color:var(--faint)">{_e(filename)}</div></div></div>"""
+  <span class="exts">{_e(CREATIVE_EXTS)}</span>
+  {field}</label>
+<div class="err" id="creative-err"><b>REJECTED</b><div>
+  <span class="msg">{_e(error)}</span>
+  <div class="fn">{_e(filename)}</div></div></div>"""
     else:
-        drop = """<label for="creative" class="drop">
+        drop = f"""<label for="creative" class="drop">
   <span style="width:34px;height:34px;border-radius:8px;border:1.5px solid var(--faint);
     display:flex;align-items:center;justify-content:center">
     <svg width="17" height="17" viewBox="0 0 17 17" aria-hidden="true"><path
@@ -698,9 +766,8 @@ def new_read_page(*, account: str, brands: list[tuple[str, str]],
       d="M2.5 12v1.5h12V12" fill="none" stroke="#6b6f76" stroke-width="1.4"
       stroke-linecap="round"></path></svg></span>
   <b>Drop the ad creative here</b>
-  <span class="exts">.PNG · .JPG · .WEBP</span>
-  <input id="creative" name="asset" type="file" accept=".png,.jpg,.jpeg,.webp"
-    required></label>"""
+  <span class="exts">{_e(CREATIVE_EXTS)}</span>
+  {field}</label>"""
 
     return shell("New read", active="/reads/new", account=account, body=f"""
 <h1>New read</h1>
@@ -711,10 +778,26 @@ def new_read_page(*, account: str, brands: list[tuple[str, str]],
   <div class="card">
     <div class="k">THE AD</div>
     {drop}
+    <!-- State 4B. Empty and hidden until a file is chosen; the script fills it
+         from the File the browser already holds and MOVES the input inside.
+         With script off it never appears and the plain input above is the
+         whole control, which is why nothing here is required to submit. -->
+    <div class="upl" id="creative-card" hidden>
+      <img class="shot" id="creative-shot" alt="">
+      <div class="meta">
+        <div class="nm" id="creative-name"></div>
+        <div class="dim" id="creative-dim"></div>
+        <div class="acts">
+          <label class="repl" for="creative">Replace</label>
+          <button type="button" class="rm" id="creative-remove">Remove</button>
+        </div>
+      </div>
+    </div>
     <div class="two" style="margin-top:16px">
       <div><label class="lbl" for="asset_label">WHAT TO CALL IT</label>
         <div class="hint">How it appears at the top of the read.</div>
         <input id="asset_label" name="asset_label" type="text"
+          value="{_e(a.get('asset_label') or '')}"
           placeholder="Winter whey — carousel v2"></div>
       <div><label class="lbl" for="brand">WHICH BRAND</label>
         <div class="hint">Sets the consumer research this is read against.</div>
@@ -793,6 +876,125 @@ def new_read_page(*, account: str, brands: list[tuple[str, str]],
   }}
   fields.forEach(function (f) {{ f.addEventListener("change", update); }});
   update();
+}})();
+
+/* State 4B — the chosen creative, shown before anything is uploaded.
+
+   Progressive enhancement, like the reach line above it: with this blocked the
+   plain file input is the whole control and every path still works. Nothing
+   here talks to the server — the thumbnail is an object URL over the File the
+   browser already holds, so choosing an ad costs nothing and reveals the file
+   to no one until Prepare is pressed.
+
+   Two things are deliberate and easy to undo by accident:
+   - the <input> is MOVED between the drop target and the card, never copied
+     and never re-rendered, because innerHTML over the region would destroy the
+     selection the card exists to display;
+   - it is only ever visually hidden while it HOLDS a file. `required` on a
+     control that cannot be focused makes a form refuse to submit while saying
+     nothing, so Remove restores the visible drop target in the same breath as
+     it clears the value. */
+(function () {{
+  var OK = {accept_json};
+  var REJECTED = {rejected_json};
+  var input = document.getElementById("creative");
+  var drop = document.querySelector("label.drop");
+  var card = document.getElementById("creative-card");
+  var shot = document.getElementById("creative-shot");
+  var nm = document.getElementById("creative-name");
+  var dim = document.getElementById("creative-dim");
+  var rm = document.getElementById("creative-remove");
+  if (!input || !drop || !card || !shot || !nm || !dim || !rm) return;
+
+  var url = null;
+  function release() {{
+    if (url) {{ URL.revokeObjectURL(url); url = null; }}
+  }}
+
+  /* The server renders this same block on a real rejection; reuse it when
+     there is one so the two cannot stack up. */
+  function errBox() {{
+    var box = document.getElementById("creative-err");
+    if (!box) {{
+      box = document.createElement("div");
+      box.className = "err";
+      box.id = "creative-err";
+      box.innerHTML = '<b>REJECTED</b><div><span class="msg"></span>'
+        + '<div class="fn"></div></div>';
+      drop.parentNode.insertBefore(box, drop.nextSibling);
+    }}
+    return box;
+  }}
+  function reject(name) {{
+    var box = errBox();
+    /* By class, never by shape: `box.querySelector("div div")` matches the
+       OUTER div, because `box` is a div and satisfies the ancestor half — it
+       wiped the message instead of filling the filename.
+       textContent, never innerHTML: the name is whatever the file system
+       handed us and it is about to sit inside our own markup. */
+    box.querySelector(".msg").textContent = REJECTED;
+    box.querySelector(".fn").textContent = name;
+    drop.classList.add("drop--bad");
+  }}
+  function clearErr() {{
+    var box = document.getElementById("creative-err");
+    if (box) box.parentNode.removeChild(box);
+    drop.classList.remove("drop--bad");
+  }}
+
+  function toDrop() {{
+    release();
+    drop.appendChild(input);
+    card.hidden = true;
+    drop.style.display = "";
+  }}
+
+  function show(file) {{
+    var dot = file.name.lastIndexOf(".");
+    var ext = dot < 0 ? "" : file.name.slice(dot).toLowerCase();
+    if (OK.indexOf(ext) < 0) {{
+      /* Never draw the card for a file the server is going to refuse — that
+         is `#29`: a failure that lands after the work has been done. */
+      input.value = "";
+      toDrop();
+      reject(file.name);
+      return;
+    }}
+    clearErr();
+    release();
+    url = URL.createObjectURL(file);
+    nm.textContent = file.name;
+    var label = (ext === ".jpeg" ? ".jpg" : ext).slice(1).toUpperCase();
+    dim.textContent = label;
+    var probe = new Image();
+    probe.onload = function () {{
+      dim.textContent = probe.naturalWidth + " × " + probe.naturalHeight
+        + " · " + label;
+    }};
+    /* A file we cannot decode still gets a card — the server is the judge of
+       whether it runs, and dropping the dimensions is better than refusing to
+       show the choice that was made. */
+    probe.onerror = function () {{ dim.textContent = label; }};
+    probe.src = url;
+    shot.src = url;
+    shot.alt = "The creative you chose: " + file.name;
+    card.appendChild(input);
+    drop.style.display = "none";
+    card.hidden = false;
+  }}
+
+  input.addEventListener("change", function () {{
+    /* A cancelled Replace fires change with nothing selected on some browsers.
+       Falling through would wipe a good choice the operator already made. */
+    if (!input.files || !input.files.length) return;
+    show(input.files[0]);
+  }});
+  rm.addEventListener("click", function () {{
+    input.value = "";
+    toDrop();
+    clearErr();
+  }});
+  if (input.files && input.files.length) show(input.files[0]);
 }})();
 </script>""")
 

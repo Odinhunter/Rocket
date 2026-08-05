@@ -28,7 +28,14 @@ from agent.vectors import VECTOR_SCHEMA_VERSION
 # Verified empirically: patanjali_ad.png at 4.4 MB raw encoded to 5.9 MB and
 # crashed with 400 BadRequestError after 15 agent specs were built.
 _MAX_B64_BYTES = 5 * 1024 * 1024
-_SUPPORTED_IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+
+# PUBLIC because it is the ONLY gate on what the engine will read, and every
+# surface that offers a file picker has to agree with it. It was private, and
+# the web upload guard grew its own more permissive copy that allowed `.gif`:
+# the upload succeeded, the file landed in `uploads/`, and `validate()` below
+# then refused it *inside* prepare — a dead-end error page after the operator
+# had done the work, which is the `#29` rule exactly. One spelling, imported.
+SUPPORTED_IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp"})
 
 
 def _base64_encoded_size(raw_bytes: int) -> int:
@@ -166,10 +173,10 @@ class AssetSpec:
         path = Path(self.image_path)
         if not path.exists():
             raise ValueError(f"asset file not found: {self.image_path}")
-        if path.suffix.lower() not in _SUPPORTED_IMAGE_SUFFIXES:
+        if path.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
             raise ValueError(
                 f"asset {self.image_path} has unsupported extension "
-                f"{path.suffix!r}; supported: {sorted(_SUPPORTED_IMAGE_SUFFIXES)}"
+                f"{path.suffix!r}; supported: {sorted(SUPPORTED_IMAGE_SUFFIXES)}"
             )
         raw_bytes = path.stat().st_size
         b64_bytes = _base64_encoded_size(raw_bytes)
