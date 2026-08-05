@@ -419,10 +419,15 @@ def main() -> None:
         for line in violations:
             print(f"      {line}")
     else:
-        print("\n  → No violation. Every panel-wide number on disk is a genuine")
-        print("    weighted mean of its subgroups. The 'distributions are Python'")
-        print("    invariant holds — which is the point: ~80% of tested models")
-        print("    fail this when the average is generated instead of counted.")
+        print("\n  → No violation on either surface this can reach: the FUNNEL")
+        print("    PROJECTION (QC1/QC2) and the DECISION HEADLINE (QC3). Both are")
+        print("    genuine weighted means of their subgroups, so the 'distributions")
+        print("    are Python' invariant holds — the point being that ~80% of tested")
+        print("    models fail this when the average is generated, not counted.")
+        print("    ⚠ NOT a statement about every aggregate in the engine. The third")
+        print("    one, panel.audience_mass, is never persisted and so cannot be")
+        print("    checked from disk — it is convex BY CONSTRUCTION instead")
+        print("    (DemographicBundle.validate enforces weight > 0).")
 
     print("\n" + "=" * 78)
     print("Method: docs/v3_engine_improvement_plan.md §0. Re-run after any engine")

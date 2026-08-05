@@ -158,6 +158,15 @@ implementations** of one count, and they were verified to share both the frame a
 `_BUY_INTENT_NEXT_STEPS` predicate. **`decision.py`'s claim that the headline "is a weighted
 average over the panel's realised cycle mix" is TRUE**, and now pinned.
 
+⚠ **The clean result covers TWO surfaces, not "every number in the engine"** — the funnel
+projection and the decision headline. There is a **third** weighted average, `panel.audience_mass`
+(`agent/panel.py`), and it is **not checkable from disk**: it is consumed at panel-build time to
+allocate agents and never persisted — `panel.json` holds the resulting agents, and
+`report.audience_match` carries a verdict and prose but no number. It is instead convex **by
+construction**: `Σ w·best / Σ w` with every `best ∈ [0, 1]`, and `DemographicBundle.validate()`
+enforces `weight > 0`, so a negative weight — the only input that could push the result outside its
+own bundles' range — cannot load. A proof rather than a measurement, and stronger for it.
+
 ⚠ **Checked and NOT defects, recorded so they are not re-investigated:**
 - `l3_summary.context_fit` is `{}` and `confidence_signals.total_contexts` is `0` on every v3 run.
   **Intended** — L3 stopped making that call (rocket-2.2.0 Phase 7) and the assess pass owns
