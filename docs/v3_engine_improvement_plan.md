@@ -134,10 +134,47 @@ measures 0.234 / 0.148 against the 0.231 / 0.148 published above; the difference
 is a stopword-list detail, and it is a small live demonstration of exactly the
 analytic-flexibility problem §5.1 is about).
 
-### 0c. QC1/QC2 convex-combination check — **NOT YET RUN** **[$0]**
+### 0c. QC1/QC2 convex-combination check — **[MEASURED] 2026-08-06 — NO VIOLATION** ⭐
 Neumann et al.: is the panel-wide average a valid convex combination of the subgroup averages?
 **~80% of tested models fail this** — producing an "average" more extreme than every subgroup,
-which is geometrically impossible. Free, and it is a bug-finder. **Do this first.**
+which is geometrically impossible. Free, and it is a bug-finder.
+
+**Ran clean.** Now `scripts/gate_test.py` §0c, so it re-runs after every engine change at $0.
+
+| check | what it asserts | coverage on disk |
+|---|---|---|
+| **QC1** pooling identity | the population distribution IS its segments summed — an **integer** identity, no rounding excuse | 9 runs × **15 segments** |
+| **QC2** funnel convexity | every `overall` funnel rate lies inside the range its segments span, both directions | 9 runs |
+| **QC3** headline vs cycle | `target_action_num/denom` equals the sum over `by_cycle_position` — an exact identity, **stronger than QC2** | 7 runs, 2 skipped |
+
+⭐ **Why it passed, and why that is a real result rather than a null one:** the failure mode
+Neumann measures needs the average to be **GENERATED**. This engine counts every distribution in
+Python (`agent/decision.py`, the "distributions are Python" invariant) and the model emits no
+number at all — so the only way convexity could break here is a **frame mismatch**: two code paths
+counting over different populations while claiming to decompose each other. QC3 is the sharp
+instrument for exactly that, because `within_target_action_rate` (via
+`compute_behavioral_distribution`) and `_buy_intent_by_cycle` are **two independent
+implementations** of one count, and they were verified to share both the frame and the
+`_BUY_INTENT_NEXT_STEPS` predicate. **`decision.py`'s claim that the headline "is a weighted
+average over the panel's realised cycle mix" is TRUE**, and now pinned.
+
+⚠ **Checked and NOT defects, recorded so they are not re-investigated:**
+- `l3_summary.context_fit` is `{}` and `confidence_signals.total_contexts` is `0` on every v3 run.
+  **Intended** — L3 stopped making that call (rocket-2.2.0 Phase 7) and the assess pass owns
+  `context_fit` now. `single_context_only` derives `n_contexts` **fresh from the transcripts**, so
+  nothing consumes the dead counters.
+- `report.funnel_projection` is `None` on every run while `l35_projection.json` holds a full
+  projection. **Intended** — it attaches only under `--funnel`; the projection is computed and
+  persisted either way, and `FUNNEL_OFF_NOTE` says so accurately.
+- ⚠ **QC2 deliberately does not check the confidence BANDS.** `_band_halfwidth_fraction` widens
+  with small `n`, so the pooled panel's band is legitimately **tighter** than every segment's —
+  more evidence, not a violation. Extending QC2 over the bands would look like rigour and would
+  false-fire on every healthy run. `test_qc2_deliberately_ignores_the_confidence_bands` pins it.
+
+⚠ **The detectors are mutation-proved (7/7), and that is the load-bearing part.** 0c reports no
+violation on disk — which is byte-identical to what a checker pointed at the wrong field would
+report. `tests/test_gate_test.py` breaks each detector on purpose (one-sided QC2, `n`-only QC1,
+numerator-only QC3, an unfiltered loader) and every mutation fails a test.
 
 ---
 

@@ -106,6 +106,175 @@ def _spread(values: list[float]) -> float:
     return max(values) - min(values) if values else 0.0
 
 
+# ---- 0c: the convex-combination check (Neumann et al. QC1/QC2) ----
+#
+# A panel-wide average MUST be a weighted mean of its subgroups' averages. ~80%
+# of tested models fail this when the "average" is GENERATED rather than
+# counted: they emit a panel number more extreme than every subgroup inside it,
+# which is geometrically impossible. This engine's stated invariant is that
+# every distribution is a Python count over parsed signals
+# (`agent/decision.py`, "distributions are Python"). This check is what proves
+# that invariant still holds after a change instead of trusting the comment.
+#
+# ⚠ It reads the SIDECARS, not run.json. `report.funnel_projection` is None
+# unless the run was made with `--funnel`, but the projection is computed and
+# persisted either way — the real numbers live in `l35_projection.json` and
+# `l3_summary.json`. Checking run.json alone silently checks nothing.
+
+_FUNNEL_STAGES = ("stop_rate", "click_rate", "visit_rate", "convert_rate")
+
+# Rates are floats derived by two different routes (pooled-then-multiplied vs
+# per-segment), so exact equality is the wrong bar for the range comparison.
+# Counts are integers and are compared exactly.
+_RATE_TOL = 1e-9
+
+
+def load_projections(runs_root: Path) -> dict[str, tuple[dict, dict]]:
+    """Every finished reaction-v3 run that persisted both sidecars:
+    path -> (l35_projection, l3_summary). Runs missing either are omitted, and
+    the caller reports how many that was — a check whose denominator is
+    invisible reads as coverage it does not have."""
+    out: dict[str, tuple[dict, dict]] = {}
+    for run_json in sorted(runs_root.glob("*/*/*/run.json")):
+        rd = run_json.parent
+        try:
+            raw = json.loads(run_json.read_text())
+        except (OSError, ValueError):
+            continue
+        if raw.get("reaction_protocol_version") != "reaction-v3":
+            continue
+        try:
+            l35 = json.loads((rd / "l35_projection.json").read_text())
+            l3 = json.loads((rd / "l3_summary.json").read_text())
+        except (OSError, ValueError):
+            continue
+        out[str(rd)] = (l35, l3)
+    return out
+
+
+def load_decisions(runs_root: Path) -> dict[str, dict]:
+    """Every finished reaction-v3 run's decision block: path -> decision dict.
+    Separate from `load_runs` because that one is 0a/0b's shape and widening it
+    would change what its callers unpack."""
+    out: dict[str, dict] = {}
+    for run_json in sorted(runs_root.glob("*/*/*/run.json")):
+        try:
+            raw = json.loads(run_json.read_text())
+        except (OSError, ValueError):
+            continue
+        if raw.get("reaction_protocol_version") != "reaction-v3":
+            continue
+        decision = ((raw.get("report") or {}).get("decision")) or {}
+        if decision:
+            out[str(run_json.parent)] = decision
+    return out
+
+
+def _pooled_distribution(segments: list[dict]) -> dict:
+    """Element-wise sum of the segment behavioural distributions — what the
+    population distribution has to equal if it was pooled rather than
+    invented."""
+    counts: dict[str, int] = {}
+    next_steps: dict[str, int] = {}
+    n = 0
+    for seg in segments:
+        dist = seg.get("behavioral_distribution") or {}
+        for key, val in (dist.get("counts") or {}).items():
+            counts[key] = counts.get(key, 0) + val
+        for key, val in (dist.get("next_step_counts") or {}).items():
+            next_steps[key] = next_steps.get(key, 0) + val
+        n += dist.get("n") or 0
+    return {"counts": counts, "next_step_counts": next_steps, "n": n}
+
+
+def qc1_pooling_identity(l35: dict, l3: dict) -> list[str]:
+    """QC1 — is the population distribution the SUM of its segments? An
+    integer identity, so any discrepancy is a defect and not a rounding
+    artifact. This is the stronger half: if pooling holds, no downstream
+    average computed from it can be out of range by construction."""
+    segments = l35.get("by_segment") or []
+    if not segments:
+        return []
+    pooled = _pooled_distribution(segments)
+    population = l3.get("population_behavioral_distribution") or {}
+    problems: list[str] = []
+    if population.get("n") != pooled["n"]:
+        problems.append(
+            f"population n={population.get('n')} != sum of segment n={pooled['n']}"
+        )
+    for field in ("counts", "next_step_counts"):
+        if (population.get(field) or {}) != pooled[field]:
+            problems.append(
+                f"population {field} != summed segment {field}: "
+                f"{population.get(field)} vs {pooled[field]}"
+            )
+    return problems
+
+
+def qc2_convexity(l35: dict) -> list[str]:
+    """QC2 — does every overall funnel rate lie inside the range its segments
+    span? A weighted mean cannot exceed its own maximum or fall below its own
+    minimum; an overall outside that band means the panel number was not
+    derived from the subgroups it claims to summarise.
+
+    ⚠ The BANDS are deliberately not checked. `_band_halfwidth_fraction` widens
+    with a small n, so the pooled panel's band is legitimately TIGHTER than
+    every segment's — that is more evidence, not a violation. A future session
+    adding a band check here would be adding a permanent false alarm."""
+    segments = l35.get("by_segment") or []
+    overall = l35.get("overall") or {}
+    if len(segments) < 2 or not overall:
+        return []
+    problems: list[str] = []
+    for stage in _FUNNEL_STAGES:
+        values = [
+            (seg.get("funnel_rates") or {}).get(stage)
+            for seg in segments
+        ]
+        values = [v for v in values if v is not None]
+        got = overall.get(stage)
+        if got is None or not values:
+            continue
+        lo, hi = min(values), max(values)
+        tol = _RATE_TOL * max(1.0, abs(hi))
+        if not (lo - tol <= got <= hi + tol):
+            problems.append(
+                f"{stage}: overall {got:.6f} is outside the segment range "
+                f"[{lo:.6f}, {hi:.6f}] spanned by {len(values)} segments"
+            )
+    return problems
+
+
+def qc3_cycle_identity(decision: dict) -> list[str] | None:
+    """QC3 — the same question asked of the DECISION layer, where the headline
+    the read leads with is produced. `_buy_intent_by_cycle` and the headline are
+    two independent implementations of one count over one frame, and
+    `agent/decision.py` states the headline "is a weighted average over the
+    panel's realised cycle mix". Because both partition the same frame this is
+    an exact integer identity, not a range — a strictly stronger test than QC2.
+
+    None when the run carries no cycle breakdown to check against (it is only
+    built for the buy-frame purposes), which the caller counts as a SKIP rather
+    than a pass."""
+    by_cycle = decision.get("by_cycle_position") or {}
+    if not by_cycle:
+        return None
+    num = sum(cell.get("num") or 0 for cell in by_cycle.values())
+    denom = sum(cell.get("denom") or 0 for cell in by_cycle.values())
+    problems: list[str] = []
+    if num != decision.get("target_action_num"):
+        problems.append(
+            f"headline numerator {decision.get('target_action_num')} != "
+            f"{num} summed over cycle positions"
+        )
+    if denom != decision.get("target_action_denom"):
+        problems.append(
+            f"headline denominator {decision.get('target_action_denom')} != "
+            f"{denom} summed over cycle positions"
+        )
+    return problems
+
+
 def main() -> None:
     from agent.telemetry import runs_root as _default_runs_root
 
@@ -197,6 +366,63 @@ def main() -> None:
         print("    is not established. Do not report it as a finding.")
     else:
         print("  ⚠ The problem map does NOT separate re-runs from different ads.")
+
+    # ---- 0c: the convex-combination check ----
+    print("\n" + "-" * 78)
+    print("0c  CONVEX COMBINATION — is a panel number a mean of its subgroups?")
+    print("-" * 78)
+
+    projections = load_projections(args.runs_root)
+    decisions = load_decisions(args.runs_root)
+    violations: list[str] = []
+    qc1_n = qc2_n = qc3_n = qc3_skipped = 0
+    segment_counts: list[int] = []
+
+    for path, (l35, l3) in sorted(projections.items()):
+        name = Path(path).name
+        segments = l35.get("by_segment") or []
+        if segments:
+            segment_counts.append(len(segments))
+            qc1_n += 1
+            for problem in qc1_pooling_identity(l35, l3):
+                violations.append(f"QC1 {name}: {problem}")
+        if len(segments) >= 2:
+            qc2_n += 1
+            for problem in qc2_convexity(l35):
+                violations.append(f"QC2 {name}: {problem}")
+
+    for path, decision in sorted(decisions.items()):
+        problems = qc3_cycle_identity(decision)
+        if problems is None:
+            qc3_skipped += 1
+            continue
+        qc3_n += 1
+        for problem in problems:
+            violations.append(f"QC3 {Path(path).name}: {problem}")
+
+    # ⚠ The coverage line is not decoration. One subgroup satisfies convexity
+    # trivially and zero satisfies it vacuously, so "no violations" means
+    # nothing until you can see how many runs and subgroups were actually
+    # tested.
+    span = (f"{min(segment_counts)}-{max(segment_counts)}"
+            if segment_counts else "0")
+    print(f"  QC1 pooling identity  : {qc1_n} runs, {span} segments each")
+    print(f"  QC2 funnel convexity  : {qc2_n} runs (needs >= 2 segments)")
+    print(f"  QC3 headline vs cycle : {qc3_n} runs checked, "
+          f"{qc3_skipped} skipped (no cycle breakdown)")
+
+    if not (qc1_n or qc2_n or qc3_n):
+        print("\n  ⚠ NOTHING CHECKED — no run carried the sidecars this reads.")
+    elif violations:
+        print(f"\n  ⚠ {len(violations)} VIOLATION(S) — a panel number is not a mean")
+        print("    of the subgroups it summarises. This is a BUG, not a finding:")
+        for line in violations:
+            print(f"      {line}")
+    else:
+        print("\n  → No violation. Every panel-wide number on disk is a genuine")
+        print("    weighted mean of its subgroups. The 'distributions are Python'")
+        print("    invariant holds — which is the point: ~80% of tested models")
+        print("    fail this when the average is generated instead of counted.")
 
     print("\n" + "=" * 78)
     print("Method: docs/v3_engine_improvement_plan.md §0. Re-run after any engine")

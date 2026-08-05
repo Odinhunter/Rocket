@@ -18,7 +18,17 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
-from gate_test import _jaccard, _spread, _vocab, load_runs  # noqa: E402
+from gate_test import (  # noqa: E402
+    _jaccard,
+    _spread,
+    _vocab,
+    load_decisions,
+    load_projections,
+    load_runs,
+    qc1_pooling_identity,
+    qc2_convexity,
+    qc3_cycle_identity,
+)
 
 
 def _write_run(root: Path, name: str, *, label: str, pains: list[str],
@@ -136,6 +146,171 @@ def test_a_repeated_ad_overlaps_itself_more_than_a_different_ad() -> None:
     print("  a repeated ad overlaps itself more than a different ad ✓")
 
 
+# ---- 0c: the convex-combination check ----
+#
+# ⚠ Every test below MUTATES a clean fixture and asserts the detector fires. On
+# the runs currently on disk 0c reports no violation, so a detector that could
+# not fire at all would produce exactly the same output — a clean bill of health
+# from a checker pointed at nothing. These are what tell the two apart.
+
+
+def _clean_projection() -> tuple[dict, dict]:
+    """An l35_projection / l3_summary pair whose arithmetic is correct by
+    construction: three segments, and a population that really is their sum."""
+    segments = [
+        {"segment_label": "sceptic_price::deliberate",
+         "behavioral_distribution": {"counts": {"scroll_past": 4, "linger": 1},
+                                     "next_step_counts": {"nothing": 4, "buy_now": 1},
+                                     "n": 5},
+         "funnel_rates": {"stop_rate": 0.060, "click_rate": 0.0072,
+                          "visit_rate": 0.0068, "convert_rate": 0.0028}},
+        {"segment_label": "aspirant_clean_label::impulsive",
+         "behavioral_distribution": {"counts": {"scroll_past": 2, "tap_cta": 2},
+                                     "next_step_counts": {"nothing": 2, "research_first": 2},
+                                     "n": 4},
+         "funnel_rates": {"stop_rate": 0.080, "click_rate": 0.0110,
+                          "visit_rate": 0.0090, "convert_rate": 0.0035}},
+        {"segment_label": "loyalist_brand::deliberate",
+         "behavioral_distribution": {"counts": {"linger": 3},
+                                     "next_step_counts": {"buy_at_restock": 3},
+                                     "n": 3},
+         "funnel_rates": {"stop_rate": 0.070, "click_rate": 0.0090,
+                          "visit_rate": 0.0080, "convert_rate": 0.0031}},
+    ]
+    l35 = {
+        "overall": {"stop_rate": 0.068, "click_rate": 0.0088,
+                    "visit_rate": 0.0078, "convert_rate": 0.0031},
+        "by_segment": segments,
+    }
+    l3 = {
+        "population_behavioral_distribution": {
+            "counts": {"scroll_past": 6, "linger": 4, "tap_cta": 2},
+            "next_step_counts": {"nothing": 6, "buy_now": 1,
+                                 "research_first": 2, "buy_at_restock": 3},
+            "n": 12,
+        }
+    }
+    return l35, l3
+
+
+def test_qc1_catches_a_population_that_is_not_the_sum_of_its_segments() -> None:
+    """QC1 is an INTEGER identity, so there is no rounding excuse: if the panel
+    distribution is not exactly its segments added up, it was not pooled — and
+    every average derived from it summarises a population that does not exist."""
+    l35, l3 = _clean_projection()
+    assert qc1_pooling_identity(l35, l3) == [], "the clean fixture must pass"
+
+    # Each field on its own — a checker comparing only `n` would miss a
+    # population whose totals are right but whose mix is invented.
+    mutations = {
+        "n": lambda p: p.__setitem__("n", p["n"] - 1),
+        "counts": lambda p: p["counts"].__setitem__("linger", 99),
+        "next_step_counts": lambda p: p["next_step_counts"].__setitem__("buy_now", 7),
+    }
+    for field, break_it in mutations.items():
+        _, fresh = _clean_projection()
+        break_it(fresh["population_behavioral_distribution"])
+        found = qc1_pooling_identity(l35, fresh)
+        assert found, f"QC1 did not fire on a corrupted population {field}"
+        assert any(field in msg for msg in found), found
+    print("  QC1 fires on n, counts and next_step_counts independently ✓")
+
+
+def test_qc2_catches_an_overall_rate_outside_the_segment_range() -> None:
+    """Both directions. A panel number ABOVE its best subgroup and one BELOW its
+    worst are the same defect, and a one-sided check passes half of them."""
+    l35, _ = _clean_projection()
+    assert qc2_convexity(l35) == [], "the clean fixture must pass"
+
+    high, _ = _clean_projection()
+    high["overall"]["convert_rate"] = 0.99
+    assert any("convert_rate" in m for m in qc2_convexity(high)), \
+        "QC2 did not fire on an overall above every segment"
+
+    low, _ = _clean_projection()
+    low["overall"]["stop_rate"] = 0.0
+    assert any("stop_rate" in m for m in qc2_convexity(low)), \
+        "QC2 did not fire on an overall below every segment"
+
+    # The boundary is inclusive: an overall sitting exactly on its own maximum
+    # is what a single-segment-dominated panel legitimately produces.
+    edge, _ = _clean_projection()
+    edge["overall"]["stop_rate"] = 0.080
+    assert qc2_convexity(edge) == [], "QC2 false-fired on the inclusive boundary"
+    print("  QC2 fires above and below the segment range, not on its edge ✓")
+
+
+def test_qc2_deliberately_ignores_the_confidence_bands() -> None:
+    """⚠ Pins an omission, not a behaviour. `_band_halfwidth_fraction` widens
+    with a small n, so the pooled panel's band is legitimately TIGHTER than
+    every segment's — that is more evidence, not a violation. Extending QC2 over
+    the bands would look like rigour and would false-fire on every healthy run."""
+    l35, _ = _clean_projection()
+    for seg in l35["by_segment"]:
+        seg["funnel_rates"]["stop_band"] = [0.02, 0.14]
+    l35["overall"]["stop_band"] = [0.066, 0.070]  # far inside every segment's
+    assert qc2_convexity(l35) == [], \
+        "QC2 must not treat a tighter panel band as a convexity violation"
+    print("  QC2 leaves the bands alone on purpose ✓")
+
+
+def test_qc3_catches_a_headline_that_is_not_its_own_cycle_breakdown() -> None:
+    """The decision layer's half. The headline and the cycle breakdown are two
+    independent implementations of one count over one frame, so they must agree
+    exactly; if they ever drift, the number the read LEADS with stops being the
+    thing the breakdown under it decomposes."""
+    clean = {"target_action_num": 2, "target_action_denom": 18,
+             "by_cycle_position": {"in_market": {"num": 2, "denom": 7},
+                                   "passive": {"num": 0, "denom": 11}}}
+    assert qc3_cycle_identity(clean) == [], "the clean fixture must pass"
+
+    bad_num = dict(clean, target_action_num=3)
+    assert any("numerator" in m for m in qc3_cycle_identity(bad_num)), \
+        "QC3 did not fire on a headline numerator that is not the cycle sum"
+
+    bad_denom = dict(clean, target_action_denom=19)
+    assert any("denominator" in m for m in qc3_cycle_identity(bad_denom)), \
+        "QC3 did not fire on a headline denominator that is not the cycle sum"
+
+    # ⚠ No breakdown is a SKIP, never a pass. An empty dict sums to 0/0 and
+    # would silently "agree" with any headline on a run that checked nothing.
+    assert qc3_cycle_identity({"target_action_num": 2, "target_action_denom": 18}) is None
+    assert qc3_cycle_identity({"by_cycle_position": {}}) is None
+    print("  QC3 fires on both counts, and reports 'no breakdown' as a skip ✓")
+
+
+def test_the_0c_loaders_only_see_v3_runs_that_kept_their_sidecars() -> None:
+    """0c reads `l35_projection.json` and `l3_summary.json`, NOT run.json —
+    `report.funnel_projection` is None unless the run used --funnel, so a
+    loader that read run.json would check nothing and report a clean pass."""
+    l35, l3 = _clean_projection()
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        _write_run(root, "20260721_000001_full", label="Ad A", pains=["p"])
+        full = root / "acct" / "brand" / "20260721_000001_full"
+        (full / "l35_projection.json").write_text(json.dumps(l35))
+        (full / "l3_summary.json").write_text(json.dumps(l3))
+
+        # v3 but never persisted the sidecars.
+        _write_run(root, "20260721_000002_bare", label="Ad B", pains=["p"])
+        # Sidecars present, but a DIFFERENT protocol — the same pooling error
+        # 0a/0b already paid for once.
+        _write_run(root, "20260601_000003_v2", label="Ad C", pains=["p"],
+                   protocol="reaction-v2")
+        v2 = root / "acct" / "brand" / "20260601_000003_v2"
+        (v2 / "l35_projection.json").write_text(json.dumps(l35))
+        (v2 / "l3_summary.json").write_text(json.dumps(l3))
+
+        found = load_projections(root)
+        decisions = load_decisions(root)
+
+    assert [Path(p).name for p in found] == ["20260721_000001_full"], sorted(found)
+    # No decision block on any of these fixtures -> nothing to check, and the
+    # loader must say so by omission rather than inventing an empty one.
+    assert decisions == {}, decisions
+    print("  0c loaders take v3 runs with sidecars, and nothing else ✓")
+
+
 def main() -> None:
     print("=== the gate test's own arithmetic ===")
     test_gate_test_reads_only_finished_v3_runs()
@@ -143,6 +318,11 @@ def main() -> None:
     test_spread_and_jaccard_are_what_the_published_numbers_mean()
     test_vocabulary_is_built_from_the_pain_text_of_every_pain()
     test_a_repeated_ad_overlaps_itself_more_than_a_different_ad()
+    test_qc1_catches_a_population_that_is_not_the_sum_of_its_segments()
+    test_qc2_catches_an_overall_rate_outside_the_segment_range()
+    test_qc2_deliberately_ignores_the_confidence_bands()
+    test_qc3_catches_a_headline_that_is_not_its_own_cycle_breakdown()
+    test_the_0c_loaders_only_see_v3_runs_that_kept_their_sidecars()
     print("PASS — the gate test measures what it claims to.")
 
 
