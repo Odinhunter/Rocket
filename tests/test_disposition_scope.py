@@ -229,6 +229,45 @@ def test_scope_round_trips_and_is_validated() -> None:
     print("  scope round-trips, legacy loads unscoped, junk is rejected ✓")
 
 
+def test_the_scope_warning_never_reaches_a_customer_surface() -> None:
+    """⚠ THE USER'S CALL, 2026-08-06, and the reason is not squeamishness.
+
+    That a consumer type was authored for another product is OUR library
+    problem. Telling the buyer "one of these people was written for a different
+    ad" invites them to discount the whole panel over a defect they cannot fix
+    and did not cause — the same instinct that stripped eight qualifications off
+    the read in `#37`. The fix is to re-author or drop the disposition, so this
+    is an AUTHORING signal, not a caveat that travels with the run.
+
+    So it lives on the CLI operator surface and in `preparation.json`, and it
+    must appear on NO customer-facing renderer. This is a source-level check
+    because that is the only thing that fails when someone wires it in later:
+    the warning is usually absent from a rendered page anyway (it is None on an
+    unscoped library), so asserting on output would pass whether or not the
+    wiring existed."""
+    repo = Path(__file__).resolve().parent.parent
+    customer_surfaces = [
+        repo / "agent" / "dashboard_html.py",   # the read — the only read surface
+        repo / "agent" / "read_model.py",       # everything the read can show
+        repo / "server" / "app_html.py",        # the app's own screens
+    ]
+    for path in customer_surfaces:
+        source = path.read_text()
+        for token in ("disposition_scope_warning", "DispositionScopeWarning"):
+            assert token not in source, (
+                f"{path.name} references {token} — the scope advisory is an "
+                f"internal authoring signal and must not reach the customer. "
+                f"If this is deliberate, it needs the user's say-so first."
+            )
+    # ...and it IS reachable where it belongs, or the check above is satisfied
+    # by the feature simply not existing.
+    assert "disposition_scope_warning" in (repo / "batch_run.py").read_text(), (
+        "the operator surface no longer shows the advisory — then nothing does, "
+        "and the absence check above is vacuous"
+    )
+    print("  the scope warning is operator-only and reaches no customer surface ✓")
+
+
 def main() -> None:
     print("=== §2.3 disposition scope ===")
     test_the_collagen_persona_is_flagged_on_a_protein_ad()
@@ -238,6 +277,7 @@ def main() -> None:
     test_any_one_declared_scope_is_enough()
     test_an_empty_scope_is_omitted_so_panel_versions_do_not_move()
     test_scope_round_trips_and_is_validated()
+    test_the_scope_warning_never_reaches_a_customer_surface()
     print("PASS — scope is declared, matched whole-word, and silent when absent.")
 
 

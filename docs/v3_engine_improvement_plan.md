@@ -246,13 +246,20 @@ collagen / biotin / hair supplement / skin supplement / beauty supplement.
 - ⚠ **`to_dict` omits an empty `authored_for` on purpose** — `compute_panel_version` digests these
   dicts, and emitting `[]` unconditionally would shift the panel version of every brand on disk
   right before a before/after run has to be read.
-- ⚠ **CLI-ONLY AS BUILT, and that is a real limit, not a nuance.** It is computed and persisted on
-  every path, but it is only *displayed* by `batch_run._print_preparation`. **The app is the
-  product now — a "New read" goes through `server/app.py`, so no app user ever sees this
-  advisory.** It was kept off `_prep_flags` because that screen's rule is "their input, not our
-  instrument" and the user curated it personally — but "deliberately off the review screen" and
-  "unreachable except from the CLI" are different claims and only the second is true today.
-  **Open question for the user, not a decision to make for them.**
+- ⭐ **OPERATOR-ONLY. SETTLED BY THE USER, 2026-08-06 — do not re-open it.** Asked whether the
+  advisory should appear on the customer review screen, their answer was no: *"we're not gonna
+  point out that the persona was from someone else."* That a consumer type was authored for
+  another product is **our library problem**. Telling the buyer invites them to discount the whole
+  panel over a defect they cannot fix and did not cause — the same instinct that stripped eight
+  qualifications off the read in `#37`. **The fix is to re-author or drop the disposition**, which
+  makes this an **authoring signal**, not a caveat that travels with the run.
+  - It lives on the CLI operator surface and in `preparation.json`, and its message is written for
+    us — `LIBRARY FIX NEEDED — … re-author it for this product or drop it from the audience` —
+    phrased so it cannot be mistaken for customer copy.
+  - `test_the_scope_warning_never_reaches_a_customer_surface` pins the absence in
+    `dashboard_html.py`, `read_model.py` and `app_html.py`, **and** pins that the operator surface
+    still shows it, so the absence check cannot go vacuous by the feature quietly disappearing.
+    4/4 mutation-proved.
 - ⚠ **`disposition_version` does NOT move when a scope is added — `panel_version` does.** The
   "disposition content hash" digests `(label, description)` only, and `authored_for` is in neither.
   So `scripts/freeze_config.py` does record the scoping, via the **panel composition hash**. Do not

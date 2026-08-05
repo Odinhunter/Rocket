@@ -496,12 +496,18 @@ def detect_out_of_scope_dispositions(
         for label, scopes in out_of_scope
     )
     plural = "s" if len(out_of_scope) > 1 else ""
+    # ⚠ WRITTEN FOR US, NOT FOR THE CUSTOMER — deliberately, and phrased so it
+    # could never be mistaken for customer copy or pasted into a read.
+    # The user's call, 2026-08-06: that a disposition was authored for another
+    # product is OUR library problem, and the fix is to re-author or drop it —
+    # not to disclose it to the buyer and let them discount the panel. It is an
+    # AUTHORING signal, not a caveat that travels with the run.
     message = (
-        f"{len(out_of_scope)} consumer type{plural} in this panel {'were' if plural else 'was'} "
-        f"written for a different product: {names}. Nothing in "
-        f"\"{haystack_raw}\" matches. They will still run — but they arrive "
-        f"already talking about the product they were authored for, so treat "
-        f"their language as borrowed rather than as a finding about this ad."
+        f"LIBRARY FIX NEEDED — {len(out_of_scope)} disposition{plural} in this pool "
+        f"{'are' if plural else 'is'} out of authored scope: {names}. "
+        f"Nothing in \"{haystack_raw}\" matches. Re-author {'them' if plural else 'it'} "
+        f"for this product or drop {'them' if plural else 'it'} from the audience "
+        f"before this becomes a customer-facing run."
     )
     return DispositionScopeWarning(
         out_of_scope=out_of_scope,
