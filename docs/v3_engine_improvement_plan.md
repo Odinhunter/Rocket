@@ -231,7 +231,60 @@ variables it actively hurts. Expect an honesty win, not a diversity win.
 4 dimensions × 3 values = **81 combinations. The panel uses 3**, and all four dials move in
 lockstep — nobody is impulsive *and* risk-averse. This is a 3-position switch, not a chaos model.
 
-**2.3 Scope dispositions to the category they were authored for.** **[MEASURED]**
+**2.3 Scope dispositions to the category they were authored for.** **[BUILT 2026-08-06, `v3 #41`]**
+⭐ **The mechanism ships; the effect is unmeasured.** `NamedDisposition.authored_for` + a
+deterministic pre-run advisory (`detect_out_of_scope_dispositions`), surfaced on the CLI operator
+surface and persisted in `preparation.json`. Only `switcher_results_chaser` is scoped —
+collagen / biotin / hair supplement / skin supplement / beauty supplement.
+- ⚠ **EMPTY MEANS UNSCOPED, NEVER MISMATCHED.** Every other disposition in every library declares
+  no scope, so an advisory that fired on absence would flag everything on its first run and be
+  trained away in a day. Half of `tests/test_disposition_scope.py` is about the silence.
+- ⚠ **Matched against asset label + category, deterministically** — NOT against the classifier's
+  `inferred_target_description`, which is model output and would let the same library and the same
+  ad flag on one run and not the next. **No new form field**: the four questions are a shipped user
+  decision.
+- ⚠ **`to_dict` omits an empty `authored_for` on purpose** — `compute_panel_version` digests these
+  dicts, and emitting `[]` unconditionally would shift the panel version of every brand on disk
+  right before a before/after run has to be read.
+- ⚠ **NOT on the customer review screen.** `_prep_flags`' rule is "their input, not our instrument",
+  and that screen is the user's curation — adding a row is their call.
+- **Scoping the other six is an authoring act on evidence.** `doctor_triggered_vitamin` (Calcirol /
+  Livogen / Shelcal — a deficiency persona, not a protein one) is the obvious next candidate, but
+  nobody has measured it leaking. A guessed scope is worse than none.
+
+### ⭐ HOW TO MEASURE §2.3 + §2.6 WHEN THE USER CALLS THE RUN
+
+Both are built and **neither is measured**. Written down now so the paid run is spent on a
+comparison rather than a look.
+
+**Price it first:** `.venv/bin/python scripts/preflight_cost.py` ($0, no API call). A full run is
+**$4.13 measured**.
+
+**Run the ad that already has repeats.** `muscleblaze_biozyme` has **four** runs on disk, so its
+within-ad noise is already known: buy-intent spread **0.111**, pain-vocabulary overlap
+**0.201–0.277**. A single new run can be read against that band. Any other ad has an n of 1 and
+gives a difference that cannot be told from noise.
+
+⚠ **THE BAR, and it is not "the number moved".** Under the §0a measurement the headline's
+signal-to-noise is **1.0** — it cannot tell two ads apart, so it certainly cannot tell two panel
+recipes apart. **Read the PROBLEM MAP, which does discriminate.** If the new run's pain vocabulary
+overlaps the four old ones **inside 0.201–0.277**, nothing detectable changed; **below** it, the
+diagnosis moved. Both outcomes are worth $4 — and "no detectable change" is the honest and likely
+result, because the persona-conditioning literature caps this at a **1.4–10.6%** share of variance.
+
+**Then:** `.venv/bin/python scripts/gate_test.py` (free) — §0a/§0b/§0c re-run against everything on
+disk, new run included — and `scripts/freeze_config.py`, which records `render-7` and the scoped
+library beside the result. ⚠ **§5.1 is the reason:** across 66 defensible configurations of one
+task, human-vs-silicon correlation ranged **r = .23 to .84**. A result without its config is not a
+result.
+
+⚠ **The two changes are separable and the run does NOT separate them.** `render-7` touches every
+persona in every run; the scope advisory touches nothing at all — **it changes no output, only what
+the operator is told**. So a moved problem map is attributable to §2.6 alone. §2.3's effect is only
+realised when someone acts on the advisory by removing or re-authoring the flagged disposition,
+which is a second, separate run.
+
+**2.3 (original finding)** **[MEASURED]**
 The Nykaa anchor was written for **collagen/biotin**, where it is correct, then applied unchanged
 to a **protein bar**. 43 of 100 persona cores carried the word before seeing any ad. A disposition
 needs a declared scope, and reuse outside it needs to be a deliberate act.
@@ -247,9 +300,27 @@ Survey-only ≈ interview-only, so the expensive qualitative step is not require
 seed each agent from a real survey respondent, let the model expand only what the survey lacks.
 Directly attacks 2.1. ⚠ Requires real respondent data we do not have — see §5.
 
-**2.6 Lighten demographic conditioning, especially income.** **[LITERATURE, SimBench]**
+**2.6 Lighten demographic conditioning, especially income.** **[BUILT 2026-08-06, `v3 #41`]**
 Conditioning penalties: **income −4.51**, political −4.97, religiosity −9.91; **age −1.50 and
-gender −1.24 are the safest**. Every targeting string we write carries `₹7–40 LPA`.
+gender −1.24 are the safest**. Every persona we rendered carried an LPA band.
+⭐ **The persona WRITER no longer sees income** (`render-7`). Redacted at the
+`_persona_user_payload` seam and nowhere else.
+- ⚠ **Income is not removed from the engine.** It still SELECTS the panel (`demographic_overlap`
+  matches gender × age × income), still keeps each demographic bundle coherent, still rides in
+  `panel.json`, still keys `persona_core_hash`, and still reaches the target-ID classifier through
+  `declared_targeting`. Those are **selection** and **classification**; SimBench's ΔS is a
+  **simulation** penalty, paid only where a model is asked to BE the person. Stripping income from
+  the classifier would move `audience_match` and `detect_gross_demographic_mismatch` and confound
+  the very run that has to be read.
+- ⚠ **Not by narrowing `DemographicPoint.to_dict()`** — that dict is the serialization contract for
+  `panel.json`, the cache key, and replay of every run on disk.
+- ⚠ **`RENDER_PROMPT_VERSION` bumped to `render-7`, and THE BUMP IS THE CHANGE.** Cores are cached
+  by a hash that digests it; editing the payload without bumping serves every core from the old
+  prompt and the change is completely invisible. Verified against a real run: `24430e26` →
+  `a9cc743f`.
+- ⚠ **A qualitative income band was considered and rejected** — that is the same axis relabeled.
+- **Not done, and deliberately:** the `₹7–40 LPA` in `declared_targeting` stays. It is
+  classification input, and it is what `audience_match` compares against.
 
 ---
 
