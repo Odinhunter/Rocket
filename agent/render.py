@@ -102,7 +102,79 @@ _log = logging.getLogger(__name__)
 #           which digests this constant — editing the payload without bumping
 #           here would serve every core from the old prompt and the change
 #           would be completely invisible (agent/provenance.py's whole point).
-RENDER_PROMPT_VERSION = "render-7"
+# render-8: THE CORE IS ADDRESSED TO THE PERSON, NOT WRITTEN ABOUT THEM.
+#           Every core through render-7 was THIRD PERSON ("She's been taking
+#           hair and skin supplements for about two years...") and sat in the
+#           system slot with NO framing around it — `runtime.run_agent` passes
+#           `core_prose` as the entire system block, so nothing anywhere told
+#           the model that the person described WAS it. The only nudge toward
+#           first person was `_ENCODING_USER`'s "You are a real person glancing
+#           at an ad", one turn later and in the user message. A third-person
+#           brief in the system slot asks a model to PORTRAY someone; "you are"
+#           asks it to BE them. The user's call, 2026-08-11, made with the raw
+#           1886-char system block in front of them.
+#           ⚠ THE ADDRESS IS SECOND PERSON, and that is deliberate — a
+#           first-person core ("I have been taking...") followed by a
+#           second-person task turn reads as two different speakers. The
+#           HOW THEY TALK block stays first person, because it always was:
+#           it is this person's own utterances, and only the frame moved.
+#           ⚠ THIS IS A SWEEP, NOT ONE STRING. Third person reached the agent
+#           from FIVE places and fixing only the core leaves the seams talking
+#           about the person in the same breath the core talks to them:
+#           `_PERSONA_SYSTEM` (this file), `_CONTEXT_SYSTEM` (this file), and
+#           in `agent/runtime.py` the context-block header, `_CYCLE_PROSE` /
+#           `_cycle_line`, and the attention-gate sentence.
+#           `tests/test_second_person_address.py` pins the four deterministic
+#           ones; the two model-written ones can only be pinned as INSTRUCTION
+#           offline (the same limit the render-6 contract already concedes).
+# render-9: THE UTTERANCES GET SHORT, AND THE ADVERTISING BAN GETS TEETH.
+#           render-8's samples showed both problems. (a) 2 of 6 personas emitted
+#           an utterance mentioning advertising ("saw the ad, looked
+#           interesting... skipped it") where render-7 emitted 0 of 6 — n=1 per
+#           cell at temperature 1.0, so NOT a measured regression, but the ban
+#           was a single soft line and the cost of it landing is high: the core
+#           is CACHED and replayed for every ad this person is ever shown, so a
+#           line about advertising is a pre-written stance toward the stimulus.
+#           It is now an explicit word list plus a per-line check. (b) Utterances
+#           ran 80-140 chars with up to 4 commas, stacking brand + price +
+#           channel + verdict into one breath — nobody messages like that, and
+#           the register block is the register the agent inherits. Now capped at
+#           ~8-14 words, one thought, at most one comma.
+#           ⚠ The user's call, 2026-08-11, with all 17 rendered quotes in front
+#           of them: "remove the ads from the persona sample quotes, simplify".
+# render-10: THE PACK IS A LANDSCAPE, NOT A SHOPPING LIST — and the anchors stop
+#           naming brands and shops at all (the anchor half lives in
+#           `scripts/scaffold_health_wellness.py`, not here).
+#           ⚠ THE USER FOUND THIS IN THE OUTPUT, 2026-08-12: personas kept
+#           saying they would "check if it's on Nykaa" about a PROTEIN BAR.
+#           Nykaa is a beauty marketplace; nobody buys protein there. Traced:
+#           `aspirant_clean_label`'s anchor said "on Nykaa" TWICE, and the
+#           anchor is injected as a HARD CONSTRAINT, so it beat this pack's own
+#           channel list — 24 of 24 of that disposition's briefs carried it,
+#           and the price list two lines away already said the bar sells on
+#           quick commerce. The dispositions whose anchors named a different
+#           shop scored 0/19 and 0/15 on Nykaa, which is the proof the writer
+#           already filters correctly and the anchor was overriding it.
+#           ⚠ THE DEFECT IS THE UNIFORMITY, NOT THE MENTION. A hard-coded
+#           channel arrives at 24/24 — maximally prevalent — so the §1.1/§1.2
+#           prevalence floor cannot catch it; consensus and a pinned constant
+#           look identical downstream. It has to be fixed here, upstream.
+#           So `_pack_brief` now says TOP BRANDS IN INDIA / MOST-SELLING
+#           PLATFORMS IN INDIA, each platform annotated with what it actually
+#           sells, and tells the writer to pick what THIS person would use.
+#           ⚠ "Do NOT default to the most prominent" is LOAD-BEARING, not
+#           padding: personal_audio already ships brand-free anchors, and its
+#           cores still put the top 3 brands in 12/12 of every disposition.
+#           Removing the pin diversifies the tail, not the head.
+#           ⚠ AND THE BUMP IS THE CHANGE, for a reason specific to this one:
+#           `persona_core_hash` digests the ANCHOR and the CATEGORY STRING but
+#           NOT pack contents or this function's text. The anchor rewrites
+#           self-invalidate; the `_pack_brief` reword would otherwise be
+#           invisible to every cached core whose anchor did not move — i.e.
+#           every other library in the account. `provenance.py` fingerprints
+#           only `_PERSONA_SYSTEM`/`_CONTEXT_SYSTEM`, so `run.json` would not
+#           have recorded it either.
+RENDER_PROMPT_VERSION = "render-10"
 
 # Fits the prose + the HOW THEY TALK block. Brevity is enforced by the
 # sentence-count instruction, not by the ceiling — the ceiling only exists so
@@ -182,18 +254,22 @@ def _cache_store(cache_dir: Path | None, key: str, prose: str, kind: str) -> Non
 
 
 _PERSONA_SYSTEM = """\
-You describe one real person, plainly — the way a friend who knows them would. \
-You are given a structured profile of one consumer — their demographics, their \
-attitudinal stance toward a product category (the disposition vector), and \
-their decision-making style (the chaos vector) — plus a curated artifact pack \
-for that category (real brands, real prices, real communities, real cultural \
-references).
+You write one real person's life back to them, plainly — the way a friend who \
+knows them would say it to their face. You are given a structured profile of \
+one consumer — their demographics, their attitudinal stance toward a product \
+category (the disposition vector), and their decision-making style (the chaos \
+vector) — plus a curated artifact pack for that category (real brands, real \
+prices, real communities, real cultural references).
 
-Your job: write a THIRD-PERSON description of this EXACT person — what they \
-buy, where, at what price, and what they make of the stuff around them. It \
-becomes the system prompt for an agent that then reacts to an ad in first \
-person, so it must describe one real, specific person, in words that person \
-would actually recognise.
+Your job: write a SECOND-PERSON description of this EXACT person, ADDRESSED TO \
+THEM — what you buy, where, at what price, and what you make of the stuff \
+around you. Begin with "You are" or "You've been" or "You " + a verb.
+
+⚠ THIS TEXT IS THE ENTIRE SYSTEM PROMPT OF THE AGENT THAT THEN REACTS TO AN AD \
+AS THIS PERSON, and nothing else frames it. Written in the third person it is a \
+character brief, and a model handed a character brief PORTRAYS someone else. \
+Written as "you", it is an identity. Never "She's been taking supplements for \
+two years" — write "You've been taking supplements for two years."
 
 # Register: how a friend describes them. NOT literature, NOT market research.
 
@@ -202,18 +278,18 @@ in is the register it will think in. TWO registers ruin it, and you must avoid \
 BOTH of them. Short declarative sentences.
 
 NOT literature. No metaphors, no imagery, no balanced or rhythmic clauses, no \
-closing line that sums the person up. Never "he quietly turned a corner of his \
-life into a small, disciplined system." Write "he buys the same 1kg bag every \
-three weeks and grinds it the night before."
+closing line that sums the person up. Never "you quietly turned a corner of \
+your life into a small, disciplined system." Write "you buy the same 1kg bag \
+every three weeks and grind it the night before."
 
 NOT market research. This person is not a segment and does not think in \
 category language. They have never in their life said "mass-market", \
 "commodity", "aspirational", "positioning", "premium tier", "gateway brand", \
 "brand equity", "trading on the logo", "signals status", "consciously exited \
 the category", or "lifestyle" — so neither may you, not even when describing \
-them. Never "mass-market coffee is not a budget question for him — it is a \
-category he has consciously exited." Write "He stopped buying instant years \
-ago. It's not about the money. He just doesn't think of it as coffee."
+them. Never "mass-market coffee is not a budget question for you — it is a \
+category you have consciously exited." Write "You stopped buying instant years \
+ago. It's not about the money. You just don't think of it as coffee."
 
 THE OPERATIVE RULE: downgrade analysis into speech, never upgrade speech into \
 analysis. The pack VOICE SAMPLES are already in real people's words — keep \
@@ -285,7 +361,7 @@ involvement persona knows a small handful of brands (two or three, not the \
 whole pack), has a rough sense of price, knows the ONE kind of the product \
 they like, and is HAZY or plain wrong about everything past that — they do \
 not know or care about provenance, grades, or method. Write them that way: \
-"she likes it strong and cheap, buys whichever of two brands is on offer" \
+"you like it strong and cheap, buy whichever of two brands is on offer" \
 — NOT a spec sheet. Only render an expert when the vector actually says \
 obsessive/high; then the expert vocabulary is correct and must stay.
 - The chaos vector shows up as behavioral texture — impulsive acts on \
@@ -296,44 +372,72 @@ generic phrase — but do NOT reach for a brand or a detail this person, at \
 their involvement, would not know. Concrete-and-known, never concrete-and-\
 encyclopedic. A vague, roughly-remembered brand is more real than a \
 precise one they'd have no reason to know.
-- 6-9 sentences of plain prose, then the HOW THEY TALK block described \
-below. No other headers, no bullets, no "you are" framing. Do not give the \
-person a proper name — he / she / they.
-- Do not name the vector dimensions; the reader infers stance from \
-behaviour.
+- 6-9 sentences of plain prose, then the HOW YOU TALK block described \
+below. No other headers, no bullets. Do not give the person a proper name.
+- ⚠ ADDRESS THEM AS "you" IN EVERY SENTENCE. Not one "he", "she", "they", \
+"this person", "the buyer", or "the consumer" anywhere in the prose. If a \
+sentence needs a subject, it is "you". This is the hardest rule to keep for \
+6-9 sentences and the easiest to drift out of halfway through — reread and \
+fix any sentence that slipped back into describing rather than addressing.
+- Do not name the vector dimensions; stance is shown by behaviour, never \
+declared.
 
-# Then end with the HOW THEY TALK block
+# Then end with the HOW YOU TALK block
 
 After the prose, leave a blank line and add this block, exactly this shape:
 
-HOW THEY TALK (register only — how this person's sentences sound. Never \
-repeat these lines.)
+HOW YOU TALK (register only — how your own sentences sound. Never repeat \
+these lines.)
 "<utterance>"
 "<utterance>"
 
 2-3 utterances, one line each, in this person's own first-person voice — how \
 they actually sound when the category comes up in a message to a friend. \
-This block SHOWS the agent how this person builds a sentence. It is a \
-register anchor, not a script.
+⚠ The CAPTION is second person ("how your own sentences sound") because the \
+person reads it about themselves; the UTTERANCES stay first person ("i've \
+been on the same tub since March") because they are that person speaking. \
+Both are correct at once and neither is a slip. This block SHOWS the agent \
+how it builds a sentence. It is a register anchor, not a script.
 
 - Take the REGISTER from the pack VOICE SAMPLES that match this vector — the \
 clipping, the lowercase, the code-mixing, the way a price lands mid-sentence. \
 Do NOT transcribe the samples; those are other people. Write what THIS person \
 would say, in their own words.
-- Every utterance must be anchored in something they DO: what they buy, \
+- Every utterance must be anchored in something they DO: what you buy, \
 drink, pay, skip, switch, reorder. An opinion can ride along inside that \
 ("₹245 for the 200g jar, family ko pasand aaya") — but never a bare verdict \
 on a brand with no habit attached.
-- These are ad-agnostic. Never a line about an ad, a commercial, marketing, \
-or reacting to something they were shown. This brief is reused across many \
-different ads; a line that reads as a verdict on a product would become a \
-scripted answer the person parrots back at whatever they are shown next.
+- ⚠ KEEP THEM SHORT. ONE thought per line. Aim for roughly 8-14 words; a \
+line past 90 characters is too long. Do NOT stack brand + price + channel + \
+opinion into one breath. Never "biozyme 1kg chocolate, ₹2,699 on healthkart, \
+same cart as always with the creatine — i'm not fixing what isn't broken" \
+— that is four thoughts comma-spliced together and nobody messages like \
+that. Write "same biozyme tub as always, ₹2,699" and let the next line carry \
+the next thought. AT MOST ONE COMMA per line. A price or a brand alone is \
+plenty of specificity for one line.
+- ⚠ NOTHING ABOUT ADVERTISING. THIS IS AN ABSOLUTE BAN, NOT A PREFERENCE. \
+The words "ad", "advert", "advertisement", "commercial", "marketing", \
+"campaign", "sponsored", "reel", and "promo" must not appear in ANY \
+utterance — not as a reaction ("saw the ad, skipped it"), not as a passing \
+comparison ("that's a test result, not an ad"), not as scenery. Also no \
+"saw", "scrolled past", "came up on my feed", or "they're advertising". \
+⚠ WHY THIS IS ABSOLUTE: this core is CACHED and replayed as the system \
+prompt for every different ad this person is ever shown. An utterance that \
+mentions advertising at all is a pre-written stance toward the thing we are \
+about to show them, and they will parrot it back as their reaction. It \
+contaminates the measurement before the ad exists. Write only what this \
+person does when nobody is showing them anything.
 - Keep the caption line exactly as given — the agent needs to be told these \
 are register, not lines to reuse.
 
 # Final check before you answer
 
 Re-read what you wrote.
+- ⚠ FIRST: scan every sentence of the prose for "he", "she", "they", "him", \
+"her", "their", "this person", "the buyer". If ANY of them refers to the \
+person you are describing, the whole thing is a character brief instead of an \
+identity — rewrite that sentence to address them as "you". This is the one \
+check that must pass; everything below is a matter of degree.
 - If your description would fit a DIFFERENT disposition vector roughly as well \
 as this one, it is too generic — rewrite it so it could only be THIS person.
 - If any sentence sounds like it belongs in a novel, rewrite it plain.
@@ -342,8 +446,11 @@ word this person would never use about themselves, or explains what their \
 buying MEANS — rewrite it as what they do, buy, pay, or say.
 - If you removed jargon but also lost a brand, a price, or a channel, put the \
 specifics back. Plain and concrete, not plain and vague.
-- If any utterance would work as a reaction to an ad, replace it with one \
-about what this person actually does."""
+- ⚠ LAST, ON THE UTTERANCES, and check each one separately: does it contain \
+"ad", "advert", "commercial", "marketing", "campaign", "sponsored", "reel", \
+"promo", "saw", or "scrolled"? Delete that line and write one about a \
+purchase, a habit, or a price instead. Is it longer than 90 characters or \
+does it hold more than one comma? Cut it down to a single thought."""
 
 
 _CONTEXT_SYSTEM = """\
@@ -356,20 +463,23 @@ their attention, their energy level, who else is around, and how much of \
 the ad actually registers. 3-4 sentences. End with one sentence on how \
 much attention the ad realistically gets in this state.
 
-Write it flat and factual, the way you'd describe someone you can see \
-across the room. NO literary phrasing — no metaphors (not "a soft conveyor \
-belt of images", not "a gentle blur"), no imagery, no rhythmic clauses. \
-Just what they're doing and how much they're taking in. This text is read \
-by the person it describes, so it must sound like plain fact, not a \
+Write it flat and factual. NO literary phrasing — no metaphors (not "a soft \
+conveyor belt of images", not "a gentle blur"), no imagery, no rhythmic \
+clauses. Just what you're doing and how much you're taking in. This text is \
+read by the person it describes, so it must sound like plain fact, not a \
 passage from a novel.
 
-Refer to the person as "they" — the persona's gender, age, and identity \
-are set separately and this description is composed onto ANY persona, so \
-it must not assume a gender or assign a name.
+⚠ ADDRESS THE PERSON AS "you" — "You are lying down, phone above your face." \
+NEVER "they", "he", "she", or "the person". This composes onto ANY persona, \
+so it must not assume a gender or assign a name, and "you" is the only \
+address that is gender-neutral WITHOUT talking about them in the third \
+person. (Through render-7 this block said "they" for exactly that \
+gender-neutrality, which is why the fix is an address change and not a \
+pronoun swap.)
 
 Attention gates everything. If the state implies low attention, say so \
 plainly — most ads get a sub-second thumb-flick regardless of how \
-interested the person would be in a more alert moment. No headers, no \
+interested you would be in a more alert moment. No headers, no \
 bullets, plain prose."""
 
 
@@ -377,7 +487,20 @@ def _pack_brief(pack: CategoryArtifactPack) -> str:
     """The slice of the artifact pack handed to the render engine. This is
     the ONLY source of concrete artifacts the model is allowed to use."""
     lines: list[str] = [f"CATEGORY: {pack.category}", ""]
-    lines.append("BRANDS IN THIS CATEGORY (use only these brand names):")
+    # render-10: the brand and platform lists are a LANDSCAPE, not a
+    # shopping list. They used to read "use only these brand names", which
+    # is a mandate — and a mandate plus a brand-naming anchor is how one
+    # persona ended up checking a beauty marketplace for a protein bar in
+    # 24 of 24 briefs. Inform the writer what exists and let THIS person
+    # select; the "do not default to the most prominent" clause is
+    # load-bearing, because a brand-free anchor alone lets the two or three
+    # most famous names saturate every persona (measured on personal_audio).
+    lines.append(
+        "TOP BRANDS IN INDIA — this is the landscape, not a shopping list. "
+        "Pick only what THIS person would plausibly use or mention, or none "
+        "at all. Do NOT default to the most prominent names, and do NOT use "
+        "a brand this person's stance would not have led them to."
+    )
     for b in pack.brand_landscape:
         lines.append(f"  - {b.name} [{b.tier}] — {b.note}")
     lines.append("")
@@ -385,7 +508,14 @@ def _pack_brief(pack: CategoryArtifactPack) -> str:
     for p in pack.price_points:
         lines.append(f"  - {p.item}: {p.price_inr} ({p.channel})")
     lines.append("")
-    lines.append(f"RETAIL CHANNELS: {', '.join(pack.retail_channels)}")
+    lines.append(
+        "MOST-SELLING PLATFORMS IN INDIA — where this category actually "
+        "sells, and what each one is known for. Pick the one THIS person "
+        "would already have open for THIS kind of product; a platform that "
+        "does not sell the product is the wrong answer."
+    )
+    for ch in pack.retail_channels:
+        lines.append(f"  - {ch}")
     lines.append("")
     lines.append("COMMUNITIES / MEDIA SURFACES:")
     for c in pack.communities:
@@ -516,7 +646,9 @@ def render_persona_core(
     client=None,
 ) -> str:
     """Render the persona core (demographics + disposition + chaos, plus an
-    optional concrete anchor) into third-person prose. Cached by
+    optional concrete anchor) into SECOND-PERSON prose addressed to the person
+    ("You've been taking..."), because this string becomes the entire system
+    prompt of the agent that then reacts as them — render-8. Cached by
     persona_core_hash when cache_dir is set."""
     demo.validate()
     disposition.validate()

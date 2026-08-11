@@ -1,5 +1,9 @@
-"""Phase 1 offline test: all four category artifact packs load, validate,
-and are non-empty on the fields the render engine needs.
+"""Phase 1 offline test: every category artifact pack loads, validates,
+and is non-empty on the fields the render engine needs.
+
+⚠ `health_wellness_nutrition` was MISSING from this list until 2026-08-12,
+which meant the only pack that has ever run a paid panel was the one pack with
+no load coverage at all. Any new pack under `packs/` belongs here.
 
 Run: python tests/test_render_packs_load.py
 """
@@ -13,7 +17,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agent.artifact_pack import CategoryArtifactPack, load_pack
 
-_CATEGORIES = ["coffee", "chocolate", "personal_audio", "wellness"]
+_CATEGORIES = [
+    "coffee", "chocolate", "personal_audio", "wellness",
+    "health_wellness_nutrition",
+]
 
 
 def test_all_packs_load_and_validate() -> None:

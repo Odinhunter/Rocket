@@ -164,7 +164,7 @@ def test_run_json_stamps_all_versions() -> None:
     payload = _run_json_payload(cfg, "rid123", status="complete", report=None)
     assert payload["protocol_version"] == "rocket-3.0.0-dev"
     assert payload["reaction_protocol_version"] == "reaction-v3"  # v3 two-call surface
-    assert payload["render_prompt_version"] == "render-7"  # §2.6 income withheld from the writer
+    assert payload["render_prompt_version"] == "render-10"  # brand/platform landscape
     assert payload["assess_prompt_version"] == "assess-3"  # v3 A5 (short-PainMap permission)
     assert payload["prescribe_prompt_version"] == "prescribe-1"
     assert payload["decision_version"] == "decision-3"  # v3 (A3/A5/A7)

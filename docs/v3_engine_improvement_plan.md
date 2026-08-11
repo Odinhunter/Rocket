@@ -195,6 +195,11 @@ Highest value per unit of risk. Every item is **[$0]**.
 `cited_by` stores disposition labels. A pain cited by 4 agents and one cited by 40 both render as
 "1 type". **The Nykaa recommendation came from 5 agents out of 100** and shipped as a top-3 ranked
 change. Carry the agent count through `PainMap` → `ReadModel` → the card.
+⚠ **2026-08-12 — the Nykaa example now has a ROOT CAUSE, and it is upstream of this fix: see §2.9.**
+The channel was hand-written into a disposition's anchor, so it reached **24 of 24** of that
+persona's agents. **Counting people would not have caught it, and neither would 1.2's floor** — a
+pinned constant is maximally prevalent and indistinguishable from consensus. Both items are still
+worth building; neither is a guard against authoring.
 
 **1.2 A prevalence floor before a signal can be ranked.** **[MEASURED]**
 There is no numeric threshold anywhere in the pipeline today. Something said by <5% of the panel
@@ -289,16 +294,132 @@ diagnosis moved. Both outcomes are worth $4 — and "no detectable change" is th
 result, because the persona-conditioning literature caps this at a **1.4–10.6%** share of variance.
 
 **Then:** `.venv/bin/python scripts/gate_test.py` (free) — §0a/§0b/§0c re-run against everything on
-disk, new run included — and `scripts/freeze_config.py`, which records `render-7` and the scoped
-library beside the result. ⚠ **§5.1 is the reason:** across 66 defensible configurations of one
-task, human-vs-silicon correlation ranged **r = .23 to .84**. A result without its config is not a
-result.
+disk, new run included — and `scripts/freeze_config.py`, which records the render version and the
+scoped library beside the result. ⚠ **§5.1 is the reason:** across 66 defensible configurations of
+one task, human-vs-silicon correlation ranged **r = .23 to .84**. A result without its config is not
+a result.
 
 ⚠ **The two changes are separable and the run does NOT separate them.** `render-7` touches every
 persona in every run; the scope advisory touches nothing at all — **it changes no output, only what
 the operator is told**. So a moved problem map is attributable to §2.6 alone. §2.3's effect is only
 realised when someone acts on the advisory by removing or re-authoring the flagged disposition,
 which is a second, separate run.
+
+## ⚠ 2026-08-11 — `render-8` LANDED AND THIS COMPARISON IS NOW CONFOUNDED
+
+**§2.6 was never rendered.** Every run on disk is **`render-6`**; `render-7` shipped 2026-08-06 and
+no paid run ever used it. `render-8` (the persona core addresses the person as "you" — §2.7 below)
+then bumped the version again, and **a version bump re-renders every core**. So a single run now
+carries **two** unmeasured changes at once, and the plan above can no longer attribute a moved
+problem map to §2.6 alone.
+
+**Three ways out. The user's call, not the plan's:**
+1. **Run §2.6 alone first, then `render-8` separately** (~$8, two runs). ⚠ **Mechanically easy and
+   the plan must not claim otherwise:** `render-8` is UNCOMMITTED, so `git stash` restores
+   `render-7`, the run goes, and `git stash pop` brings it back. `scripts/render_persona_samples.py`
+   already reads the old prompt out of git, so nothing hand-copies a prompt. This is the only option
+   that keeps both isolates.
+2. **Measure them together** (~$4). A moved map cannot then be split between income-withholding and
+   the address change — though since §2.6's own expected effect is "no detectable change", a moved
+   map would most likely be `render-8`.
+3. **Drop the §2.6 isolate.** The literature caps persona conditioning at 1.4–10.6% of variance, so
+   §2.6 was near-unmeasurable at n=1 regardless. ⚠ Note this abandons a measurement the user
+   deliberately deferred on 2026-08-06 ("I'll tell you when") — it is theirs to abandon, not ours.
+
+⚠ **Whichever is chosen, `render-8`'s own before/after is already visible for `$0`** in
+`docs/v3_persona_address_samples.md` — six personas rendered both ways from identical inputs. That
+is a comparison of the PERSONA, not of the run's output; it does not substitute for the $4.
+
+## 2.7 The persona core ADDRESSES the person **[BUILT 2026-08-11, NOT MEASURED]** **[$4 to see]**
+
+Through `render-7` every core was third person — *"She's been taking hair and skin supplements for
+about two years"* — and `runtime.run_agent` passed it as the **entire** system block with nothing
+around it. Nothing anywhere told the model that the person described **was** it. A third-person
+brief asks a model to portray someone; "you are" asks it to be them.
+
+⚠ **A sweep across five sites, not one string.** Third person also reached the agent from the
+context render, the feed header, the cycle line and the attention gate — fixing only the core would
+have left the seams talking *about* the person in the same breath the core talks *to* them.
+`tests/test_second_person_address.py` pins the deterministic four and mutation-proves all nine
+edits; the two model-written ones are pinnable only as instruction.
+
+**Measured on the rendered output** (6 personas, both ways, identical inputs): third-person
+references to the person fell from **15–28 per persona to zero**. Every surviving `they/them` refers
+to reviews, supplements, ads or a grandmother.
+
+⚠ **A POSSIBLE regression, NOT MEASURED — do not act on it as a finding.** The `HOW YOU TALK`
+utterances must be ad-agnostic (cores are cached and replayed across every ad, so an utterance
+reacting to an ad becomes a scripted answer). **2 of 6 `render-8` samples carry one; 0 of 6
+`render-7` samples do** — *"saw the ad, looked interesting… skipped it"* (`enthusiast`), and
+`purist`'s *"that's a test result, not an ad"*, which uses "ad" as a category contrast and is
+**arguably not a violation at all** — so it may be 1 of 6.
+
+⚠ **This is n=1 per persona per side at temperature 1.0. It is not distinguishable from sampling
+noise, and it has not been controlled.** The control is cheap and was NOT run: re-render the same
+two personas 2–3× under `render-7` alone (~$0.15). If the old prompt also emits one at ~1-in-3, the
+0/6 baseline is an artifact and there is no regression. **Run that control before tightening
+anything** — a prompt "fix" aimed at noise costs a version bump and another full re-render.
+
+## 2.8 `render-9` — short, advertising-free utterances **[BUILT + RUN 2026-08-11]**
+
+The user's call, with all 17 rendered quotes in front of them: *"remove the ads from the persona
+sample quotes, simplify the quotes."*
+
+| measured on 17 rendered utterances | `render-8` | `render-9` |
+|---|---|---|
+| mean utterance length | 108 chars | **66** |
+| utterances over 90 chars | several | **0** |
+| commas per utterance | 2.0 | 1.3 |
+| utterances referencing advertising | 2 | **0 real** (1 survivor, below) |
+
+⚠ **The one survivor is NOT a defect and must not be chased.** `purist_food_first` emits *"doctor ne
+calcirol likha hai, woh leti hoon — baaki sab marketing hai."* In code-mixed Hindi that is simply
+how this person expresses the worldview; there is no natural alternative phrasing, and the banned
+word list is English pattern-matching applied to a code-mixed speaker. It is **not a reaction to a
+stimulus**. A `render-10` aimed at it would deform the persona's voice.
+
+**Two changes made the ban stick where render-8's single soft line did not:** an enumerated word
+list with the REASON attached (cached cores are replayed across every ad), and a numeric cap — one
+thought, ≤1 comma, <90 chars — with a real render-8 failure quoted in the prompt as the
+counter-example. A shown rule beats a described one.
+
+### ⭐ What the paid run showed — and what it CANNOT show
+
+**Run:** `20260811_121216_seed71_the_whole_truth_protein_bar_ad`, **$3.37** (est. $4.28).
+Frozen config records `render-9`. Gate test re-run: **§0b still SEPARATES under all four
+tokenizations** (same-ad 0.234 vs different-ad 0.149) and **§0c is clean** — the change broke
+nothing.
+
+⚠ **THE HEADLINE FINDING IS A NULL, AND IT WAS PREDICTABLE.** `scripts/check_persona_voice.py`
+(new, `$0`, reads `agent_calls/` off disk):
+
+| | old `render-6` (3rd-person cores) | new `render-9` (2nd-person cores) |
+|---|---|---|
+| cores addressed as "you" | 0/100 | **100/100** |
+| reactions in FIRST person | **100/100** | **100/100** |
+| reactions parroting their own utterances | 0/100 | 0/100 |
+
+**The model already inferred "this is me" from a third-person brief, at 100%.** The metric the
+change would most obviously improve was **already at ceiling and could not move**. The change is
+still right — a character brief in the system slot with nothing saying "you are this person" is the
+wrong shape — but **there is no number that demonstrates it**, and anyone who goes looking for one
+will find 100% → 100%.
+
+⚠ **A register cost, measured and CONFOUNDED.** Across 100 reactions each: bold markdown headers
+**42% → 91%**, "I" capitalised rather than "i" **56% → 73%**. Both move toward formal,
+assistant-shaped output — away from the clipped lowercase register the design wants. ⚠ **The ad
+differs between the two runs, so this is NOT attributable to `render-9`.** Nothing parses the
+section headers (checked: they appear only in an L2 prompt description and a docstring), so it is
+cosmetic today. **The controlled check is `render-9` vs `render-6` on the SAME ad, ~$4.**
+
+**Incidental, and the healthiest run on disk:** two dispositions landed within target
+(`aspirant_clean_label` 24 + `pragmatist_protein_snacker` 23 = **47**), against the 19-on-one-persona
+denominators of every MuscleBlaze run. `trust: HIGH`, **`methodology_flags: []`** — the first run on
+disk that does not fly `single_within_target`. That is a property of this AD, not of `render-9`.
+
+⚠ **A declared/inferred purpose mismatch fired:** declared `direct_sell`, engine inferred
+`awareness_informer` (no price, no offer, no CTA — just a claim stack). Scored on the declared
+purpose. Worth re-running as `awareness_informer` if this ad is ever used as a baseline.
 
 **2.3 (original finding)** **[MEASURED]**
 The Nykaa anchor was written for **collagen/biotin**, where it is correct, then applied unchanged
@@ -337,6 +458,102 @@ gender −1.24 are the safest**. Every persona we rendered carried an LPA band.
 - ⚠ **A qualitative income band was considered and rejected** — that is the same axis relabeled.
 - **Not done, and deliberately:** the `₹7–40 LPA` in `declared_targeting` stays. It is
   classification input, and it is what `audience_match` compares against.
+
+---
+
+## 2.9 `render-10` — the pack is a LANDSCAPE, the anchors stop naming shops **[BUILT 2026-08-12]**
+
+⭐ **THE USER FOUND THIS IN THE OUTPUT.** Reading the 32 quotes from the 2026-08-11 run, they asked
+why personas kept saying they would *"check if it's on Nykaa"* about a **protein bar**. Nykaa is a
+beauty marketplace. Their reframe is the design: *"we are not biasing their opinion by giving them
+brands or giving them any marketplace. We are just informing them that this is how the landscape is
+and then, based on their persona, they'll be able to select better."*
+
+**Traced, and it was authoring, not a prompt leak.** `aspirant_clean_label`'s anchor said "on
+Nykaa" **twice**, and the anchor is injected under `ANCHOR — HARD CONSTRAINT`, so it beat the pack's
+own channel list — which two lines away already said the bar sells on quick commerce.
+
+| disposition | anchor named a shop? | prompts carrying Nykaa |
+|---|---|---|
+| `aspirant_clean_label` | yes, ×2 | **24 / 24** |
+| `switcher_results_chaser` | yes, ×2 | **19 / 19** |
+| `enthusiast_macros_lifter` | HealthKart | **0 / 19** |
+| `skeptic_lapsed_protein` | Amazon | **0 / 15** |
+
+⭐ **The 0/19 and 0/15 are the proof the writer was ALREADY filtering correctly per persona.** The
+mechanism the user described existed; the anchor was overriding it.
+
+⚠ **THE DEFECT IS THE UNIFORMITY, NOT THE MENTION — and this is why §1.1/§1.2 cannot catch it.** A
+hard-coded channel arrives at **24/24, maximally prevalent**. A prevalence floor cannot distinguish
+a pinned constant from consensus. §1.1 already recorded *"the Nykaa recommendation came from 5
+agents out of 100 and shipped as a top-3 ranked change"* and filed it as prevalence; **this is its
+root cause**, and it is upstream of every reporting-layer guard.
+
+**What shipped, in three halves:**
+1. **Anchors** — all 7 rewritten product-generic (`scripts/scaffold_health_wellness.py`, the source
+   of truth; `runs/.../library.json` is regenerated from it). Plus **6 `occupation_hint` strings**
+   across 4 bundle lists that also named brands — the second seam, missed on the first pass.
+2. **`_pack_brief`** — `use only these brand names` (a mandate) → `TOP BRANDS IN INDIA … do not
+   default to the most prominent`, and `RETAIL CHANNELS: <comma-join>` → `MOST-SELLING PLATFORMS IN
+   INDIA`, bulleted, each annotated with what it actually sells.
+3. **L5** — 6 of 7 anchors had the ad reaction pre-written (*"Sees a protein-powder ad and thinks
+   only 'yeah, it did nothing'"*). Replaced with the lived experience that would produce it.
+   **Condition on EXPERIENCE, not on CONCLUSIONS** — a stated rule cannot be moved by an ad.
+
+⚠ **`RENDER_PROMPT_VERSION` → `render-10`, AND THE BUMP IS THE CHANGE, for a reason specific to this
+one.** `persona_core_hash` digests the **anchor** and the **category string** but NOT pack contents
+and NOT `_pack_brief`'s text (verified empirically: mutating `retail_channels`, `brand_landscape`
+and `price_points` leaves the hash byte-identical). The anchor rewrites self-invalidate; half 2
+would otherwise be served from the **406 cached cores in `runs/demo/library_renders`** for every
+library whose anchors did not move. `provenance.py` fingerprints only `_PERSONA_SYSTEM` /
+`_CONTEXT_SYSTEM`, so `run.json` would not have recorded it either.
+
+⚠ **Two user decisions, 2026-08-12 — do not re-open.** (1) Land now and **DROP** both queued paid
+tests (`render-9`-vs-`render-6` register drift, §2.6 income isolate); they needed comparability with
+the 9 runs on disk, which this destroys, and **§2.6 is now permanently confounded**. (2) Bundle the
+L5 fix into the same pass — one re-render, one baseline break, the two changes confounded with each
+other by choice.
+
+### ⭐⭐ WHAT THE $0.75 MEASUREMENT SHOWED — AND WHY THE HEADLINE NUMBER MISLEADS
+
+Full artifact: `docs/v3_persona_anchors_render10.md`, 6 dispositions × 2 sides × 3 samples.
+
+⚠ **`aspirant_clean_label` still names Nykaa in 3/3 (5/5 on re-check). This is NOT the defect
+surviving. Do not re-litigate it.** Read across all six: lifter→HealthKart, snacker→Blinkit,
+skeptic→Amazon, purist→none, switcher→Nykaa, aspirant→Nykaa. **Every persona picked the platform
+that is correct for its own products** — and the pack's own price points say `OZiva Plant Protein
+1kg (Nykaa / DTC)`, `Plix Plant Protein (Nykaa / DTC)`. If the writer were still being mandated,
+Nykaa would appear where it is WRONG; it appears only where it is TRUE.
+
+⚠ **The acceptance bar was MISCALIBRATED, not missed.** "24/24 → a plausible minority" treated any
+saturation as residue. The correct bar — **no persona names a platform that does not sell its
+product** — passes. Two anchor rewordings were spent chasing the wrong bar before this was seen.
+
+**What did move:** aspirant MuscleBlaze 3/3→1/3, Plix 3/3→2/3 · switcher Plix 3/3→0, Setu 3/3→1/3 ·
+purist 4 brands→1 and 1mg 2/3→none · off-segment brands now appear only as **rejections** (the
+lifter: *"the OZiva and Plix stuff is a different world entirely, pastel tubs for a different kind
+of buyer"*) · cores got **longer**, not thinner (1482→1703 chars), so generic ≠ vague.
+
+### ⭐ THE ONE OPEN QUESTION — FREE, ON THE NEXT PAID RUN
+
+The original complaint was **reaction-time transfer**: shown a protein BAR, the aspirant asked *"i
+don't actually know where to buy it or if it's on nykaa"* — applying her habitual supplement shop to
+a foreign product. **A different mechanism from author pre-selection**, living in the reacting
+agent. The landscape was deliberately kept out of that seam: a brand list in front of 100 reacting
+agents would plant exactly the vocabulary `render-9` scrubbed.
+
+**Read-off, `$0`:** grep the next run's `agent_calls/*__encoding.json` **responses** for a platform
+applied to the *test product*, per disposition — the sweep that produced 47/100 prompts and 4/100
+responses. Expect it to be lower: render-10 cores **scope the shop themselves** (*"nykaa order, same
+cart as the vitamin C serum"*) where the old anchor said "on Nykaa" bare.
+
+**Guarded by `tests/test_anchors_are_brand_free.py`** — 7 assertions, all mutation-proved, deriving
+the forbidden vocabulary **from the pack** so adding a brand extends the guard automatically.
+⚠ **Its limit: it catches literal names, not synonyms.** The first reworded aspirant anchor said
+"ordered from wherever they already shop for skincare" — a Nykaa pointer in disguise — and passed
+clean. Also closed here: `health_wellness_nutrition` was **missing from
+`tests/test_render_packs_load.py`**, so the only pack that has ever run a paid panel had no load
+coverage.
 
 ---
 

@@ -142,12 +142,20 @@ def test_persona_system_render_6_contract() -> None:
     (test_render_smoke); whether it stays un-parroted is the 2-persona live
     check that gates this step).
 
-    ⚠ The version is render-7, but every assertion below is still the render-6
+    ⚠ The version is render-10, but every assertion below is still the render-6
     contract and must keep passing: render-7 (§2.6, income withheld from the
-    persona writer) changed the USER PAYLOAD only and left `_PERSONA_SYSTEM`
-    untouched. If a later bump ever makes one of these fail, that is a real
-    regression, not a version-number chore."""
-    assert RENDER_PROMPT_VERSION == "render-7", RENDER_PROMPT_VERSION
+    persona writer) changed the USER PAYLOAD only, render-8 changed the
+    ADDRESS of the rendered output (second person), and render-10 reworded the
+    pack brief's brand/platform headers from a mandate to a landscape — none
+    of them dropped a single register or anti-homogenization win. If a later
+    bump ever makes one of these fail, that is a real regression, not a
+    version-number chore.
+
+    ⚠ One literal moved with render-8 and it is not cosmetic: the block is now
+    `HOW YOU TALK`, because its caption is read by the person it describes.
+    The UTTERANCES inside it are still first person — see
+    `test_the_utterances_stay_first_person_while_the_frame_moved`."""
+    assert RENDER_PROMPT_VERSION == "render-10", RENDER_PROMPT_VERSION
 
     # C3 — BOTH leaking registers are banned. NOTE: the banned analyst words
     # ("aspirational", "gateway brand", ...) appear in _PERSONA_SYSTEM ON
@@ -169,7 +177,12 @@ def test_persona_system_render_6_contract() -> None:
     assert "Plain is NOT vague" in _PERSONA_SYSTEM
 
     # C1 — the shown-register block, and the caption the AGENT reads.
-    assert "HOW THEY TALK" in _PERSONA_SYSTEM
+    # ⚠ The full template line, not the bare label — "HOW YOU TALK" occurs
+    # twice (heading + template) and a bare-label assertion goes vacuous.
+    assert "HOW YOU TALK (register only" in _PERSONA_SYSTEM, (
+        "render-8: the caption is read by the person it describes, so it is "
+        "second person like every other agent-facing string"
+    )
     assert "register only" in _PERSONA_SYSTEM
     assert "Never repeat these lines" in _PERSONA_SYSTEM, (
         "C1: the agent must be told the utterances are register, not a script"
@@ -179,7 +192,17 @@ def test_persona_system_render_6_contract() -> None:
     # ads, so an utterance that is a verdict on a product becomes a scripted
     # answer. This is the guard 4cbcca9 established for R1-R6; it must hold
     # in the system block too.
-    assert "ad-agnostic" in _PERSONA_SYSTEM
+    # ⚠ render-9 REPLACED the phrase "ad-agnostic" with an enumerated ban plus a
+    # per-line final check — the soft one-liner was in place for render-8 and 2
+    # of 6 rendered personas emitted an advertising utterance anyway. The guard
+    # is STRONGER, not gone; the literal moved. Full pins live in
+    # tests/test_second_person_address.py::
+    # test_the_utterances_are_banned_from_mentioning_advertising.
+    assert "NOTHING ABOUT ADVERTISING" in _PERSONA_SYSTEM, (
+        "C1 guard: the planted-words seam. Cores are cached and replayed "
+        "across ads, so an utterance about advertising is a pre-written "
+        "stance toward the stimulus."
+    )
     assert "anchored in something they DO" in _PERSONA_SYSTEM
 
     # render-3/4/5 wins must survive the rewrite (anti-homogenization).

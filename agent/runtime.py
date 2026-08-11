@@ -304,10 +304,13 @@ def parse_probe_signal(reflection_text: str) -> ProbeSignal | None:
     return ProbeSignal.from_dict(obj)
 
 
+# ⚠ SECOND PERSON, like every other string that reaches the agent (render-8).
+# These are read BY the person they describe — a "their" here would talk about
+# the agent in the same breath the persona core talks to it.
 _CYCLE_PROSE = {
-    "just_bought": "just recently stocked up on {cat} — well supplied, with no near-term need.",
-    "mid_cycle": "partway through their current {cat} — not thinking about restocking yet.",
-    "running_low": "nearly out of {cat} — they'll need to restock soon.",
+    "just_bought": "you just recently stocked up on {cat} — well supplied, with no near-term need.",
+    "mid_cycle": "you are partway through your current {cat} — not thinking about restocking yet.",
+    "running_low": "you are nearly out of {cat} — you'll need to restock soon.",
 }
 
 
@@ -317,7 +320,27 @@ def _cycle_line(cycle_position: str, category: str) -> str:
     never fragments the cached persona core (v3 A4, docs/v3_protocol.md §5)."""
     cat = category.replace("_", " ")
     body = _CYCLE_PROSE.get(cycle_position, _CYCLE_PROSE["mid_cycle"]).format(cat=cat)
-    return "WHERE THINGS STAND FOR THEM RIGHT NOW: " + body
+    return "WHERE THINGS STAND FOR YOU RIGHT NOW: " + body
+
+
+def _context_block(context_prose: str, cycle_position: str, category: str) -> str:
+    """The uncached context preamble of the encoding turn: the feed moment, the
+    cycle line, and the attention gate.
+
+    Extracted from `run_agent` so the SECOND-PERSON ADDRESS of every
+    deterministic string here is drivable by a test rather than grepped out of
+    the source (a source-pattern assertion matches in more than one place and
+    goes vacuous — see tests/test_second_person_address.py). `context_prose` is
+    model-written and therefore only pinnable as an instruction, not here."""
+    return (
+        "THE EXACT MOMENT THIS AD APPEARS IN YOUR FEED\n\n"
+        f"{context_prose.strip()}\n\n"
+        f"{_cycle_line(cycle_position, category)}\n\n"
+        "Attention gates everything that follows. If this context implies "
+        "low attention, the ad probably gets a sub-second thumb-flick "
+        "regardless of whether you would be interested in a more "
+        "alert moment.\n\n"
+    )
 
 
 # ---- Public API ----
@@ -367,14 +390,8 @@ def run_agent(
     system = [
         {"type": "text", "text": core_prose, "cache_control": {"type": "ephemeral"}},
     ]
-    context_block = (
-        "THE EXACT MOMENT THIS AD APPEARS IN THEIR FEED\n\n"
-        f"{context_prose.strip()}\n\n"
-        f"{_cycle_line(agent.cycle_position, agent.category)}\n\n"
-        "Attention gates everything that follows. If this context implies "
-        "low attention, the ad probably gets a sub-second thumb-flick "
-        "regardless of whether they would be interested in a more "
-        "alert moment.\n\n"
+    context_block = _context_block(
+        context_prose, agent.cycle_position, agent.category
     )
     copy_block = _creative_copy_block(config.creative_inputs)
     encoding_user_content = [

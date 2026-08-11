@@ -162,9 +162,33 @@ PACK = CategoryArtifactPack(
         PricePoint(item="Calcirol 60K IU vitamin-D sachet", price_inr="~₹35/sachet", channel="1mg / Apollo"),
         PricePoint(item="Livogen XT iron tablet (10s)", price_inr="~₹80", channel="Apollo / PharmEasy"),
     ],
+    # render-10: each channel carries WHAT IT ACTUALLY SELLS, because the
+    # persona writer used to be handed a bare list and had no way to know
+    # that a beauty marketplace is the wrong place to look for a protein
+    # bar. The skew note is what lets a clean-label supplement buyer and a
+    # bar buyer pick different shops from the same list.
+    # ⚠ Keep these notes lowercase and generic — agent/render.py feeds this
+    # list into _vocab_tokens, so every TitleCase word here joins the
+    # allowed set for the invented-artifact check and weakens it.
     retail_channels=[
-        "HealthKart", "Amazon", "Flipkart", "Nykaa", "Blinkit", "Zepto",
-        "1mg", "Apollo Pharmacy", "PharmEasy", "brand DTC website",
+        "HealthKart — sports nutrition specialist; whey, mass gainers, "
+        "creatine; authenticity-seal scanning",
+        "Amazon — everything; the default price-comparison and review-reading "
+        "surface for powders and tubs",
+        "Flipkart — everything; big-billion-day discounting on tubs and bars",
+        "Nykaa — beauty and personal care first; collagen, biotin, hair and "
+        "skin supplements, clean-label wellness. NOT where whey, mass "
+        "gainers or protein bars are bought",
+        "Blinkit — 10-minute quick commerce; bars, single snacks, "
+        "top-up buys",
+        "Zepto — 10-minute quick commerce; bars, single snacks, top-up buys",
+        "1mg — online pharmacy; prescribed deficiency supplements, "
+        "doctor-named brands",
+        "Apollo Pharmacy — pharmacy chain, online and offline; prescribed "
+        "vitamins and minerals",
+        "PharmEasy — online pharmacy; refills of prescribed courses",
+        "brand DTC website — the brand's own site; subscription, launches "
+        "and clean-label direct-to-consumer wellness",
     ],
     communities=[
         Community(

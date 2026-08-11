@@ -17,12 +17,12 @@ the unit of design is the TG, not the SKU. Cohort spread per Protocol v2
 §5 Lever 3: 1 obsessive, 2 high, 1 medium, 3 low — load-bearing on the
 scroll-past / reject voices so the audience isn't "engaged buyers only".
 
-  1. enthusiast_macros_lifter   OBSESSIVE — serious gym lifter, Biozyme-loyal
+  1. enthusiast_macros_lifter   OBSESSIVE — serious gym lifter, tub-loyal
   2. aspirant_clean_label       HIGH      — Insta-discovered clean-label buyer
   3. switcher_results_chaser    HIGH      — serial trier, switches on no-result
   4. doctor_triggered_vitamin   MEDIUM    — deficiency cohort, "medicine not lifestyle"
   5. skeptic_lapsed_protein     LOW       — bought once, "did nothing", lapsed
-  6. pragmatist_protein_snacker LOW       — "snack, not supplement" (Yogabar)
+  6. pragmatist_protein_snacker LOW       — "snack, not supplement"
   7. purist_food_first          LOW       — "dal-rice-ghee is enough", anti-supplement
 
 IMPORTANT — anchors are DEMOGRAPHIC-FREE by design. Gender / age / city /
@@ -30,11 +30,31 @@ income / occupation come from the AudienceSpec.demographics axis (the
 render engine cross-products demographic × disposition × context, and
 render.py:222 requires the persona's gender/age/identity to come from the
 demographic axis — the anchor "must not assume a gender or assign a name").
-The anchor pins the *object* of the stance (the SKU, the behaviour, the
+The anchor pins the *object* of the stance (the PRODUCT, the behaviour, the
 knowledge ceiling) — not who the person is. This matches the shipped
 bru_coffee / personal_audio pattern, and the gateway reframe, and OVERRIDES
 the literal "L1 = demographics" wording in disposition_protocol_v2.md §3
 (that doc text predates the gateway steer; flag for a doc update).
+
+⚠⚠ IMPORTANT — anchors are also BRAND-FREE and PLATFORM-FREE (render-10,
+2026-08-12). Name the PRODUCT ("a plant protein", "a 20g protein bar",
+"a weekly 60K IU vitamin-D sachet"), never a brand and never a marketplace.
+WHY, measured: `aspirant_clean_label` used to say "on Nykaa" twice, and
+because the anchor is injected as a HARD CONSTRAINT it beat the artifact
+pack's own channel list — 24 of 24 of that disposition's persona briefs
+carried Nykaa, into a PROTEIN BAR run, where nobody buys protein. The two
+dispositions whose anchors named a different shop scored 0/19 and 0/15 on
+it. Uniformity, not the mention, is the defect: a hard-coded channel is
+indistinguishable from consensus downstream, so a prevalence floor cannot
+catch it. The pack's brand + platform landscape is handed to the persona
+WRITER (`render._pack_brief`) so each persona SELECTS what fits them —
+which is why an 18-year-old beauty-supplement buyer may still land on
+Nykaa while a bar buyer lands on quick-commerce. Same rule for
+`occupation_hint` and for L5: describe a lived EXPERIENCE, never a
+pre-written verdict about an ad ("sees an ad and rolls their eyes"), which
+the person cannot be moved off by the ad being tested.
+See tests/test_anchors_are_brand_free.py — it fails the build if a brand
+or platform comes back.
 
 REMAINING BEFORE A LIVE RUN (not in this file):
   - packs/health_wellness_nutrition.py  (brand landscape + price points +
@@ -99,13 +119,13 @@ _BUNDLES_ENTHUSIAST = [  # [12, 26, 38, 18, 6] — young, male-skewed
        "college student / gym trainee; stretches budget for a value whey tub",
        "lives with family; limited spare cash"),
     _b(26, "male", "25_34", "lower_mid", "tier-2 city",
-       "junior sales/field exec or assistant gym trainer; buys MuscleBlaze on discount",
+       "junior sales/field exec or assistant gym trainer; buys a mass-market whey on discount",
        "shares a flat with flatmates"),
     _b(38, "male", "25_34", "upper_mid", "Bangalore / metro tier-1",
        "software/ops professional on a 5-day push/pull/legs routine",
        "1-2BHK metro, single"),
     _b(18, "male", "35_44", "affluent", "metro tier-1",
-       "established professional / small-business owner; imported whey (ON)",
+       "established professional / small-business owner; buys imported whey",
        "owns a flat, married"),
     _b(6, "male", "35_44", "premium", "metro tier-1",
        "senior manager / founder; boutique gym + personal coach",
@@ -117,7 +137,7 @@ _BUNDLES_ASPIRANT = [  # [5, 17, 45, 26, 7] — woman, 25-40, metro
        "aspirational wellness-influencer follower; rarely converts at premium price",
        "lives with family"),
     _b(17, "female", "25_34", "lower_mid", "tier-1 / tier-2",
-       "early-career content/marketing exec; buys occasional OZiva on sale",
+       "early-career content/marketing exec; buys a clean-label plant protein on sale",
        "shares a flat"),
     _b(45, "female", "25_34", "upper_mid", "Mumbai / Bangalore metro",
        "marketing/design/product professional; Instagram-discovered wellness buyer",
@@ -132,13 +152,13 @@ _BUNDLES_ASPIRANT = [  # [5, 17, 45, 26, 7] — woman, 25-40, metro
 
 _BUNDLES_SWITCHER = [  # [12, 30, 39, 16, 3] — working women, 25-44, broad
     _b(12, "female", "25_34", "mass", "tier-2/3",
-       "value-seeker chasing hair/skin fixes via cheap Amazon biotin",
+       "value-seeker chasing hair/skin fixes with the cheapest biotin she can find",
        "lives with family"),
     _b(30, "female", "25_34", "lower_mid", "tier-1 / tier-2",
        "salaried (BPO / retail / teaching); mid-market gummies, switches on no result",
        "shared or family flat"),
     _b(39, "female", "25_34", "upper_mid", "metro / tier-1",
-       "working professional; Nykaa/Amazon collagen & biotin, outcome-driven",
+       "working professional; collagen & biotin buyer, outcome-driven",
        "metro flat"),
     _b(16, "female", "35_44", "affluent", "metro tier-1",
        "settled professional; mixes premium + mid brands, results-led",
@@ -171,7 +191,7 @@ _BUNDLES_SNACKER = [  # [6, 18, 40, 26, 10] — 25-44, mixed, metro, no mass tai
        "occasional bar buyer at quick-commerce, price-aware",
        "family / shared"),
     _b(18, "any", "25_34", "lower_mid", "tier-1 / tier-2",
-       "young salaried; grabs a Yogabar on Blinkit sometimes",
+       "young salaried; grabs a protein bar off a quick-commerce app sometimes",
        "shares a flat"),
     _b(40, "any", "25_34", "upper_mid", "metro tier-1",
        "busy professional; protein bar as a convenient snack",
@@ -238,18 +258,20 @@ def _library() -> DispositionLibrary:
                 "Three years into a structured 5-day push/pull/legs gym "
                 "routine; treats supplements as tracked engineering inputs, "
                 "not a lifestyle.\n\n"
-                "Buys MuscleBlaze Biozyme Performance Whey 1kg chocolate at "
-                "₹2,699 on HealthKart every six-to-seven weeks; the same cart "
-                "adds creatine monohydrate and an omega-3.\n\n"
-                "Knows protein-per-rupee and the Labdoor / Informed-Choice "
+                "Buys a 1kg tub of performance whey at around ₹2,700 every "
+                "six-to-seven weeks, always from a seller where the "
+                "authenticity seal can be scanned; the same cart adds "
+                "creatine monohydrate and an omega-3.\n\n"
+                "Knows protein-per-rupee and the third-party purity "
                 "seals cold; does NOT lab-test, does NOT read the trials "
                 "behind '50% better absorption', is NOT a nutritionist.\n\n"
                 "Wants a consistent 25g per scoop, no added sugar, and a real "
                 "authenticity seal; rejects loose 'imported' tubs and "
                 "'proprietary blends' that hide the macros.\n\n"
-                "Watches one Tarun Gill or Guru Mann video before any "
-                "first-time brand switch, then defaults to Biozyme for the "
-                "fourth tub running — 'I'm not changing what works.'"
+                "Watches one supplement-review YouTuber before any first-time "
+                "switch; has re-bought the same tub four times now, because "
+                "nothing since has given them a reason to re-run the "
+                "comparison."
             ),
             demographic_bundles=_BUNDLES_ENTHUSIAST,
         ),
@@ -272,18 +294,18 @@ def _library() -> DispositionLibrary:
                 "Came to wellness through Instagram in the post-COVID "
                 "self-care wave; supplements are part of a clean-living "
                 "identity, not performance.\n\n"
-                "Rotates a Plix or OZiva plant protein (~₹2,000 on Nykaa), "
-                "Power Gummies biotin (₹699), and a magnesium for sleep; "
-                "₹2-3K a month on Nykaa and brand DTC.\n\n"
+                "Rotates a plant protein (~₹2,000 a kilo), a biotin gummy "
+                "(~₹700), and a magnesium for sleep; ₹2-3K a month, most of "
+                "it found through Instagram rather than searched for.\n\n"
                 "Scans for 'plant-based', 'clean', 'no maltodextrin'; does "
                 "NOT track clinical dosages, does NOT know what inositol "
                 "does, does NOT tell Type I from Type III collagen.\n\n"
                 "Wants clean labels and Insta-coded brand aesthetics; rejects "
-                "MuscleBlaze ('gym-bro stuff, not for me') and opaque white "
-                "tubs; trusts a nutritionist's tag over an ad.\n\n"
-                "Bought OZiva collagen last month at ₹1,499 after a Lovneet "
-                "Batra reel; mixes a scoop into oat milk before yoga; would "
-                "switch for a cleaner brand under ₹1,500."
+                "gym-bro positioning and opaque white tubs — 'not for me'; "
+                "trusts a nutritionist's tag over an ad.\n\n"
+                "Bought a plant collagen last month at ₹1,499 after a "
+                "nutritionist's reel; mixes a scoop into oat milk before "
+                "yoga; would switch for a cleaner brand under ₹1,500."
             ),
             demographic_bundles=_BUNDLES_ASPIRANT,
         ),
@@ -305,37 +327,39 @@ def _library() -> DispositionLibrary:
                 "Started taking hair and skin supplements after visible "
                 "shedding during a stressful stretch; two years in, still "
                 "chasing a brand that visibly works.\n\n"
-                "Has cycled OZiva → Power Gummies → Plix collagen → Setu → "
-                "HK Vitals; switches when a brand 'does nothing visible after "
+                "Has cycled through four or five hair-and-skin brands in two "
+                "years, switching each time one 'does nothing visible after "
                 "three months'; spends ₹1.5-2.5K a month.\n\n"
                 "Knows what biotin and collagen 'are supposed to do' and "
                 "reads back-of-pack lists; does NOT see a dermatologist "
                 "first, does NOT track a baseline, does NOT distinguish "
                 "collagen types.\n\n"
-                "Wants a visible result inside 90 days and high Nykaa "
-                "verified-review density (500+ reviews at 4 stars); rejects "
-                "brands that 'look pretty on Insta but did nothing'.\n\n"
-                "Six weeks into a Plix collagen at ₹1,499 on Nykaa; will give "
-                "it eight more weeks, then switch to HK Vitals or Setu if the "
-                "shedding doesn't visibly slow."
+                "Wants a visible result inside 90 days and a heavy "
+                "verified-review count wherever they buy (500+ at 4 stars); "
+                "rejects brands that 'look pretty on Insta but did nothing'.\n\n"
+                "Six weeks into their current collagen at ₹1,499, with photos "
+                "on their phone from the week they started; has told "
+                "themselves they'll give it eight more weeks."
             ),
             demographic_bundles=_BUNDLES_SWITCHER,
             # §2.3 — THE DISPOSITION THE SCOPE FIELD EXISTS FOR, and the only
-            # one scoped so far. This anchor is a BEAUTY-SUPPLEMENT persona:
-            # every artifact in it (OZiva, Power Gummies, Plix collagen, Setu,
-            # HK Vitals, biotin, shedding, Nykaa review density) is
-            # collagen/biotin. It is correct there. It was then run unchanged
-            # against a PROTEIN BAR, and 43 of 100 persona cores carried its
-            # vocabulary before seeing any ad — the panel arrived pre-loaded
-            # with the wrong product's language.
+            # one scoped so far. This is a BEAUTY-SUPPLEMENT persona: hair and
+            # skin, biotin and collagen, shedding, review density. It is
+            # correct there. It was then run unchanged against a PROTEIN BAR,
+            # and 43 of 100 persona cores carried its vocabulary before seeing
+            # any ad — the panel arrived pre-loaded with the wrong product's
+            # language. The advisory fires correctly today (verified on the
+            # 2026-08-11 protein-bar run); the scope stays even though
+            # render-10 stripped the brand names, because the SUBJECT of the
+            # persona is still collagen/biotin — that is what it is scoped on.
             #
             # ⚠ Scoping is opt-in, ONE disposition at a time, on evidence. The
             # other six here stay unscoped deliberately: an advisory that fired
             # everywhere on its first run would be noise, and a guess at a scope
             # is worse than no scope. `doctor_triggered_vitamin` is the obvious
-            # next candidate (Calcirol / Livogen / Shelcal is a deficiency
-            # persona, not a protein one) — but nobody has MEASURED that one
-            # leaking, so it is left for whoever does.
+            # next candidate (a prescribed-deficiency persona, not a protein
+            # one) — but nobody has MEASURED that one leaking, so it is left
+            # for whoever does.
             authored_for=[
                 "collagen", "biotin", "hair supplement", "skin supplement",
                 "beauty supplement",
@@ -361,19 +385,20 @@ def _library() -> DispositionLibrary:
                 "Does not think of themselves as a 'supplements person', yet "
                 "takes three daily — all because a blood test flagged a "
                 "deficiency and a doctor named them.\n\n"
-                "Takes a Calcirol 60K weekly sachet (~₹35), a Livogen iron "
-                "tablet, and a Shelcal calcium; reorders on 1mg the week one "
-                "runs out.\n\n"
-                "Knows the deficiency number and that they take Calcirol "
+                "Takes a weekly 60K IU vitamin-D sachet (~₹35), an iron "
+                "tablet, and a calcium; reorders from the same pharmacy app "
+                "the household uses for its other medicines.\n\n"
+                "Knows the deficiency number and that they take it "
                 "'because the doctor said'; does NOT know what an IU is, does "
-                "NOT compare brands, does NOT consider Plix or OZiva.\n\n"
+                "NOT compare brands, does NOT look at the D2C wellness "
+                "shelf.\n\n"
                 "Wants prescription-grade reliability, the doctor-named "
                 "brand, and pharmacy convenience; rejects supplements that "
                 "'feel marketed at gym types or influencers' — this is "
                 "medicine, not lifestyle.\n\n"
-                "Reorders the sachet the week the last one runs out; scrolls "
-                "straight past a wellness-brand reel without registering it "
-                "as relevant to them."
+                "Reorders the week the last sachet runs out; the only date "
+                "that matters is the next blood test, and the report goes "
+                "back to the same doctor."
             ),
         ),
         # 5 — LOW, burned. Coherence: lapsed + skeptical + burned + low =
@@ -394,18 +419,18 @@ def _library() -> DispositionLibrary:
                 "Joined a gym once on a motivation spike and bought protein "
                 "to match; quit within six months; now reflexively distrusts "
                 "the whole supplement pitch.\n\n"
-                "Bought a ₹1,599 tub of whey his gym trainer pushed on him "
-                "off Amazon in 2024; used about 60%, the rest sat in the "
-                "cupboard until it got binned.\n\n"
+                "Bought a ₹1,599 tub of whey their gym trainer pushed on them "
+                "online in 2024; used about 60%, the rest sat in the "
+                "cupboard for a year until it got binned.\n\n"
                 "Knows whey is 'for muscle' and 'you have to actually work "
                 "out for it to do anything'; does NOT think supplements alone "
                 "do anything, does NOT tell concentrate from isolate.\n\n"
                 "Wants proof something measurably works; rejects ad copy "
                 "promising 'muscle gain' or 'fat loss' without conditions; "
                 "half-remembers that 'most Indian protein is adulterated'.\n\n"
-                "Sees a protein-powder ad and thinks only 'yeah, it did "
-                "nothing when I tried it'; would scroll past unless it named "
-                "the exact failure they lived."
+                "The binned tub is still a running joke with their flatmate — "
+                "the ₹1,600 cupboard decoration — and they retell it whenever "
+                "someone at work says they're starting the gym."
             ),
             demographic_bundles=_BUNDLES_SKEPTIC,
         ),
@@ -427,18 +452,19 @@ def _library() -> DispositionLibrary:
                 "Would never call themselves 'into fitness', but keeps a "
                 "protein bar around as a less-guilty snack; the supplements "
                 "world feels like someone else's.\n\n"
-                "Grabs Yogabar 20g protein bars from Blinkit (~₹625 for five) "
-                "or the airport store; reaches for one instead of a biscuit "
-                "during a 4pm crash about three times a week.\n\n"
+                "Grabs a 20g protein bar five-pack (~₹625) off a "
+                "quick-commerce app or the airport store; reaches for one "
+                "instead of a biscuit during a 4pm crash about three times a "
+                "week.\n\n"
                 "Knows the bars have 'more protein than a chocolate bar'; "
                 "does NOT see them as 'supplements', does NOT read past the "
                 "front of the pack, does NOT track macros.\n\n"
                 "Wants taste, portability, and 'feeling less guilty than a "
                 "Snickers'; rejects whey powder and the whole visible "
                 "gym-supplements aisle — not their world.\n\n"
-                "Sees a wellness-supplement ad and barely registers it, "
-                "because none of it feels made for someone who just wants a "
-                "non-junky snack between meetings."
+                "Keeps two bars in a desk drawer and one in the laptop bag; "
+                "only restocks when the drawer is empty, usually tacked onto "
+                "a grocery order they were placing anyway."
             ),
             demographic_bundles=_BUNDLES_SNACKER,
         ),
@@ -470,11 +496,12 @@ def _library() -> DispositionLibrary:
                 "read the studies; anti-supplement, not anti-medicine.\n\n"
                 "Believes real food and a grandmother's wisdom beat any "
                 "powder; sees the wellness shelf as marketing that "
-                "manufactures anxiety; quotes Rujuta Diwekar and the Liver "
-                "Doc.\n\n"
-                "Sees a protein or collagen ad and actively rolls their "
-                "eyes — 'ghee and dal did the job for generations'; the more "
-                "'scientific' the claim, the more they distrust it."
+                "manufactures anxiety; repeats what the food-first "
+                "nutritionists and the doctors who call out adulterated "
+                "protein say.\n\n"
+                "Cooks dal, rice and a vegetable most nights and packs the "
+                "same for lunch; when a cousin brought a protein tub home "
+                "last year it was an argument at the dinner table for a week."
             ),
             demographic_bundles=_BUNDLES_PURIST,
         ),
