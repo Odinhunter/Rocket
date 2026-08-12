@@ -100,22 +100,33 @@ def test_no_anchor_names_a_brand_or_a_platform():
     )
 
 
-def test_no_occupation_hint_names_a_brand_or_a_platform():
+def test_no_bundle_hint_names_a_brand_or_a_platform():
     """The second seam, and the one missed on the first pass at this fix.
     `occupation_hint` reaches the persona writer through
     `persona_writer_demographics`, so a brand parked there survives a clean
-    anchor. Six of them did."""
+    anchor. Six of them did.
+
+    ⚠ `household_hint` IS THE THIRD SEAM and was unguarded until 2026-08-13.
+    It rides the same `persona_writer_demographics` dict and is no more
+    redacted than the occupation is, so "orders from <platform> weekly" parked
+    there would have reached 100% of that bundle's agents with the build still
+    green. Both hints are checked here; do not narrow this back to one."""
     terms = _forbidden_terms()
+    assert len(terms) >= 20, f"pack lexicon looks empty: {terms}"
+
     offenders = {}
     for d in _scaffold()._library().dispositions:
         for bundle in d.demographic_bundles:
-            hint = bundle.point.occupation_hint or ""
-            found = _hits(hint, terms)
-            if found:
-                offenders.setdefault(d.label, []).append((hint, found))
+            for field in ("occupation_hint", "household_hint"):
+                hint = getattr(bundle.point, field) or ""
+                found = _hits(hint, terms)
+                if found:
+                    offenders.setdefault(d.label, []).append(
+                        (field, hint, found)
+                    )
 
     assert not offenders, (
-        "occupation_hint must describe the BEHAVIOUR, not the brand — "
+        "a bundle hint must describe the BEHAVIOUR, not the brand — "
         f"found: {offenders}"
     )
 

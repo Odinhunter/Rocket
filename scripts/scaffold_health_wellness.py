@@ -33,8 +33,12 @@ demographic axis — the anchor "must not assume a gender or assign a name").
 The anchor pins the *object* of the stance (the PRODUCT, the behaviour, the
 knowledge ceiling) — not who the person is. This matches the shipped
 bru_coffee / personal_audio pattern, and the gateway reframe, and OVERRIDES
-the literal "L1 = demographics" wording in disposition_protocol_v2.md §3
-(that doc text predates the gateway steer; flag for a doc update).
+the literal "L1 = demographics" wording in disposition_protocol_v2.md §3.
+⚠ That doc has now been CORRECTED (2026-08-13) rather than merely flagged —
+§3 carries the reasons in full, including the one that is not obvious: an
+anchor L1 written to the old wording would carry "income tier" straight past
+the `_persona_user_payload` income redaction (§2.6). The biography the old
+L1 was reaching for is real and now lives in `demographic_bundles` below.
 
 ⚠⚠ IMPORTANT — anchors are also BRAND-FREE and PLATFORM-FREE (render-10,
 2026-08-12). Name the PRODUCT ("a plant protein", "a 20g protein bar",
@@ -113,113 +117,275 @@ def _b(
 # <₹3.5L"). Grounded in MBB/Kantar/PRICE/category research — see
 # docs/disposition_income_brackets.md (distributions) and
 # docs/disposition_demographic_bundles.md (the personas).
+#
+# ⚠⚠ THE BUNDLE OWNS WHO THIS PERSON IS. THE ANCHOR OWNS WHAT THEY THINK OF
+# THE CATEGORY. Never mix the two. A hint carrying category content
+# ("outcome-driven", "buys imported whey", "mid-market gummies", "distrusts
+# the category") is the Nykaa defect in a second seam: `occupation_hint`
+# reaches the persona writer through `persona_writer_demographics`, and every
+# agent drawn from that bundle gets it verbatim — so the panel arrives
+# pre-agreeing about the very thing the run is trying to measure, and a
+# prevalence floor cannot tell a pinned constant from consensus. It also
+# leaks the WRONG PRODUCT across runs: a "protein bar as a convenient snack"
+# biography meets a collagen ad unchanged. Two of the old hints additionally
+# CONTRADICTED their own anchor's L3 knowledge ceiling — a switcher hint said
+# "dermatologist-guided" where L3 says "does NOT see a dermatologist first",
+# and a purist hint made the person a doctor where L3 says "does NOT read the
+# studies". Write the JOB, the CITY and one HOUSEHOLD detail; nothing else.
+#
+# ⚠ NO ₹ FIGURES AND NO INCOME WORDS in a hint. `income_tier` is redacted at
+# the `_persona_user_payload` seam on purpose (§2.6) — the hints are not, so
+# a rupee number here walks straight past that redaction.
+# ⚠ NO GENDERED PRONOUN in a bundle whose gender is "any" — the writer is
+# handed both, and the pronoun wins.
+#
+# ⚠ SPLITTING RULE — the invariant that makes this safe: sub-bundles of one
+# documented row share its gender, age_band, income_tier and SUMMED weight,
+# and differ ONLY in geography / occupation_hint / household_hint.
+# `demographic_overlap` is gender × age × income ONLY (panel.py:325), so every
+# sub-bundle of a row scores the identical overlap and `audience_mass` — the
+# marketer-led selection weight — is arithmetically unchanged. Geography is
+# free to sharpen to named cities: it composes the targeting sentence and adds
+# render vividness, but it does NOT narrow the panel.
+# ⚠ Rows under ~10% are left WHOLE. At ~17 agents per disposition a 5% row is
+# already under one agent; splitting it deletes it from the panel instead of
+# diversifying it.
+#
+# WHY, MEASURED (2026-08-13): under the shipped 25-44 / ₹7-40L brief, the five
+# rows per disposition collapse to the two that overlap it, so 100 agents were
+# backed by 10 biographies and 15 people shared the single most common one.
+# See docs/disposition_demographic_bundles.md for the before/after.
 
 _BUNDLES_ENTHUSIAST = [  # [12, 26, 38, 18, 6] — young, male-skewed
-    _b(12, "male", "18_24", "mass", "tier-2/3 town",
-       "college student / gym trainee; stretches budget for a value whey tub",
-       "lives with family; limited spare cash"),
-    _b(26, "male", "25_34", "lower_mid", "tier-2 city",
-       "junior sales/field exec or assistant gym trainer; buys a mass-market whey on discount",
-       "shares a flat with flatmates"),
-    _b(38, "male", "25_34", "upper_mid", "Bangalore / metro tier-1",
-       "software/ops professional on a 5-day push/pull/legs routine",
-       "1-2BHK metro, single"),
-    _b(18, "male", "35_44", "affluent", "metro tier-1",
-       "established professional / small-business owner; buys imported whey",
-       "owns a flat, married"),
-    _b(6, "male", "35_44", "premium", "metro tier-1",
-       "senior manager / founder; boutique gym + personal coach",
-       "premium high-rise, family"),
+    _b(6, "male", "18_24", "mass", "Nagpur / tier-2 town",
+       "second-year college student; trains before morning classes",
+       "lives with parents and a younger brother; no rent, small allowance"),
+    _b(6, "male", "18_24", "mass", "Rajkot / tier-3 town",
+       "works the counter at his family's mobile-repair shop",
+       "joint family home; eats whatever the kitchen cooks"),
+
+    _b(13, "male", "25_34", "lower_mid", "Indore / tier-2 city",
+       "junior field-sales executive covering a two-district territory",
+       "shares a rented 1BHK with two flatmates; sends money home monthly"),
+    _b(13, "male", "25_34", "lower_mid", "Coimbatore / tier-2 city",
+       "assistant trainer at a neighbourhood gym; takes the evening batches",
+       "rented room near the gym; cooks on a single burner"),
+
+    _b(13, "male", "25_34", "upper_mid", "Bangalore / metro tier-1",
+       "backend engineer at a mid-stage startup; lifts before work five days a week",
+       "1BHK in a gated block, lives alone; orders in most nights"),
+    _b(13, "male", "25_34", "upper_mid", "Pune / metro tier-1",
+       "operations manager at a logistics firm; 6am gym before the shift",
+       "2BHK with a flatmate; meal-preps chicken and rice on Sundays"),
+    _b(12, "male", "25_34", "upper_mid", "Hyderabad / metro tier-1",
+       "product designer; lifts four evenings a week after office",
+       "1BHK near the office; parents visit twice a year"),
+
+    _b(9, "male", "35_44", "affluent", "Delhi NCR / metro tier-1",
+       "chartered accountant running his own practice; members' gym before the office",
+       "owns a 3BHK, married, one toddler"),
+    _b(9, "male", "35_44", "affluent", "Mumbai / metro tier-1",
+       "regional sales head; works out in hotel gyms three weeks a month",
+       "owns a flat, married; travels Monday to Thursday"),
+
+    _b(3, "male", "35_44", "premium", "Mumbai / metro tier-1",
+       "founder of a mid-size firm; trains with a personal coach at a boutique studio",
+       "high-rise apartment with family; a cook handles meals"),
+    _b(3, "male", "35_44", "premium", "Gurugram / metro tier-1",
+       "senior banking executive; 5am strength sessions with a coach",
+       "owns a duplex; two kids in school, staff at home"),
 ]
 
 _BUNDLES_ASPIRANT = [  # [5, 17, 45, 26, 7] — woman, 25-40, metro
-    _b(5, "female", "25_34", "mass", "tier-2 city",
-       "aspirational wellness-influencer follower; rarely converts at premium price",
-       "lives with family"),
-    _b(17, "female", "25_34", "lower_mid", "tier-1 / tier-2",
-       "early-career content/marketing exec; buys a clean-label plant protein on sale",
-       "shares a flat"),
-    _b(45, "female", "25_34", "upper_mid", "Mumbai / Bangalore metro",
-       "marketing/design/product professional; Instagram-discovered wellness buyer",
-       "1-2BHK metro, single or recently married"),
-    _b(26, "female", "35_44", "affluent", "metro tier-1",
-       "settled professional / small entrepreneur; regular premium D2C wellness",
-       "owns home, young kids"),
-    _b(7, "female", "35_44", "premium", "metro tier-1",
-       "affluent founder / homemaker; full premium wellness stack",
-       "premium metro, household help"),
+    _b(5, "female", "25_34", "mass", "Jaipur / tier-2 city",
+       "front-desk executive at a clinic",
+       "lives with parents; saving for a wedding"),
+
+    _b(9, "female", "25_34", "lower_mid", "Kochi / tier-2 city",
+       "early-career content writer at a small agency",
+       "shares a flat with a colleague; cooks most dinners"),
+    _b(8, "female", "25_34", "lower_mid", "Chandigarh / tier-1",
+       "junior HR executive at a mid-size company",
+       "paying-guest room; family in the same city"),
+
+    _b(15, "female", "25_34", "upper_mid", "Mumbai / metro tier-1",
+       "brand marketing manager at a consumer company",
+       "1BHK in the metro core, lives alone; long commute"),
+    _b(15, "female", "25_34", "upper_mid", "Bangalore / metro tier-1",
+       "UX designer at a product company; morning yoga three times a week",
+       "2BHK with her partner; recently married"),
+    _b(15, "female", "25_34", "upper_mid", "Delhi NCR / metro tier-1",
+       "account manager at an agency; Pilates class on weekends",
+       "rented 2BHK with a flatmate; family an hour away"),
+
+    _b(13, "female", "35_44", "affluent", "Mumbai / metro tier-1",
+       "senior product manager; a tight morning routine before the kids wake",
+       "owns a 3BHK; two young kids and full-time help"),
+    _b(13, "female", "35_44", "affluent", "Bangalore / metro tier-1",
+       "runs a small design studio she founded",
+       "owns a flat, married, one child in playschool"),
+
+    _b(7, "female", "35_44", "premium", "Delhi NCR / metro tier-1",
+       "co-founder of a growing company; a trainer on retainer",
+       "large flat, household staff; two kids"),
 ]
 
 _BUNDLES_SWITCHER = [  # [12, 30, 39, 16, 3] — working women, 25-44, broad
-    _b(12, "female", "25_34", "mass", "tier-2/3",
-       "value-seeker chasing hair/skin fixes with the cheapest biotin she can find",
-       "lives with family"),
-    _b(30, "female", "25_34", "lower_mid", "tier-1 / tier-2",
-       "salaried (BPO / retail / teaching); mid-market gummies, switches on no result",
-       "shared or family flat"),
-    _b(39, "female", "25_34", "upper_mid", "metro / tier-1",
-       "working professional; collagen & biotin buyer, outcome-driven",
-       "metro flat"),
-    _b(16, "female", "35_44", "affluent", "metro tier-1",
-       "settled professional; mixes premium + mid brands, results-led",
-       "owns home"),
-    _b(3, "female", "35_44", "premium", "metro tier-1",
-       "affluent; dermatologist-guided premium nutricosmetics",
-       "premium metro"),
+    _b(6, "female", "25_34", "mass", "Patna / tier-3 town",
+       "school teacher in her second year of work",
+       "lives with parents; contributes to the household"),
+    _b(6, "female", "25_34", "mass", "Nashik / tier-2 city",
+       "receptionist at a small clinic",
+       "shares a flat with her sister; both send money home"),
+
+    _b(10, "female", "25_34", "lower_mid", "Hyderabad / tier-1",
+       "process associate on a night shift at a BPO",
+       "shares a flat with two colleagues; sleeps days"),
+    _b(10, "female", "25_34", "lower_mid", "Lucknow / tier-2 city",
+       "retail floor supervisor at a mall store; on her feet nine hours",
+       "lives with family; long bus commute"),
+    _b(10, "female", "25_34", "lower_mid", "Bhopal / tier-2 city",
+       "primary school teacher; grades papers after dinner",
+       "married, one small child; joint family home"),
+
+    _b(13, "female", "25_34", "upper_mid", "Bangalore / metro tier-1",
+       "business analyst at a consulting firm; long desk hours",
+       "1BHK alone; parents in another city"),
+    _b(13, "female", "25_34", "upper_mid", "Mumbai / metro tier-1",
+       "assistant manager at a bank; two-hour daily commute",
+       "shares a 2BHK; recently engaged"),
+    _b(13, "female", "25_34", "upper_mid", "Chennai / metro tier-1",
+       "software tester; back-to-back calls most afternoons",
+       "2BHK with her husband; no kids yet"),
+
+    _b(8, "female", "35_44", "affluent", "Delhi NCR / metro tier-1",
+       "senior HR business partner; travels for hiring drives",
+       "owns a 3BHK; one child in primary school"),
+    _b(8, "female", "35_44", "affluent", "Pune / metro tier-1",
+       "runs a boutique event-management outfit",
+       "owns a flat, married; help comes twice a day"),
+
+    _b(3, "female", "35_44", "premium", "Mumbai / metro tier-1",
+       "practice head at a consulting firm; long-haul travel most months",
+       "sea-facing flat; full household staff"),
 ]
 
 _BUNDLES_SKEPTIC = [  # [20, 32, 32, 12, 4] — mirrors enthusiast, lapsed/value
-    _b(20, "male", "18_24", "mass", "tier-2/3",
-       "tried a trainer-pushed tub, quit on cost; back to home food",
-       "family / shared, tier-2"),
-    _b(32, "male", "25_34", "lower_mid", "tier-2 city",
-       "salaried; bought discount whey once, churned on price + doubt",
-       "shares a flat"),
-    _b(32, "any", "25_34", "upper_mid", "metro / tier-1",
-       "professional; lapsed after the mislabeling news, now skeptical",
-       "metro flat"),
-    _b(12, "any", "35_44", "affluent", "metro tier-1",
-       "settled; tried premium, didn't see the value, dropped it",
-       "owns home"),
-    _b(4, "any", "35_44", "premium", "metro tier-1",
-       "affluent; tried & abandoned, indifferent to the category",
-       "premium metro"),
+    _b(10, "male", "18_24", "mass", "Kanpur / tier-3 town",
+       "final-year college student; plays cricket on Sundays",
+       "lives with family in a rented ground-floor flat"),
+    _b(10, "male", "18_24", "mass", "Jodhpur / tier-2 town",
+       "works at his uncle's electrical-goods shop",
+       "joint family; eats all three meals at home"),
+
+    _b(11, "male", "25_34", "lower_mid", "Surat / tier-2 city",
+       "salaried accountant at a textile trading firm",
+       "shares a flat; carries a home-packed lunch"),
+    _b(11, "male", "25_34", "lower_mid", "Vadodara / tier-2 city",
+       "junior civil engineer on site most days",
+       "rented room near the site; family in the village"),
+    _b(10, "male", "25_34", "lower_mid", "Mysuru / tier-2 city",
+       "customer-support executive on rotating shifts",
+       "shares a 1BHK with a cousin"),
+
+    _b(11, "any", "25_34", "upper_mid", "Bangalore / metro tier-1",
+       "QA engineer at a services company; desk job, walks in the evening",
+       "1BHK alone; cooks twice a week"),
+    _b(11, "any", "25_34", "upper_mid", "Delhi NCR / metro tier-1",
+       "media planner at an agency; irregular hours",
+       "shares a 2BHK with two flatmates"),
+    _b(10, "any", "25_34", "upper_mid", "Chennai / metro tier-1",
+       "school administrator; steady nine-to-five",
+       "lives with parents; the family kitchen runs the meals"),
+
+    _b(6, "any", "35_44", "affluent", "Mumbai / metro tier-1",
+       "project manager at an IT firm; badminton twice a week",
+       "owns a 2BHK, married, one child"),
+    _b(6, "any", "35_44", "affluent", "Hyderabad / metro tier-1",
+       "runs a small trading business",
+       "owns a flat; two kids, the kitchen runs on a fixed routine"),
+
+    _b(4, "any", "35_44", "premium", "Bangalore / metro tier-1",
+       "engineering director at a large tech company",
+       "villa in a gated community; a cook and daily help"),
 ]
 
 _BUNDLES_SNACKER = [  # [6, 18, 40, 26, 10] — 25-44, mixed, metro, no mass tail
-    _b(6, "any", "25_34", "mass", "tier-2",
-       "occasional bar buyer at quick-commerce, price-aware",
-       "family / shared"),
-    _b(18, "any", "25_34", "lower_mid", "tier-1 / tier-2",
-       "young salaried; grabs a protein bar off a quick-commerce app sometimes",
-       "shares a flat"),
-    _b(40, "any", "25_34", "upper_mid", "metro tier-1",
-       "busy professional; protein bar as a convenient snack",
-       "metro flat, single or married"),
-    _b(26, "any", "35_44", "affluent", "metro tier-1",
-       "settled professional; mindful-indulgence snacker, premium bars",
-       "owns home, kids"),
-    _b(10, "any", "35_44", "premium", "metro tier-1",
-       "affluent; habitual premium D2C snacking",
-       "premium metro"),
+    _b(6, "any", "25_34", "mass", "Guwahati / tier-2 city",
+       "junior lab technician at a diagnostics centre",
+       "shares a rented room; canteen lunches"),
+
+    _b(9, "any", "25_34", "lower_mid", "Bhubaneswar / tier-2 city",
+       "graphic designer at a small studio; works late often",
+       "shares a flat; skips dinner more often than not"),
+    _b(9, "any", "25_34", "lower_mid", "Kochi / tier-1",
+       "trainee at an audit firm; long client-site days",
+       "paying-guest accommodation; no kitchen"),
+
+    _b(14, "any", "25_34", "upper_mid", "Bangalore / metro tier-1",
+       "consultant at a professional-services firm; back-to-back meetings",
+       "1BHK alone; a 4pm slump most days"),
+    _b(13, "any", "25_34", "upper_mid", "Mumbai / metro tier-1",
+       "investment banking analyst; desk lunch, late finishes",
+       "shares a 2BHK; barely home except to sleep"),
+    _b(13, "any", "25_34", "upper_mid", "Gurugram / metro tier-1",
+       "product marketer at a tech company; hybrid, three days in office",
+       "2BHK with a partner; neither of them cooks much"),
+
+    _b(13, "any", "35_44", "affluent", "Delhi NCR / metro tier-1",
+       "senior manager at a consumer company; school run before office",
+       "owns a 3BHK; two kids, packed mornings"),
+    _b(13, "any", "35_44", "affluent", "Pune / metro tier-1",
+       "engineering lead; keeps a desk drawer stocked for late evenings",
+       "owns a flat, married; one child"),
+
+    _b(5, "any", "35_44", "premium", "Mumbai / metro tier-1",
+       "vice-president at a financial services firm; gym at 6am, office by 8",
+       "high-rise flat; a cook, a driver, two kids"),
+    _b(5, "any", "35_44", "premium", "Bangalore / metro tier-1",
+       "startup founder; eats at the desk between meetings",
+       "large apartment; help manages the house"),
 ]
 
 _BUNDLES_PURIST = [  # [12, 22, 34, 24, 8] — older 35-55, traditional
-    _b(12, "any", "45_54", "mass", "tier-2/3",
-       "value household; home-cooked dal-rice, no spare for supplements",
-       "joint family, tier-2"),
-    _b(22, "any", "35_44", "lower_mid", "tier-2 city",
-       "salaried / small-business; traditional diet, rejects supplements on cost + principle",
-       "family home"),
-    _b(34, "any", "35_44", "upper_mid", "metro / tier-1",
-       "established professional; traditional eater, 'real food is enough'",
-       "family home, metro"),
-    _b(24, "any", "45_54", "affluent", "metro tier-1",
-       "settled professional / doctor; affluent traditionalist who distrusts the category",
-       "owns home"),
-    _b(8, "any", "55_plus", "premium", "metro tier-1",
-       "affluent elder / senior professional; full home-cooked, philosophically anti-supplement",
-       "premium metro, household help"),
+    _b(6, "any", "45_54", "mass", "Varanasi / tier-3 town",
+       "shopkeeper on a busy market lane; opens at eight every morning",
+       "joint family above the shop; one kitchen for nine people"),
+    _b(6, "any", "45_54", "mass", "Salem / tier-2 town",
+       "government clerk nearing thirty years of service",
+       "own small house; a vegetable patch at the back"),
+
+    _b(11, "any", "35_44", "lower_mid", "Jalandhar / tier-2 city",
+       "runs a small hardware business with a brother",
+       "family home; mother still runs the kitchen"),
+    _b(11, "any", "35_44", "lower_mid", "Trichy / tier-2 city",
+       "bank clerk; cycles to work",
+       "rented house; two school-going kids"),
+
+    _b(12, "any", "35_44", "upper_mid", "Chennai / metro tier-1",
+       "civil engineer at a construction firm; carries lunch from home daily",
+       "2BHK with parents and one child"),
+    _b(11, "any", "35_44", "upper_mid", "Pune / metro tier-1",
+       "college lecturer; walks in the mornings",
+       "family flat; someone cooks fresh every evening"),
+    _b(11, "any", "35_44", "upper_mid", "Kolkata / metro tier-1",
+       "bank branch manager; fixed hours, home by seven",
+       "family home; three generations at one table"),
+
+    # ⚠ NOT a doctor any more. The old hint here said "settled professional /
+    # doctor", which handed this persona medical expertise its own anchor L3
+    # explicitly denies ("does NOT read the studies") — a vector/anchor
+    # contradiction of exactly the kind protocol v2 §8 exists to catch.
+    _b(12, "any", "45_54", "affluent", "Delhi NCR / metro tier-1",
+       "practising lawyer with an independent chamber",
+       "owns a house; grown kids, home-cooked meals"),
+    _b(12, "any", "45_54", "affluent", "Mumbai / metro tier-1",
+       "senior government officer close to retirement",
+       "owns a flat; a cook who has been with the family for years"),
+
+    _b(8, "any", "55_plus", "premium", "Bangalore / metro tier-1",
+       "retired professor; a morning walk and the newspaper",
+       "large house; children abroad, help lives in"),
 ]
 
 # --- target tenancy ---

@@ -52,9 +52,31 @@ If you find yourself opening a scaffold script to write or edit a `NamedDisposit
 
 A disposition has exactly **5 lines** of free-text content in its `anchor` field (plus the 8-dim `DispositionVector` + the `<stance>_<anchor_key>` label). Each line ≤30 words. Lines separated by `\n\n` so the render engine reads them as discrete clauses.
 
+> ⚠⚠ **L1 IS THE ONE LINE THIS TABLE NO LONGER DESCRIBES — corrected 2026-08-13.**
+> The literal rule below ("age, city, occupation, income tier" *in the anchor*) predates the
+> gateway reframe and the per-disposition demographic bundles, and following it now is a
+> **defect**, for three reasons. (1) The render engine cross-products demographic × disposition ×
+> context, so a biography in the anchor **contradicts** the demographic point the agent was
+> actually assigned. (2) The anchor is injected as a HARD CONSTRAINT and beats the pack, so one
+> biography would be pinned onto every agent of that disposition — the render-10 uniformity
+> defect. (3) "income tier" in the anchor walks **straight past** the income redaction at
+> `_persona_user_payload` (§2.6), which exists because handing the persona writer income costs
+> −4.51 on SimBench.
+>
+> **The intent survives; only the location moves.** Every persona still gets a concrete age, city,
+> occupation and household detail — they live in the disposition's `demographic_bundles`
+> (`DemographicPoint.occupation_hint` / `household_hint` / `geography`), which is where the engine
+> composes identity. **Income is deliberately withheld from the writer and is the one element of
+> the old L1 that must NOT appear anywhere the writer can see it.**
+>
+> So in this architecture: **L1 = how this person came to the category** (the origin of the
+> stance), demographic-free and gender-neutral. Who they are is the bundle's job. See
+> `scripts/scaffold_health_wellness.py` (module docstring + the bundle block) and
+> `tests/test_persona_biographies.py`, which fails the build if the two layers get mixed.
+
 | Line | Name | Carries | The rule |
 |---|---|---|---|
-| **L1** | CONTEXT | demographics + life situation in one sentence | age, city, occupation, income tier, one household detail |
+| **L1** | CONTEXT | ⚠ see the correction above — how they came to the category, NOT demographics | demographic-free; the bundle layer owns age / city / occupation / household |
 | **L2** | CATEGORY | how this person interacts with the category | purchase frequency, channels, typical price band, one habit |
 | **L3** | KNOWLEDGE | what they know — and explicitly what they don't | the upper bound on expertise; **this line closes the door on consultant voice** |
 | **L4** | STANCE | what they care about; what they reject; why | the disposition vector translated into a value statement |
