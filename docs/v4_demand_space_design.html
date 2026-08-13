@@ -1,0 +1,758 @@
+<title>The Demand Space Architecture</title>
+<style>
+  :root {
+    --paper:      #F5F7F6;
+    --surface:    #FFFFFF;
+    --surface-2:  #ECEFEE;
+    --ink:        #141C26;
+    --ink-soft:   #66737F;
+    --rule:       #D4DAD8;
+    --blue:       #1F4E6B;
+    --blue-soft:  #4A7B98;
+    --edge:       #A86B22;
+    --edge-bg:    #F7EFE1;
+
+    --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --font-body: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+    --measure: 66ch;
+    --rail: 4.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #0E151C;
+      --surface:   #141D26;
+      --surface-2: #1B2733;
+      --ink:       #E4E9E8;
+      --ink-soft:  #94A2AC;
+      --rule:      #2A3844;
+      --blue:      #7FB3D0;
+      --blue-soft: #5B8CA8;
+      --edge:      #D6A055;
+      --edge-bg:   #241C0F;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #0E151C;
+    --surface:   #141D26;
+    --surface-2: #1B2733;
+    --ink:       #E4E9E8;
+    --ink-soft:  #94A2AC;
+    --rule:      #2A3844;
+    --blue:      #7FB3D0;
+    --blue-soft: #5B8CA8;
+    --edge:      #D6A055;
+    --edge-bg:   #241C0F;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 0 1.5rem 8rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: calc(var(--measure) + var(--rail) + 2rem);
+    margin: 0 auto;
+  }
+
+  /* ---------- masthead ---------- */
+
+  header.masthead {
+    padding: 5rem 0 2.5rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 3.5rem;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--edge);
+    margin: 0 0 1.5rem;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 6.5vw, 3.9rem);
+    line-height: 1.04;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 1.25rem;
+  }
+
+  .standfirst {
+    font-size: 1.2rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 54ch;
+    margin: 0 0 2.25rem;
+    text-wrap: pretty;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .meta b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- sections ---------- */
+
+  section {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, var(--measure));
+    gap: 0 2rem;
+    margin-bottom: 4rem;
+  }
+
+  .num {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--blue-soft);
+    padding-top: 0.55rem;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .body { grid-column: 2; min-width: 0; }
+  section > h2 { grid-column: 2; }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: clamp(1.55rem, 3.4vw, 2rem);
+    line-height: 1.18;
+    font-weight: 400;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+    margin: 0 0 1.25rem;
+    padding-top: 0.15rem;
+  }
+
+  h3 {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--blue);
+    margin: 2.5rem 0 0.9rem;
+  }
+
+  h4 {
+    font-family: var(--font-display);
+    font-size: 1.14rem;
+    font-weight: 600;
+    margin: 2rem 0 0.5rem;
+  }
+
+  p { margin: 0 0 1.15rem; text-wrap: pretty; }
+  .body > *:last-child { margin-bottom: 0; }
+
+  strong { font-weight: 600; }
+  em { font-style: italic; }
+
+  a {
+    color: var(--blue);
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: 1px;
+  }
+  a:focus-visible {
+    outline: 2px solid var(--edge);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.855em;
+    background: var(--surface-2);
+    padding: 0.1em 0.36em;
+    border-radius: 3px;
+    word-break: break-word;
+  }
+
+  ul, ol { margin: 0 0 1.15rem; padding-left: 1.35rem; }
+  li { margin-bottom: 0.5rem; }
+  li::marker { color: var(--blue-soft); }
+
+  /* ---------- lead ---------- */
+
+  .lead {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    line-height: 1.52;
+    border-left: 3px solid var(--blue);
+    padding-left: 1.6rem;
+  }
+  .lead p { margin-bottom: 0; }
+
+  /* ---------- devices ---------- */
+
+  blockquote {
+    margin: 1.75rem 0;
+    padding: 0 0 0 1.5rem;
+    border-left: 2px solid var(--rule);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.08rem;
+    color: var(--ink-soft);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  .thesis {
+    margin: 2rem 0;
+    padding: 1.5rem 1.75rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--blue);
+    font-family: var(--font-display);
+    font-size: 1.18rem;
+    line-height: 1.45;
+  }
+  .thesis p { margin-bottom: 0; }
+
+  .edge {
+    margin: 1.75rem 0;
+    padding: 1.15rem 1.4rem;
+    background: var(--edge-bg);
+    border-left: 3px solid var(--edge);
+    font-size: 0.96rem;
+  }
+  .edge p:last-child { margin-bottom: 0; }
+  .edge .tag {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--edge);
+    margin-bottom: 0.5rem;
+  }
+
+  .promise {
+    margin: 2rem 0 0;
+    padding: 2rem 2.15rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--edge);
+  }
+  .promise p {
+    font-family: var(--font-display);
+    font-size: 1.22rem;
+    line-height: 1.5;
+  }
+  .promise .close {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    color: var(--edge);
+    margin-bottom: 0;
+  }
+
+  /* ---------- formula ---------- */
+
+  .formula {
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    padding: 1.15rem 1.4rem;
+    margin: 1.75rem 0;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.7;
+  }
+
+  /* ---------- tables ---------- */
+
+  .scroll { overflow-x: auto; margin: 1.75rem 0; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.9rem;
+    min-width: 30rem;
+  }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.7rem 1rem 0.7rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  th {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--blue);
+    border-bottom: 1px solid var(--ink);
+    white-space: nowrap;
+  }
+  td:first-child { font-weight: 600; padding-right: 1.5rem; }
+
+  /* ---------- stages ---------- */
+
+  .stage {
+    border-left: 2px solid var(--rule);
+    padding: 0 0 0 1.4rem;
+    margin: 0 0 1.75rem;
+  }
+  .stage:last-child { margin-bottom: 0; }
+  .stage .label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--blue);
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+  .stage h4 { margin: 0 0 0.55rem; }
+  .stage ul { margin-bottom: 0; }
+  .stage.now { border-left-color: var(--edge); }
+  .stage.now .label { color: var(--edge); }
+
+  /* ---------- layer cards ---------- */
+
+  .layer {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 1.4rem 1.6rem;
+    margin: 0 0 1.25rem;
+  }
+  .layer .label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--blue);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .layer h4 { margin: 0 0 0.7rem; }
+  .layer > *:last-child { margin-bottom: 0; }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--rule);
+    margin: 3.5rem 0;
+  }
+
+  @media (max-width: 720px) {
+    body { font-size: 16px; padding: 0 1.1rem 5rem; }
+    section { grid-template-columns: 1fr; gap: 0; }
+    section > h2, .body { grid-column: 1; }
+    .num { padding: 0 0 0.35rem; }
+    header.masthead { padding-top: 3rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Design book · v4 pivot</p>
+  <h1>The Demand Space Architecture</h1>
+  <p class="standfirst">How the audience stops being authored and starts being composed — and why that is the difference between a consulting practice and a product.</p>
+  <div class="meta">
+    <span>Status <b>Proposed · nothing built</b></span>
+    <span>Written <b>14 Aug 2026</b></span>
+    <span>Supersedes <b>per-customer authoring</b></span>
+  </div>
+</header>
+
+<section>
+  <div class="num">00</div>
+  <h2>The one-paragraph version</h2>
+  <div class="body">
+    <div class="lead">
+      <p>Today we hand-author an audience for each product type, so anything a brand launches outside that narrow slice falls outside the instrument — and the instrument answers anyway, confidently, with the wrong people in the room. The fix is to invert the direction of the work: instead of building a narrow audience per customer on demand, build a <strong>broad map of a market's demand once, ahead of time</strong>, and let each product select a slice of it. Brands stop commissioning audiences and start querying one that already exists. Onboarding becomes a two-minute confirmation instead of a two-week authoring project, and a new product launch becomes a lookup instead of a phone call.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="num">01</div>
+  <h2>What is actually broken</h2>
+  <div class="body">
+    <h3>The evidence</h3>
+    <p>The SuperYou PB Bar run of 13 August is the whole case in one artifact. The classifier read the creative and described the buyer correctly, before the panel ever ran:</p>
+    <blockquote><p>Young urban Indians who want a tasty, snackable protein hit without the gym-bro supplement baggage — protein-curious snackers who like chocolate/wafer formats but respond to "clean" cues like no added sugar, atta &amp; jowar, no palm oil.</p></blockquote>
+    <p>That is the right person. The library then had nobody like them. Every disposition in it is a <strong>supplement-buyer identity</strong> — the macros lifter, the clean-label wellness buyer, the results-chasing switcher, the lapsed skeptic, the food-first purist. The closest match, <code>pragmatist_protein_snacker</code>, is authored as someone <em>already buying protein bars</em> at ₹625 for a five-pack.</p>
+    <p>The category pack contains twenty brands and <strong>zero confectionery</strong>. No Dairy Milk, no Snickers, no Britannia. Every price point is a tub between ₹1,250 and ₹4,800. There is no ₹30 chocolate bar anywhere in these personas' world, so the trade-up decision the product actually competes for — <em>this instead of that</em> — is literally unrepresentable.</p>
+    <p>All four situations tested were feed-browsing: commute scroll, weekend browse, late-night wind-down, pre-purchase research. Ninety-nine of a hundred agents scrolled past. The <code>pragmatist_protein_snacker</code> biography names a 4pm desk crash as her moment; the panel never once put her there.</p>
+
+    <div class="edge">
+      <span class="tag">The failure that matters most</span>
+      <p><code>no_match_note</code> came back <strong>empty</strong>. The system had a field for "I don't have this buyer", left it blank, forced two supplement dispositions into "within", and returned <strong>trust: HIGH, confidence 84</strong>.</p>
+    </div>
+
+    <h3>The root cause</h3>
+    <div class="thesis">
+      <p>Audiences are authored narrow and per product type, so the default state of anything new is <em>outside</em>.</p>
+    </div>
+    <p>That is not a gap you can close by authoring more. It is the direction of the whole system. Every new product a brand launches triggers days of hand-authoring, which means telling a paying customer to wait while we invent their buyer. That is a consulting practice with a software interface, and it does not scale past a handful of accounts.</p>
+
+    <h3>The failure mode is worse than the gap</h3>
+    <p>A missing audience is a scheduling problem. A <strong>confident answer built on the wrong audience</strong> is a trust problem, and it is the one we currently have. The customer ships on our read and finds out later that nobody in the panel was their buyer.</p>
+  </div>
+</section>
+
+<section>
+  <div class="num">02</div>
+  <h2>The principle</h2>
+  <div class="body">
+    <p>We cannot guarantee that every buyer for every product is covered. Nobody can, and promising it would be the same overclaim the funded competitors make. There is a stronger guarantee available underneath it:</p>
+    <div class="thesis">
+      <p>The instrument never answers outside its coverage without saying so.</p>
+    </div>
+    <p>Coverage will always have holes. <strong>Detection of a hole can be made mechanical.</strong> That single property turns an unbounded liability into a bounded, manageable conversation — and it is the same honesty-as-behaviour position that already separates us from a crowded field.</p>
+  </div>
+</section>
+
+<section>
+  <div class="num">03</div>
+  <h2>The inversion</h2>
+  <div class="body">
+    <h3>Build the market, not the brand</h3>
+    <p>The key observation: <strong>demand spaces are not brand-specific.</strong></p>
+    <p>"The 4pm desk slump" is the same occasion whether the brand is The Whole Truth, Yogabar, SuperYou or Britannia. The same population is deciding, in the same moment, against the same competitive set. The occasion belongs to the <em>market</em>, not to whoever is selling into it.</p>
+    <p>So the durable asset is not "The Whole Truth's audience". It is <strong>Indian urban snacking demand</strong> — and every brand playing in that market queries the same underlying map.</p>
+
+    <h3>What this changes economically</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th></th><th>Authored per customer</th><th>Pre-built per market</th></tr></thead>
+        <tbody>
+          <tr><td>Cost shape</td><td>Linear — every customer costs days</td><td>Fixed per market, then free</td></tr>
+          <tr><td>New product</td><td>Days of authoring, a phone call</td><td>A lookup, same day</td></tr>
+          <tr><td>Improvement</td><td>None; each library is a dead end</td><td>Every brand sharpens the shared map</td></tr>
+          <tr><td>Business type</td><td>Consulting with a UI</td><td>Product</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>This is the difference between a services business and a software business, and it is decided entirely by <em>when</em> the work happens — ahead of time at market level, or on demand at customer level.</p>
+
+    <h3>"Demand space" is not an invented term</h3>
+    <p>BCG and Kantar sell demand-space studies as consulting engagements costing lakhs. We are not introducing an exotic concept; we are <strong>operationalising a framework brands already pay for and already understand.</strong> That is credibility with a CMO, and cover for charging properly at onboarding.</p>
+  </div>
+</section>
+
+<section>
+  <div class="num">04</div>
+  <h2>The architecture</h2>
+  <div class="body">
+    <p>Four layers. Only one is ever rebuilt for a new market, and none is rebuilt for a new product.</p>
+
+    <div class="layer">
+      <span class="label">Layer 1 · universal, built once</span>
+      <h4>Who they are</h4>
+      <p>Real consumer biographies: age, gender, income, city, occupation, household, life stage. A person does not become a different person when the product changes. Session 38 already built 62 of these as <code>demographic_bundles</code>; that work carries over intact.</p>
+      <p><em>Rebuilt when</em> a new geography is added. <em>Never rebuilt for</em> a new category, brand or product.</p>
+    </div>
+
+    <div class="layer">
+      <span class="label">Layer 2 · per market, built once — this is what's missing today</span>
+      <h4>When and why they buy</h4>
+      <p>The demand spaces themselves. Each is an <em>occasion</em>, not a person: the 4pm desk slump, post-workout recovery, the late-night craving, breakfast on the run, the kids' lunchbox, the guilt-free weekend treat, the health-goal routine, the deficiency trigger, gifting.</p>
+      <p>Each carries four things — the <strong>trigger</strong> that starts the moment, the <strong>competitive set</strong> of what actually gets bought <em>including "nothing"</em>, the <strong>deciding criteria</strong> (speed, taste, price, health, guilt), and the <strong>channel</strong>. Indian snacking probably has twelve to fifteen, not five hundred. A tractable, finite, one-time job.</p>
+    </div>
+
+    <div class="layer">
+      <span class="label">Layer 3 · universal grammar</span>
+      <h4>How they relate to it</h4>
+      <p>The nine stances already in use — loyalist, switcher, upgrader, aspirant, skeptic, purist, enthusiast, pragmatist, gifter — are category-independent. A skeptic is a skeptic in protein, in coffee, in skincare. What changes is <em>what they are skeptical of</em>, and that comes from the demand space.</p>
+    </div>
+
+    <div class="layer">
+      <span class="label">Layer 4 · per market</span>
+      <h4>The world they live in</h4>
+      <p>Brands, prices, channels, communities, cultural narratives — what the artifact pack already is. One change, and it is the single most important line in this document:</p>
+      <div class="thesis"><p>Scope the pack to the <strong>demand space</strong>, not to the product category.</p></div>
+      <p>A pack scoped to "protein supplements" can never contain a chocolate bar. A pack scoped to "4pm snacking in urban India" contains chocolate automatically, at its real ₹30 price point, alongside biscuits, samosas, coffee and skipping it entirely. The trade-up comparison becomes thinkable because the thing being traded up <em>from</em> is finally in the room.</p>
+    </div>
+
+    <h3>A persona becomes a composition</h3>
+    <div class="formula">persona  =  biography (L1)  ×  demand space (L2)  ×  stance (L3)  ×  world (L4)</div>
+    <p>Not a hand-written document — a composition drawn from four pre-built layers. That is what makes a new product free.</p>
+  </div>
+</section>
+
+<section>
+  <div class="num">05</div>
+  <h2>Why ours can be simpler than theirs</h2>
+  <div class="body">
+    <h3>Their flexibility is their defect</h3>
+    <p>Lumina asks the user to type an audience description into a free-text field. That field is exactly why the test run we examined produced nonsense: it was filled with <em>"Informing the audience of the range of TWT products"</em> — a description of the ad, not an audience — and the system built 105 personas out of it, then reported findings "among Informing the audience of the range of T…".</p>
+    <div class="thesis"><p>Their apparent flexibility is a burden pushed onto the user, and then a failure they bill for.</p></div>
+
+    <h3>So we delete the field</h3>
+    <p>We already read the creative and infer the buyer correctly. So the brand should not be asked to describe an audience at all. Upload the creative → we infer category, demand space, competitive set, occasion and audience → <strong>one confirmation, written as consequences</strong> → run.</p>
+    <p>The confirmation is the entire interface, and its wording is load-bearing:</p>
+    <blockquote><p>We'll test this as a <strong>4pm snacking decision</strong>, against <strong>chocolate bars and biscuits</strong>, with people who currently buy those. Change anything?</p></blockquote>
+    <p>A marketer checks that in five seconds and knows immediately if it is wrong. The version that fails is <em>"Demand space: guilt-free indulgence. Stance mix: pragmatist/aspirant."</em> Nobody can validate that, so nobody will, and the confirmation becomes a rubber stamp. <strong>Confirmation screens must show consequences, never classifications.</strong></p>
+
+    <h3>Inference proposes; declaration disposes</h3>
+    <p>This is a constitutional rule, not a UX preference. Today the marketer <em>declares</em> the audience, and that declaration is the sampling frame — it is what <code>marketer_led</code> means and it is load-bearing throughout the engine.</p>
+    <div class="edge">
+      <span class="tag">The risk this design must own</span>
+      <p>If inference silently replaces declaration, <strong>an inference error becomes the sampling frame</strong>, and we have rebuilt the competitor's failure with better manners. Our evidence that inference works is currently <strong>one run</strong> — and the same classifier left <code>no_match_note</code> empty on that very run.</p>
+    </div>
+
+    <h3>A rejected inference is data, not just UX</h3>
+    <p>Every override is a labelled example of the classifier being wrong, generated free by normal use. Log it. Over a few hundred runs it becomes the first real error rate we have ever had for any part of this instrument — measured against human judgement, at zero cost, without a study.</p>
+  </div>
+</section>
+
+<section>
+  <div class="num">06</div>
+  <h2>Onboarding: confirmation, not creation</h2>
+  <div class="body">
+    <p>Because the market map is pre-built, onboarding stops being a project.</p>
+    <ol>
+      <li>The brand tells us who they are — or we read it from a URL.</li>
+      <li><strong>We show them the demand spaces we already have for their market</strong>, and which we think they play in.</li>
+      <li>They confirm and adjust. Two minutes.</li>
+      <li>Optionally they connect data — reviews, listings, CRM, support transcripts — which sharpens their slice.</li>
+    </ol>
+    <p>Step 2 inverts the emotional shape of the sale. Instead of <em>"wait while we build your audience"</em>, it is <em>"here is a map of your category's demand — tell us where you sit."</em> Being shown a demand map of your own market is itself a consulting deliverable. It is a reason to say yes, not a cost to bear before value appears.</p>
+    <p>The high-ticket commitment buys <strong>depth and their own data folded in</strong> — not their basic right to be covered.</p>
+  </div>
+</section>
+
+<section>
+  <div class="num">07</div>
+  <h2>How market maps get built</h2>
+  <div class="body">
+    <p>The human stays in the loop. Their job changes from <strong>writing</strong> to <strong>approving</strong>, and it happens at market level once, not per customer.</p>
+    <div class="formula">mine  →  cluster into occasions  →  extract competitive sets + stances  →  human signs off  →  admission gates</div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Source</th><th>What it yields</th></tr></thead>
+        <tbody>
+          <tr><td>Marketplace reviews<br>Amazon, Blinkit, Zepto, Flipkart, Nykaa</td><td>Occasions, substitutions, real vocabulary</td></tr>
+          <tr><td>Product Q&amp;A</td><td>Objections in raw form</td></tr>
+          <tr><td>Reddit, YouTube, Instagram comments</td><td>Non-buyers, skeptics, cultural narratives</td></tr>
+          <tr><td>Search and category browse data</td><td>How demand is actually expressed</td></tr>
+          <tr><td>The brand's own reviews, CRM, support logs, returns</td><td>Their real buyers, at onboarding</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="edge">
+      <span class="tag">The trap that would quietly ruin this</span>
+      <p><strong>Reviews are written by people who bought.</strong> Build a panel from reviews alone and you get a room full of enthusiasts — losing precisely the people who keep the instrument honest: the skeptic, the purist, the one who returned it, the one who was never going to buy. Their refusals are what stop the panel liking everything.</p>
+      <p>Mining must deliberately target <strong>non-buyers and ceilings</strong>: one-star reviews, unanswered questions, "why I stopped" threads, comment-section dismissals. Miss this and every floor goes soft — the honest 0% readings become meaningless 40%s, and the instrument becomes a flattery machine.</p>
+    </div>
+
+    <h3>It also satisfies a rule we already hold</h3>
+    <p>Our standing bound is <strong>condition on experience, not on conclusions</strong> — a stated position cannot be moved by an ad, but a lived experience can. Mined material is naturally experiential ("I binned the tub after two months"). Invented material drifts toward stated positions. Grounding in real text makes the rule easier to keep, not harder.</p>
+  </div>
+</section>
+
+<section>
+  <div class="num">08</div>
+  <h2>Quality: three mechanisms, none of them "trust us"</h2>
+  <div class="body">
+    <h3>Coverage refusal — the safety net</h3>
+    <p>Before any money is spent, one check: <strong>does the composed panel actually contain the buyer the classifier just described?</strong> If not, say so at the review screen, pre-spend.</p>
+    <p>We already own the right mechanism. <code>_trust_ceiling_warning</code> exists for exactly this shape of problem — the panel cannot support a confident verdict, so disclose it up front while it is still free to fix. A coverage gap is a second failure mode feeding the same choke point.</p>
+    <div class="thesis"><p>On the SuperYou run, <em>trust: HIGH</em> should have been structurally impossible.</p></div>
+
+    <h3>Admission gates — already built</h3>
+    <p>No composed library ships without passing checks that already exist and cost nothing: <code>gate_test.py</code> (does it still tell one ad from another?), <code>check_panel_diversity.py</code> (are these actually different people?), and the realism bar from the authoring protocol.</p>
+    <div class="edge">
+      <span class="tag">Blocking dependency</span>
+      <p>These gates must be <strong>re-baselined</strong>. Every existing baseline was produced by hand-authored libraries; a composed library needs its own baseline before "still discriminates" means anything.</p>
+    </div>
+
+    <h3>Provenance — grounding you can point at</h3>
+    <p>Every stance traces to its source material: <em>this buyer type is built from 340 reviews, 82 unanswered questions and 14 discussion threads.</em> That is four things at once — an internal quality signal, an input to confidence (thin evidence should lower it), a sales asset, and an honest claim that requires confessing nothing.</p>
+    <div class="edge">
+      <span class="tag">The discipline that keeps it honest</span>
+      <p>Provenance is a <strong>grounding</strong> claim, not an <strong>accuracy</strong> claim. "Built from 4,300 real reviews" is true and checkable. "So it predicts the market" does not follow — and that step is exactly what our competitor takes with different units. Volume of source material does not touch the validation debt. This document says both halves, or it is doing the thing it criticises.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="num">09</div>
+  <h2>Why this beats the competition structurally</h2>
+  <div class="body">
+    <p>Lumina generates personas per run from a free-text string. That is not a missing feature list; it is a set of things their architecture <strong>cannot</strong> do:</p>
+    <ul>
+      <li><strong>They cannot run the same panel twice.</strong> No two reports are comparable — no before-and-after, no tracking a creative's improvement, no longitudinal anything.</li>
+      <li><strong>Nothing accumulates.</strong> Run a thousand simulations and the thousand-and-first is no better than the first.</li>
+      <li><strong>There is no boundary to refuse at</strong>, because every string is a valid audience.</li>
+    </ul>
+    <p>A demand-space panel is <strong>stable</strong>. Same brand, same audience, every time — so "this ad scored against the identical hundred people your last one faced" is a sentence we can say and they cannot. A thermometer has to be the same thermometer twice.</p>
+    <div class="thesis"><p>They are instant always and grounded never. We are instant after day one and grounded always — and day one now takes minutes.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="num">10</div>
+  <h2>Decisions this design deliberately preserves</h2>
+  <div class="body">
+    <p>A pivot is not a licence to relitigate settled calls. These stand, unchanged:</p>
+    <ul>
+      <li><strong>The four-question audience form remains the demographic axis.</strong> Demographics are verified to change the panel; geography composes the targeting sentence but does not filter it. Demand-space selection sits <em>beside</em> this, not instead of it.</li>
+      <li><strong><code>marketer_led</code> is not a form field</strong>, and inference does not become one by the back door.</li>
+      <li><strong>No caveats render inline on the customer read.</strong> Coverage refusal happens at the review screen, pre-spend — an operator gate, not a hedge stapled to a finished deliverable.</li>
+      <li><strong>The buy-intent headline leads, uncaveated.</strong> Settled; untouched here.</li>
+      <li><strong>Any panel-wide aggregate splits in-target from out-of-target.</strong> Every new surface inherits that rule.</li>
+      <li><strong>The read stays light-only, self-contained, zero-JavaScript.</strong></li>
+      <li><strong>Library defects never reach the customer.</strong> A coverage gap is disclosed as a fact about <em>scope</em>, never as a confession about our internals.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="num">11</div>
+  <h2>The migration ledger</h2>
+  <div class="body">
+    <p>This is a real refactor and the costs should be visible, not discovered.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>What moves</th><th>Cost / risk</th></tr></thead>
+        <tbody>
+          <tr><td><code>persona_core_hash</code></td><td>Composition changes what a persona <em>is</em>; every core re-renders once. Tens of dollars per market, not hundreds.</td></tr>
+          <tr><td><code>panel_version</code></td><td>Moves on every composition change, by design. Freeze records stay valid but are not comparable across the boundary.</td></tr>
+          <tr><td><code>disposition_version</code></td><td>Hashes label + anchor; composed stances need a versioning scheme that survives recomposition. <strong>Unsolved — design needed.</strong></td></tr>
+          <tr><td>Gate-test baselines</td><td>All six baselines used hand-authored libraries. A composed library needs a fresh baseline <em>before</em> the gate test can certify it. <strong>Blocking for Stage 2.</strong></td></tr>
+          <tr><td>The four thin scaffolds</td><td><code>personal_audio</code>, <code>cadbury_chocolate</code>, <code>bru_coffee</code>, <code>starbucks_coffee</code> are unvalidated and one-bundle-per-row. <strong>Retire them</strong>, don't migrate — say it out loud so they don't zombie.</td></tr>
+          <tr><td><code>health_wellness_nutrition</code></td><td>The one validated library. Becomes the seed corpus for the first market map, not a casualty.</td></tr>
+          <tr><td>The audience form</td><td>Gains occasion and substitution; keeps its four demographic questions.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="num">12</div>
+  <h2>Staging</h2>
+  <div class="body">
+    <p>"We can refactor" must not be read as "big-bang rewrite". Each stage ships on its own and is falsifiable before the next one gets money.</p>
+
+    <div class="stage now">
+      <span class="label">Stage 0 · no refactor · ships on today's engine</span>
+      <h4>Close the hole that caused this</h4>
+      <ul>
+        <li>Add two questions to the form: <em>what would they buy instead?</em> and <em>when do they buy it?</em> Asked explicitly at first, inferred later.</li>
+        <li>Wire coverage refusal into the existing trust-ceiling choke point.</li>
+        <li>Broaden the context envelope beyond feed-scrolling to a point-of-purchase and a craving moment.</li>
+      </ul>
+      <p><strong>This alone would have caught the SuperYou failure completely.</strong></p>
+    </div>
+
+    <div class="stage">
+      <span class="label">Stage 1 · data work · current architecture</span>
+      <h4>Prove the framing produces a better read</h4>
+      <ul>
+        <li>Rescope the nutrition pack to demand-space breadth: confectionery brands, real snack price points, quick-commerce channels.</li>
+        <li>Author two or three missing stances by hand, the old way, to prove the demand-space framing changes the answer.</li>
+      </ul>
+    </div>
+
+    <div class="stage">
+      <span class="label">Stage 2 · composition replaces authoring</span>
+      <h4>Only if it beats the hand-built version</h4>
+      <ul>
+        <li>Build the mining and clustering pipeline.</li>
+        <li>Re-baseline the gate test.</li>
+        <li>Composition must beat hand-authoring on the gates before it is allowed to replace it.</li>
+      </ul>
+    </div>
+
+    <div class="stage">
+      <span class="label">Stage 3 · market maps as assets</span>
+      <h4>The product the pivot is for</h4>
+      <ul>
+        <li>One market, fully built, ahead of any customer for it.</li>
+        <li>Onboarding becomes the two-minute confirmation.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="num">13</div>
+  <h2>Which market first, and why</h2>
+  <div class="body">
+    <p><strong>Indian nutrition and snacking</strong>, and it is not close:</p>
+    <ul>
+      <li>it is the <strong>only validated library</strong> we have, so it starts half-built;</li>
+      <li>it is where the <strong>quick-commerce thesis</strong> lives — Blinkit and Zepto are enormous for this category, and the panel surfaced Blinkit as the decisive channel unprompted;</li>
+      <li>protein, snacking and confectionery <strong>share one demand space</strong>, so one mining effort serves all three;</li>
+      <li>and it is where the failure that started this was found, so we can measure whether the fix worked on a case we already understand.</li>
+    </ul>
+    <p>The bet, stated plainly: <strong>pre-building a market map is fixed cost incurred before revenue from that market.</strong> That is a startup bet and it is the founder's to make. It is only a good bet if the map serves many brands — which is exactly why the map must be built at market level rather than per customer.</p>
+  </div>
+</section>
+
+<section>
+  <div class="num">14</div>
+  <h2>What this does not fix</h2>
+  <div class="body">
+    <div class="thesis"><p>The instrument has still never touched reality.</p></div>
+    <p>Nothing in this document changes that. Mining ten thousand reviews makes the panel <em>grounded</em>, not <em>correct</em>. Composition makes coverage <em>scalable</em>, not <em>accurate</em>. The gates test whether a library discriminates and whether its people differ from each other — they do not test whether any of it corresponds to how humans actually behave.</p>
+    <p>The human panel study, and a backtest against real outcomes, remain <strong>the only things that convert any of this into evidence</strong>. The demand-space architecture makes that study more valuable, because a stable panel is something you can actually validate — you cannot validate an audience regenerated from a text box on every run.</p>
+    <p>E-commerce listing images are the most promising route to that evidence: the outcome is a clean per-product conversion number the platform hands the brand directly, and brands have historical image sets with historical conversion. That is a retrospective backtest needing no live engagement.</p>
+  </div>
+</section>
+
+<section>
+  <div class="num">15</div>
+  <h2>Risks</h2>
+  <div class="body">
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Risk</th><th>Why it matters</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Composed stances go soft</td><td>If everyone likes every ad, the instrument dies quietly and looks fine</td><td>Mine non-buyers deliberately; gate on discrimination; watch the refusal ceilings</td></tr>
+          <tr><td>Inference becomes the frame</td><td>We would rebuild the competitor's central defect, politely</td><td>Inference proposes, declaration disposes; confirmation shows consequences; log overrides</td></tr>
+          <tr><td>Wrong granularity</td><td>Too coarse reproduces this failure; too fine shatters 100 agents into meaningless cells</td><td>One or two spaces per run, never twelve; settle it empirically with the gate test</td></tr>
+          <tr><td>Fixed cost before revenue</td><td>A market map is real spend ahead of a real customer</td><td>One market first, chosen because it is half-built already</td></tr>
+          <tr><td>Provenance read as validity</td><td>It is the exact overclaim we attack others for</td><td>Never let a source count imply an accuracy number</td></tr>
+          <tr><td>n=1 evidence for inference</td><td>One correct classification is not a working classifier</td><td>Log every override from day one — free error-rate data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="num">16</div>
+  <h2>The promise, in the customer's words</h2>
+  <div class="body">
+    <div class="promise">
+      <p>We build your market's demand map once. Everything inside it works instantly, forever, and the same audience judges every ad you bring us — so a change between two reports means something. At the edge of what we cover, the instrument tells you it is at the edge, before you spend, not after you have shipped.</p>
+      <p class="close">The refusal is the product. It is not the flaw in it.</p>
+    </div>
+  </div>
+</section>
+
+</div>
