@@ -393,6 +393,50 @@ def test_panel_agreement_observation_reaches_the_collapsed_block() -> None:
     print("  panel-agreement observation reaches the collapsed block ✓")
 
 
+def test_a_coverage_gap_is_disclosed_at_the_FOOT_and_nowhere_else() -> None:
+    """⚠ The user's explicit decision, 2026-08-14, and it is the opposite of
+    what the design book proposed: *"we are not showing coverage gaps at all -
+    all of this goes into the how did the run happen part at the end of the
+    results page."*
+
+    So there is no pre-spend warning, no banner, no strip above the findings.
+    A gap in who was in the room is disclosed exactly where every other
+    qualification now lives — collapsed, at the bottom, after the read.
+
+    The gap this exists for (SY PB Bar, 2026-08-13): the classifier described
+    "protein-curious snackers who like chocolate/wafer formats", the panel held
+    only supplement buyers, and the run returned trust HIGH / confidence 84.
+    """
+    html = _html(_report(methodology_flags=["pool_coverage_gap"]))
+    line = "Part of the audience this ad is aimed at is not represented"
+    assert line in html, "the coverage gap never reached the read at all"
+    assert _in_collapsed_block(html, line), (
+        "the coverage gap escaped the collapsed block — it must not render "
+        "above the findings"
+    )
+    assert html.index(_HEADLINE) < html.index(line), (
+        "the coverage gap renders ABOVE the headline; the reader must meet the "
+        "result before a qualification of it"
+    )
+    assert "pool_coverage_gap" not in html, "raw flag token leaked to the client"
+    print("  a coverage gap discloses at the foot, never up the page ✓")
+
+
+def test_a_coverage_gap_does_not_touch_the_verdict() -> None:
+    """It DISCLOSES; it does not adjudicate. `pool_archetype_mismatch` forces
+    METHODOLOGY_GAP and caps confidence at 20 — wiring this flag the same way
+    would override the user's "nothing pre-spend" decision through the back
+    door, by turning every partial gap into a headline."""
+    r = _report(methodology_flags=["pool_coverage_gap"])
+    assert r.verdict != "METHODOLOGY_GAP"
+    html = _html(r)
+    assert "Nobody in this audience fits the ad" not in html, (
+        "the coverage-gap flag rendered the archetype-mismatch copy — the two "
+        "are different findings and only one of them forces a verdict"
+    )
+    print("  a coverage gap discloses without changing the verdict ✓")
+
+
 def test_the_headline_number_leads_uncaveated_and_the_caveat_is_findable() -> None:
     """⚠ The user's explicit decision, 2026-08-04, and the direction is the
     OPPOSITE of what this test used to pin.

@@ -174,13 +174,34 @@ _TOOL = {
                     "be a better fit. Otherwise null."
                 ),
             },
+            "uncovered_target_note": {
+                "type": ["string", "null"],
+                "description": (
+                    "Answer this EVEN IF some dispositions matched. Look at "
+                    "the buyer you described in inferred_target_description "
+                    "and ask: is any substantial part of that buyer missing "
+                    "from this pool entirely? If the ad is aimed at someone "
+                    "who buys in a different aisle, at a different moment, or "
+                    "against a different alternative than anyone in the pool, "
+                    "say so in one sentence and name the buyer who is absent. "
+                    "Null ONLY if the pool genuinely covers the buyer you "
+                    "described. A partial match is not coverage."
+                ),
+            },
         },
+        # ⚠ `uncovered_target_note` is REQUIRED while no_match_note is not, and
+        # that asymmetry is the fix. An optional field the model may omit was
+        # read with a bare .get() and came back None on the run that needed it
+        # most; requiring it forces the question to be answered rather than
+        # skipped. It may still answer null — that is a judgement, not a
+        # silence.
         "required": [
             "inferred_target_description",
             "target_reasoning",
             "inferred_audience",
             "inferred_purpose",
             "disposition_classifications",
+            "uncovered_target_note",
         ],
     },
 }
@@ -416,12 +437,35 @@ def _build_target_classification(
                 classification="ambiguous",
                 reasoning="(target classifier did not classify this disposition; defaulting to ambiguous)",
             ))
+    # ⚠ THE DETERMINISTIC BACKSTOP. `no_match_note` is the only trigger for
+    # `pool_archetype_mismatch`, and the model is asked for it only when
+    # NOTHING matches — a precondition it decides for itself. If it classified
+    # every disposition outside/ambiguous, that precondition is objectively
+    # true whatever it wrote, so synthesize the note rather than trusting it to
+    # have volunteered one. Python, not prose: a guard that depends on the
+    # thing it is guarding is not a guard.
+    uncovered = tool_input.get("uncovered_target_note")
+    no_match = tool_input.get("no_match_note")
+    if not any(c.classification == "within" for c in classifications):
+        if not no_match:
+            _log.warning(
+                "target_id: no disposition classified within-target and the "
+                "model volunteered no no_match_note — synthesizing one"
+            )
+            no_match = (
+                "No consumer type in this pool sits inside the ad's target. "
+                "The library does not cover the buyer this creative is aimed "
+                "at."
+            )
+    if uncovered:
+        _log.warning("target_id coverage gap: %s", uncovered)
     return TargetClassification(
         inferred_target_description=tool_input["inferred_target_description"],
         target_reasoning=tool_input["target_reasoning"],
         disposition_classifications=classifications,
         ambiguity_note=tool_input.get("ambiguity_note"),
-        no_match_note=tool_input.get("no_match_note"),
+        no_match_note=no_match,
+        uncovered_target_note=uncovered,
         inferred_audience=InferredAudience.from_dict(tool_input.get("inferred_audience")),
         inferred_purpose=tool_input.get("inferred_purpose") or "unclear",
         purpose_reasoning=tool_input.get("purpose_reasoning", ""),

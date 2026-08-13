@@ -341,6 +341,14 @@ def compute_methodology_flags(
 
     if no_match:
         flags.append("pool_archetype_mismatch")
+    # v4: a PARTIAL gap — some types matched, but the buyer the creative is
+    # actually aimed at is not among them. Independent of `no_match`, because
+    # the two describe different failures and the partial one is the common
+    # case: SY PB Bar had two `within` classifications and still had nobody who
+    # would trade up from a chocolate bar. Disclosure only — it never touches
+    # the verdict. See schema.METHODOLOGY_FLAG.
+    if tc.uncovered_target_note:
+        flags.append("pool_coverage_gap")
     if all_ambiguous:
         flags.append("target_unsignaled")
     if not no_match and not all_ambiguous:

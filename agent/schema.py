@@ -52,6 +52,7 @@ METHODOLOGY_FLAG = Literal[
     "provisional_disposition_present",  # rocket-2.0.0: an on-the-spot disposition
     "declared_audience_disjoint",    # rocket-2.1.0: declared audience vs ad-inferred target grossly disjoint
     "intent_action_incoherent",      # rocket-3.0.0 (A7): buy_now intent w/ zero in-feed hand-raise
+    "pool_coverage_gap",             # v4: PART of the inferred target is absent from the pool
 ]
 _VALID_METHODOLOGY_FLAGS = {
     "pool_archetype_mismatch",
@@ -63,6 +64,14 @@ _VALID_METHODOLOGY_FLAGS = {
     "provisional_disposition_present",
     "declared_audience_disjoint",
     "intent_action_incoherent",
+    # ⚠ v4, and deliberately NOT wired to METHODOLOGY_GAP. `pool_archetype_
+    # mismatch` forces the verdict and caps confidence at 20; this one only
+    # discloses. Coverage gaps do NOT surface pre-spend — the user's explicit
+    # call, 2026-08-14: "we are not showing coverage gaps at all - all of this
+    # goes into the how did the run happen part at the end of the results
+    # page." Give this flag verdict-forcing power and you have overridden that
+    # decision by the back door.
+    "pool_coverage_gap",
 }
 
 # rocket-3.0.0 (v3 two-call reaction): the IN-FEED action is captured at the

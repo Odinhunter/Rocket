@@ -369,6 +369,16 @@ class TargetClassification:
     disposition_classifications: list[DispositionTarget]
     ambiguity_note: str | None = None
     no_match_note: str | None = None
+    # v4: the PART of the inferred target that no disposition in the pool
+    # represents. Distinct from `no_match_note`, which the model is only asked
+    # for when NOTHING matches — a precondition it controls, and one that was
+    # self-consistently false on the run that exposed this. SY PB Bar
+    # (2026-08-13): the classifier described "protein-curious snackers who like
+    # chocolate/wafer formats", the library held only supplement buyers, two of
+    # them were classified `within` anyway, `no_match_note` stayed empty, and
+    # the run returned trust HIGH / confidence 84. A PARTIAL gap is the common
+    # case and had no field at all.
+    uncovered_target_note: str | None = None
     inferred_audience: InferredAudience = field(default_factory=InferredAudience)
     # v2.4: the ad's APPARENT job, read from the creative (one of the five
     # purpose ids, or "unclear"). Feeds the declared-vs-apparent purpose
@@ -392,6 +402,7 @@ class TargetClassification:
             "disposition_classifications": [asdict(d) for d in self.disposition_classifications],
             "ambiguity_note": self.ambiguity_note,
             "no_match_note": self.no_match_note,
+            "uncovered_target_note": self.uncovered_target_note,
             "inferred_audience": self.inferred_audience.to_dict(),
             "inferred_purpose": self.inferred_purpose,
             "purpose_reasoning": self.purpose_reasoning,
@@ -407,6 +418,9 @@ class TargetClassification:
             ],
             ambiguity_note=data.get("ambiguity_note"),
             no_match_note=data.get("no_match_note"),
+            # .get so every target_classification.json written before
+            # 2026-08-14 still loads.
+            uncovered_target_note=data.get("uncovered_target_note"),
             inferred_audience=InferredAudience.from_dict(data.get("inferred_audience")),
             inferred_purpose=data.get("inferred_purpose") or "unclear",
             purpose_reasoning=data.get("purpose_reasoning", ""),

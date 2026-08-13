@@ -235,6 +235,13 @@ METHODOLOGY_FLAG_TEXT = {
     "intent_action_incoherent":
         "Stated intent and in-feed behaviour disagree on this run — treat the "
         "intent numbers with caution.",
+    # v4. Written as a fact about SCOPE, not as an apology about our internals:
+    # a library defect never reaches the customer (the user's call, 2026-08-06),
+    # and the specific buyer who was missing is named by the classifier itself
+    # in `uncovered_target_note`, which renders beside this line.
+    "pool_coverage_gap":
+        "Part of the audience this ad is aimed at is not represented in this "
+        "panel, so their reaction is not in these numbers.",
 }
 
 # The assess pass prefixes an out-of-target pain with its own scoping note. The
