@@ -34,6 +34,7 @@ import hashlib
 import json
 import logging
 import re
+import uuid
 from pathlib import Path
 
 from agent.artifact_pack import CategoryArtifactPack
@@ -245,9 +246,19 @@ def _cache_store(cache_dir: Path | None, key: str, prose: str, kind: str) -> Non
     cache_dir.mkdir(parents=True, exist_ok=True)
     path = cache_dir / f"{key}.json"
     payload = {"key": key, "kind": kind, "prose": prose}
-    tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
-    tmp.replace(path)
+    # ⚠ The temp name must be UNIQUE PER WRITER, not per key. Renders run
+    # concurrently now, and two runs preparing the same library at the same
+    # time (the server permits that) hit the same key from two threads: with a
+    # shared `<key>.json.tmp` one writer's partial bytes get renamed into place
+    # by the other. Model output is not deterministic, so "same key, same
+    # content" does not save us. os.replace stays atomic; only the staging
+    # path needed to stop being shared.
+    tmp = path.with_suffix(f".json.{uuid.uuid4().hex}.tmp")
+    try:
+        tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
+        tmp.replace(path)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 # ---- Render prompts ----

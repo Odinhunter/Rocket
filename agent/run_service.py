@@ -36,10 +36,12 @@ Filesystem:
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import json
 import logging
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -260,6 +262,82 @@ def _render_cache_dir(config: RunConfig) -> Path:
                 brand_profile_id=config.brand_profile_id).parent
         / "library_renders"
     )
+
+
+def warm_render_cache(
+    panel: list[PanelAgent],
+    pack,
+    cache_dir: Path,
+    *,
+    max_concurrent: int,
+) -> int:
+    """Render each unique persona core once, CONCURRENTLY, and return how many
+    unique cores the panel wants.
+
+    Bounded by the same `max_concurrent_agents` the L1/L2 rounds use. This was
+    a serial loop until 2026-08-13 and nobody noticed while the cache stayed
+    warm: a COLD library is one API call per unique core at ~13s each, so
+    session 38's 60-core panel turned `prepare()` into a 13-MINUTE wait. Every
+    new category, and every customer's FIRST read, pays that once.
+
+    Threads, not asyncio, because `render_persona_core` is blocking HTTP and
+    `prepare()` is sync — and it must STAY sync, since `RunService.commit`
+    calls `asyncio.run()` internally.
+
+    ⚠ EVERY TASK GETS ITS OWN COPIED CONTEXT, and that is the whole reason
+    this is delicate. `record_telemetry` reads `current_run_id` /
+    `current_account_id` / `current_brand_profile_id` from contextvars and
+    NO-OPS when the run id is unset — and a worker thread starts with an EMPTY
+    context. A naive `submit()` therefore renders correctly, BILLS correctly,
+    and silently writes ZERO telemetry rows. Same trap as the bare prepare
+    thread (see `RunService.prepare`), one level deeper. It must be a fresh
+    copy PER TASK, not one shared copy: a `Context` cannot be entered by two
+    threads at once.
+
+    ⚠ The return value counts UNIQUE CORES, not API calls — a warm cache still
+    counts. That is pre-existing and `estimated_cost` depends on it; use
+    `scripts/preflight_cost.py` for a miss-aware price.
+    """
+    seen: set[str] = set()
+    unique: list[PanelAgent] = []
+    for agent in panel:
+        h = agent.persona_core_hash
+        if h in seen:
+            continue
+        seen.add(h)
+        unique.append(agent)
+    if not unique:
+        return 0
+
+    def _render(a: PanelAgent) -> None:
+        render_persona_core(
+            a.demographic, a.disposition.vector,
+            a.chaos.vector, pack, anchor=a.disposition.anchor,
+            cache_dir=cache_dir,
+        )
+
+    workers = min(max_concurrent, len(unique))
+    _log.info(
+        "warming render cache: %d unique cores, %d at a time",
+        len(unique), workers,
+    )
+    pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="render")
+    try:
+        futures = [
+            # copy_context() runs on THIS thread, where the vars are set.
+            pool.submit(contextvars.copy_context().run, _render, a)
+            for a in unique
+        ]
+        for f in futures:
+            # Raise like the serial loop did: a failed render must not leave a
+            # half-warmed cache looking like a prepared run.
+            f.result()
+    except BaseException:
+        # Stop BUYING renders once one has failed.
+        pool.shutdown(wait=False, cancel_futures=True)
+        raise
+    pool.shutdown(wait=True)
+    return len(unique)
 
 
 def _set_context_vars(config: RunConfig, run_id: str) -> None:
@@ -499,19 +577,10 @@ class RunService:
 
         # Warm the render cache: render each unique persona core once.
         cache_dir = _render_cache_dir(config)
-        seen: set[str] = set()
-        rendered = 0
-        for agent in panel:
-            h = agent.persona_core_hash
-            if h in seen:
-                continue
-            seen.add(h)
-            render_persona_core(
-                agent.demographic, agent.disposition.vector,
-                agent.chaos.vector, pack, anchor=agent.disposition.anchor,
-                cache_dir=cache_dir,
-            )
-            rendered += 1
+        rendered = warm_render_cache(
+            panel, pack, cache_dir,
+            max_concurrent=config.max_concurrent_agents,
+        )
 
         n_segments = len({a.segment_key for a in panel})
         estimated_cost = (
