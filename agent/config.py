@@ -338,6 +338,38 @@ class RunConfig:
     # hint to the target classifier ONLY — it must not override the creative-
     # derived inferred_audience the demographic-mismatch guard depends on.
     declared_targeting: str = ""
+    # ---- Marketer free text. SELECTION ONLY. ----
+    #
+    # ⚠ THESE LIVE HERE AND NOT ON `CreativeInputs`, AND THAT IS THE GUARDRAIL,
+    # not an accident of layout. `runtime._creative_copy_block` takes a
+    # `CreativeInputs` and is the ONLY function in the codebase that assembles
+    # marketer-supplied words into an agent's prompt. Keeping notes off that
+    # type makes contamination a TYPE-LEVEL impossibility rather than a comment
+    # somebody has to remember. Ad copy belongs on CreativeInputs because it is
+    # physically on the ad and the persona really does read it; notes are the
+    # marketer talking to US.
+    #
+    # ⚠ Why it matters, measured: an always-on reflection question moved
+    # `would_act` 68% -> 26%. A sentence of the marketer's own thesis in a
+    # reaction prompt would prime the panel toward the answer they hoped for,
+    # and we would never see it happen.
+    #
+    # They reach `target_id.identify_target` ONLY, in the same slot
+    # declared_targeting occupies and under the same non-override instruction,
+    # so `inferred_audience` stays creative-derived and
+    # detect_gross_demographic_mismatch keeps comparing creative-vs-declared
+    # rather than declared-vs-declared. They must never reach synthesis_*,
+    # decision.py or read_model: a report that reasons from the customer's own
+    # thesis just echoes them back to themselves.
+    # Pinned by tests/test_marketer_notes_never_reach_the_agent.py.
+    #
+    # marketer_notes: about THIS ad, supplied per run.
+    marketer_notes: str = ""
+    # brand_notes: about their market, captured once at onboarding and COPIED
+    # in at prepare time rather than referenced, so a finished read stays
+    # replayable and auditable after the brand entity is edited later — the
+    # same discipline as stamp_config_provenance and the recorded library_id.
+    brand_notes: str = ""
     # rocket-2.1.0 marketer-led composition. When True, the declared audience
     # (audience_spec.demographics) selects/weights which personas appear and
     # agents are simulated at the declared demographics. Off by default so
@@ -440,6 +472,8 @@ class RunConfig:
             "audience_id": self.audience_id,
             "creative_inputs": self.creative_inputs.to_dict(),
             "declared_targeting": self.declared_targeting,
+            "marketer_notes": self.marketer_notes,
+            "brand_notes": self.brand_notes,
             "marketer_led": self.marketer_led,
             "tail_fraction": self.tail_fraction,
         }
@@ -485,6 +519,8 @@ def build_run_config(
     library_id: str = "",
     audience_id: str = "",
     declared_targeting: str = "",
+    marketer_notes: str = "",
+    brand_notes: str = "",
     purpose: str = DEFAULT_PURPOSE,
     primary_text: str = "",
     headline: str = "",
@@ -532,6 +568,8 @@ def build_run_config(
             purpose=purpose,
         ),
         declared_targeting=declared_targeting,
+        marketer_notes=marketer_notes,
+        brand_notes=brand_notes,
         marketer_led=marketer_led,
         tail_fraction=tail_fraction,
         funnel_enabled=funnel_enabled,

@@ -234,6 +234,7 @@ def test_cli_path_builds_every_field() -> None:
         "--library-id", "health_wellness_nutrition_lib_v1",
         "--audience-id", "cold_traffic_v1",
         "--declared-targeting", "adults 25-44, metro tier-1",
+        "--marketer-notes", "they trade up from a chocolate bar at 4pm",
         "--primary-text", "20g protein per scoop",
         "--headline", "Fuel the work",
         "--offer", "₹2,699",
@@ -266,6 +267,7 @@ def test_cli_path_builds_every_field() -> None:
         "library_id": "health_wellness_nutrition_lib_v1",
         "audience_id": "cold_traffic_v1",
         "declared_targeting": "adults 25-44, metro tier-1",
+        "marketer_notes": "they trade up from a chocolate bar at 4pm",
         "seed": 71,
         "max_concurrent_agents": 100,
         "segment_granularity": "disposition",
@@ -297,6 +299,11 @@ def test_cli_path_builds_every_field() -> None:
         # stamped by RunService.prepare once the panel is resolved, never by a
         # caller — see the §5.1 config freeze
         "panel_version",
+        # brand_notes is captured once at onboarding and lives on the brand
+        # entity; the WEB flow copies it into the config at prepare time. There
+        # is no CLI flag on purpose — an operator typing a brand's market notes
+        # by hand would be authoring, not recording.
+        "brand_notes",
     }
     unpinned = {f.name for f in dataclasses.fields(cfg)} - covered
     assert not unpinned, f"RunConfig fields not pinned by this test: {sorted(unpinned)}"

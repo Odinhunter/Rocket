@@ -108,6 +108,9 @@ def _config_from_run_json(run_dir: Path) -> RunConfig:
         audience_id=c.get("audience_id", ""),
         creative_inputs=CreativeInputs.from_dict(c.get("creative_inputs")),
         declared_targeting=c.get("declared_targeting", ""),
+        # .get with "" so a pre-2026-08-14 run.json replays unchanged.
+        marketer_notes=c.get("marketer_notes", ""),
+        brand_notes=c.get("brand_notes", ""),
         marketer_led=c.get("marketer_led", False),
         tail_fraction=c.get("tail_fraction", 0.0),
     )

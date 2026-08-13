@@ -803,6 +803,27 @@ def new_read_page(*, account: str, brands: list[tuple[str, str]],
         <div class="hint">Sets the consumer research this is read against.</div>
         <select id="brand" name="brand" required>{brand_opts}</select></div>
     </div>
+    <div class="two" style="margin-top:16px">
+      <div><label class="lbl" for="headline">THE BIG LINE ON IT</label>
+        <div class="hint">The headline, if the ad has one.</div>
+        <input id="headline" name="headline" type="text"
+          value="{_e(a.get('headline') or '')}"
+          placeholder="India's first protein wafer"></div>
+      <div><label class="lbl" for="offer">PRICE OR OFFER</label>
+        <div class="hint">Anything about cost the ad puts in front of them.</div>
+        <input id="offer" name="offer" type="text"
+          value="{_e(a.get('offer') or '')}"
+          placeholder="₹625 for a pack of 5, 20% off first order"></div>
+    </div>
+    <div class="fld" style="margin-top:16px">
+      <label class="lbl" for="primary_text">THE CAPTION</label>
+      <div class="hint" style="max-width:640px">The body text that runs with the
+        ad. Leave these blank for an image-only test — the panel then reacts to
+        the picture alone, exactly as it does today.</div>
+      <textarea id="primary_text" name="primary_text" rows="3"
+        placeholder="20g protein, made with atta and jowar, no palm oil."
+        >{_e(a.get('primary_text') or '')}</textarea>
+    </div>
   </div>
 
   <div class="card">
@@ -839,6 +860,16 @@ def new_read_page(*, account: str, brands: list[tuple[str, str]],
       <div class="hint" style="max-width:600px">What it gets graded against. A
         cold-traffic sales ad and a brand film are not judged the same way.</div>
       <select id="purpose" name="purpose">{job_opts}</select>
+    </div>
+    <div class="fld" style="margin-top:18px">
+      <label class="lbl" for="marketer_notes">ANYTHING WE SHOULD KNOW</label>
+      <div class="hint" style="max-width:640px">Who you think this is for, what
+        they would buy instead, when they buy it. This helps us pick which
+        consumer types judge the ad — <strong>it is never shown to them</strong>,
+        so it cannot talk them into agreeing with you.</div>
+      <textarea id="marketer_notes" name="marketer_notes" rows="4"
+        placeholder="They're not supplement buyers. They'd grab a chocolate bar at 4pm and feel slightly bad about it — we're the better-for-you version of that."
+        >{_e(a.get('marketer_notes') or '')}</textarea>
     </div>
   </div>
 
@@ -1052,7 +1083,7 @@ def review_page(*, account: str, run_id: str, label: str, meta: str,
                 panel_lines: list[str], panel_version: str,
                 cost: str, cores: object,
                 flags: list[tuple[str, str, str, bool]],
-                stop_count: int = 0) -> str:
+                stop_count: int = 0, notes: str = "") -> str:
     """The money screen. Its own page, never a modal.
 
     The cost block borrows the report's ink-bordered treatment — the one
@@ -1084,6 +1115,21 @@ def review_page(*, account: str, run_id: str, label: str, meta: str,
     else:
         stop_note = ""
 
+    # ⚠ THE AUDIT SURFACE. Notes steer which consumer types get classified
+    # in-target, so a nudge that moved the read has to be readable BESIDE the
+    # read it moved — otherwise the one input capable of shopping for a
+    # flattering audience is also the one input nobody can see. Verbatim, not
+    # summarised: a paraphrase of the thing under audit is not the thing.
+    notes_card = (
+        f'<div class="card"><div class="k">WHAT YOU TOLD US</div>'
+        f'<div class="note" style="margin-top:10px;white-space:pre-wrap">'
+        f"{_e(notes)}</div>"
+        '<div class="note" style="margin-top:10px">Used to work out which '
+        "consumer types this ad is aimed at. The panel never sees it.</div>"
+        "</div>"
+        if notes.strip() else ""
+    )
+
     return shell("Review, then commit", active="/reads/new", account=account, body=f"""
 <div class="review">
   <div>
@@ -1111,6 +1157,8 @@ def review_page(*, account: str, run_id: str, label: str, meta: str,
       <span>{_e(panel_version)}</span></div>
     <div class="plines">{lines}</div>
   </div>
+
+  {notes_card}
 
   <form method="post" action="/reads/prepared/commit" style="margin:0">
     <input type="hidden" name="run_id" value="{_e(run_id)}">

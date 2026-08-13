@@ -361,6 +361,42 @@ async def run_agent_async(
     )
 
 
+def build_encoding_prompt(
+    agent: PanelAgent,
+    config: RunConfig,
+    core_prose: str,
+    context_prose: str,
+) -> tuple[list[dict], list[dict]]:
+    """Assemble (system, user_content) for the Encoding call. Pure — no API.
+
+    ⚠ THE AGENT-FACING SIDE OF THE MARKETER-NOTES SEAM. Everything the persona
+    ever sees is assembled here and in `_reflection_user_for`, and neither
+    touches `config.marketer_notes` / `config.brand_notes`. The only marketer
+    words that legitimately reach a persona are the ad's own copy, because
+    those are physically on the creative she is looking at — and they arrive
+    via `_creative_copy_block`, whose parameter is a `CreativeInputs`, which is
+    why the notes deliberately do not live on that type.
+
+    Extracted from `run_agent` so this can be asserted offline for every
+    purpose without spending anything. See
+    tests/test_marketer_notes_never_reach_the_agent.py.
+    """
+    # System = persona core ONLY, cache-marked. Context is NOT here — it goes
+    # in the user message so agents sharing a core share the cached prefix.
+    system = [
+        {"type": "text", "text": core_prose, "cache_control": {"type": "ephemeral"}},
+    ]
+    context_block = _context_block(
+        context_prose, agent.cycle_position, agent.category
+    )
+    copy_block = _creative_copy_block(config.creative_inputs)
+    user_content = [
+        _image_block(config.asset.image_path, cache=True),
+        {"type": "text", "text": context_block + copy_block + _ENCODING_USER},
+    ]
+    return system, user_content
+
+
 def run_agent(
     agent: PanelAgent,
     config: RunConfig,
@@ -385,19 +421,9 @@ def run_agent(
         agent.context.vector, pack, cache_dir=render_cache_dir,
     )
 
-    # System = persona core ONLY, cache-marked. Context is NOT here — it goes
-    # in the user message so agents sharing a core share the cached prefix.
-    system = [
-        {"type": "text", "text": core_prose, "cache_control": {"type": "ephemeral"}},
-    ]
-    context_block = _context_block(
-        context_prose, agent.cycle_position, agent.category
+    system, encoding_user_content = build_encoding_prompt(
+        agent, config, core_prose, context_prose
     )
-    copy_block = _creative_copy_block(config.creative_inputs)
-    encoding_user_content = [
-        _image_block(config.asset.image_path, cache=True),
-        {"type": "text", "text": context_block + copy_block + _ENCODING_USER},
-    ]
 
     # Call A — Encoding (R1-R3). Idempotent: skip if artifact exists.
     enc_artifact = _load_artifact(run_id, config, agent.agent_id, "encoding")

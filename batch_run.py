@@ -428,6 +428,11 @@ def main() -> None:
                         help="The customer's stated Meta audience (free text). A "
                              "hint to the target classifier; does not override the "
                              "creative-derived inferred audience.")
+    parser.add_argument("--marketer-notes", default="",
+                        help="What the brand manager told us about this ad (free "
+                             "text). Reaches the TARGET CLASSIFIER ONLY and never "
+                             "an agent, so it can steer which consumer types are "
+                             "judged in-target but cannot prime the reactions.")
     parser.add_argument("--marketer-led", action="store_true",
                         help="rocket-2.1.0: compose the panel from the declared "
                              "audience (spec.demographics) — select/weight personas "
@@ -482,6 +487,7 @@ def main() -> None:
         purpose=(args.purpose if args.purpose != DEFAULT_PURPOSE
                  else creative_data.get("purpose") or DEFAULT_PURPOSE),
         declared_targeting=args.declared_targeting,
+        marketer_notes=args.marketer_notes,
         marketer_led=args.marketer_led,
         tail_fraction=args.tail_fraction,
         funnel_enabled=args.funnel,

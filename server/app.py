@@ -418,6 +418,8 @@ def create_app(
         gender: str = Form(""), income: str = Form(""),
         geography: str = Form(""),
         purpose: str = Form(DEFAULT_PURPOSE),
+        headline: str = Form(""), primary_text: str = Form(""),
+        offer: str = Form(""), marketer_notes: str = Form(""),
     ) -> Response:
         """PAID (~$0.15) — but off the request thread, so the browser gets a
         page that can say what is happening instead of a spinner it owns.
@@ -429,6 +431,15 @@ def create_app(
         declared demographics compose the panel, so a form built entirely out
         of those demographics can only ever want it on. A checkbox that must
         never be unticked is not a choice, it is a trap.
+
+        ⚠ `headline` / `primary_text` / `offer` are the words ON the ad, and
+        they reach the persona — she reads them off the picture. `marketer_notes`
+        is the brand manager talking to US and reaches the target classifier
+        ONLY. The two are different kinds of input and the seam between them is
+        pinned by tests/test_marketer_notes_never_reach_the_agent.py. There is
+        still NO free-text "describe your audience" box, and there must not be:
+        that field is what let a competitor build 105 personas out of a
+        description of the ad.
         """
         # `asset_label` rides along so a rejection can put it back in the box.
         # It is NOT an audience answer — `_resolve_audience` reads the keys it
@@ -437,7 +448,12 @@ def create_app(
         # that did clear, because the markup rendered no `value`.
         answers_raw = {"brand": brand, "age_from": age_from, "age_to": age_to,
                        "gender": gender, "income": income, "geography": geography,
-                       "purpose": purpose, "asset_label": asset_label}
+                       "purpose": purpose, "asset_label": asset_label,
+                       # Same reason as asset_label: typed prose must survive a
+                       # rejected upload. Losing a paragraph someone wrote is a
+                       # worse failure than losing a dropdown.
+                       "headline": headline, "primary_text": primary_text,
+                       "offer": offer, "marketer_notes": marketer_notes}
         brands = _brand_choices()
         if not brands:
             return _html(_new_read_form(), 400)
@@ -494,6 +510,12 @@ def create_app(
             # which they could whenever someone typed one audience into the old
             # free-text box and selected another from the spec dropdown.
             declared_targeting=answers.declared_targeting(), purpose=purpose,
+            # The words on the ad — these reach the persona, and they unlock
+            # L3.5's click/convert stages (RunConfig.provided_inputs).
+            headline=headline.strip(), primary_text=primary_text.strip(),
+            offer=offer.strip(),
+            # The brand manager talking to us. Classifier only.
+            marketer_notes=marketer_notes.strip(),
             marketer_led=True,
             max_concurrent_agents=100,
         )
@@ -565,6 +587,10 @@ def create_app(
             cost=f"${prep.estimated_cost_usd:.2f}",
             cores=prep.persona_cores_rendered,
             flags=flags, stop_count=stops,
+            # Verbatim, and only what THEY wrote — brand notes are ours to
+            # keep, theirs to have said once, and re-showing them per run is
+            # noise. What is on trial here is the per-run nudge.
+            notes=prep.config.marketer_notes,
         ))
 
     def _prep_flags(prep) -> tuple[list[tuple[str, str, str, bool]], int]:
