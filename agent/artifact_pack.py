@@ -74,7 +74,32 @@ class Community:
 
 @dataclass
 class CategoryArtifactPack:
-    """The hand-curated knowledge object for one category."""
+    """The hand-curated knowledge object for one category.
+
+    ⚠ **THE PACK HAS TWO PROJECTIONS AND THEY ARE NOT THE SAME SET OF FIELDS.**
+
+    1. **The prompt projection** — exactly seven fields reach a model:
+       `brand_landscape`, `price_points`, `retail_channels`, `communities`,
+       `cultural_references`, `voice_samples`, `behavioral_priors`. These are
+       read by `render._persona_prompt`, by `render._vocab_tokens` (which is
+       what the invented-artifact check is built from) and by
+       `scripts/generate_audience.py:_pack_brief`. Keep them LEAN — every
+       TitleCase token in them widens the set of brand names a persona is
+       allowed to say, which weakens the check. That is why the
+       `retail_channels` notes are deliberately lowercase.
+
+    2. **The document projection** — everything below the marker. Sourced
+       market facts, occasions, journeys, price architecture, provenance and
+       the open questions. These exist for the artifact a brand team reads and
+       argues with, and for wiring that has not been built yet. **They are
+       consumed by NOTHING at runtime**, which is exactly why they can be as
+       descriptive as they need to be without costing a token of prompt or
+       loosening a guardrail.
+
+    A pack is authored by us and then refined with the brand. `open_questions`
+    is therefore a first-class field, not an apology: it is the agenda for that
+    conversation, and a gap recorded there is worth more than a number guessed.
+    """
 
     category: str
     brand_landscape: list[BrandLandscapeEntry] = field(default_factory=list)
@@ -86,6 +111,17 @@ class CategoryArtifactPack:
     voice_samples: list[str] = field(default_factory=list)
     behavioral_priors: str = ""
     default_chaos_distribution: ChaosDistribution | None = None
+
+    # ---- the document projection; reaches no prompt --------------------
+    # Plain JSON-able structures on purpose: they round-trip through
+    # to_dict/from_dict without a dataclass each, and nothing downstream
+    # depends on their shape yet.
+    market_stats: list[dict] = field(default_factory=list)
+    occasions: list[dict] = field(default_factory=list)
+    journeys: list[dict] = field(default_factory=list)
+    price_architecture: list[dict] = field(default_factory=list)
+    sources: list[dict] = field(default_factory=list)
+    open_questions: list[str] = field(default_factory=list)
 
     def validate(self) -> None:
         if not self.category or not self.category.strip():
@@ -126,6 +162,13 @@ class CategoryArtifactPack:
                 if self.default_chaos_distribution is not None
                 else None
             ),
+            # document projection — see the class docstring
+            "market_stats": [dict(s) for s in self.market_stats],
+            "occasions": [dict(o) for o in self.occasions],
+            "journeys": [dict(j) for j in self.journeys],
+            "price_architecture": [dict(p) for p in self.price_architecture],
+            "sources": [dict(s) for s in self.sources],
+            "open_questions": list(self.open_questions),
         }
 
     @classmethod
@@ -151,6 +194,14 @@ class CategoryArtifactPack:
             default_chaos_distribution=(
                 ChaosDistribution.from_dict(dcd) if dcd is not None else None
             ),
+            market_stats=[dict(s) for s in data.get("market_stats", [])],
+            occasions=[dict(o) for o in data.get("occasions", [])],
+            journeys=[dict(j) for j in data.get("journeys", [])],
+            price_architecture=[
+                dict(p) for p in data.get("price_architecture", [])
+            ],
+            sources=[dict(s) for s in data.get("sources", [])],
+            open_questions=list(data.get("open_questions", [])),
         )
 
 

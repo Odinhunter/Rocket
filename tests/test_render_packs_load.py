@@ -19,7 +19,7 @@ from agent.artifact_pack import CategoryArtifactPack, load_pack
 
 _CATEGORIES = [
     "coffee", "chocolate", "personal_audio", "wellness",
-    "health_wellness_nutrition",
+    "health_wellness_nutrition", "health_nutrition_snacking",
 ]
 
 
