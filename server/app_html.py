@@ -110,7 +110,7 @@ input,select,button,textarea{font-family:inherit}
 .quiet{font-size:12.5px;color:var(--muted)}
 .thumb{border-radius:9px;border:1px solid var(--line);background:var(--stripe);flex:none}
 .mk{width:11px;height:11px;flex:none;border-radius:2px;display:inline-block}
-input[type=text],input[type=password],input[type=search],textarea,select{
+input[type=text],input[type=password],input[type=search],input[type=number],textarea,select{
   width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
   padding:10px 12px;font-size:13.5px;color:var(--ink)}
 textarea{line-height:1.5;resize:vertical}
@@ -735,8 +735,20 @@ def new_read_page(*, account: str, brands: list[tuple[str, str]],
 
     brand_opts = _opts(brands, a.get("brand"))
     job_opts = _opts(jobs, a.get("purpose"))
-    age_from_opts = _opts(audience_form.AGE_FROM, a["age_from"])
-    age_to_opts = _opts(audience_form.AGE_TO, a["age_to"])
+    # ⚠ FREE ENTRY, NOT A DROPDOWN — the user's call, 2026-08-15: "their ability
+    # to customise the target age group is extremely basic." The five boundaries
+    # existed because a library bundle carried an age RANGE, so an arbitrary
+    # boundary produced a partial overlap; bundles are specific PEOPLE now and
+    # any range answers in-or-out. `audience_form.parse` enforces the bounds
+    # server-side — these attributes are a convenience, not the validation.
+    age_from_input = (
+        f'<input id="age_from" name="age_from" type="number" inputmode="numeric" '
+        f'min="{audience_form.AGE_MIN}" max="{audience_form.AGE_MAX}" '
+        f'value="{_e(str(a["age_from"]))}" style="width:88px">')
+    age_to_input = (
+        f'<input id="age_to" name="age_to" type="number" inputmode="numeric" '
+        f'min="{audience_form.AGE_MIN}" max="{audience_form.AGE_MAX}" '
+        f'value="{_e(str(a["age_to"]))}" style="width:88px">')
     gender_opts = _opts(audience_form.GENDERS, a["gender"])
     income_opts = _opts(audience_form.INCOME_BANDS, a["income"])
     geo_opts = _opts(audience_form.GEOGRAPHIES, a["geography"])
@@ -832,11 +844,11 @@ def new_read_page(*, account: str, brands: list[tuple[str, str]],
       this ad — the same one you set up on Meta. We build the panel to match it.</div>
     <div class="two" style="margin-top:16px">
       <div><label class="lbl" for="age_from">AGE</label>
-        <div class="hint">From, to.</div>
+        <div class="hint">From, to. Any ages you like.</div>
         <div style="display:flex;align-items:center;gap:8px">
-          <select id="age_from" name="age_from">{age_from_opts}</select>
+          {age_from_input}
           <span class="quiet" style="flex:none">to</span>
-          <select id="age_to" name="age_to">{age_to_opts}</select>
+          {age_to_input}
         </div></div>
       <div><label class="lbl" for="gender">GENDER</label>
         <div class="hint">Who the buy is served to.</div>

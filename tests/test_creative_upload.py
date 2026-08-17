@@ -24,6 +24,7 @@ harness (jsdom), mutation-proved separately.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -216,8 +217,15 @@ def test_the_form_does_not_clear_what_was_typed(world) -> None:
         "the typed label was cleared by the rejection"
     assert f'value="{ANSWERS["brand"]}" selected' in body, \
         "the chosen brand was cleared by the rejection"
-    assert 'value="25" selected' in body and 'value="44" selected' in body, \
-        "the age range was cleared by the rejection"
+    # ⚠ Age is a NUMBER INPUT since 2026-08-16, not a <select>, so there is no
+    # `selected` to look for — the value rides on the input itself. The
+    # behaviour under test is unchanged: a rejection must not clear it.
+    for field, expected in (("age_from", ANSWERS["age_from"]),
+                            ("age_to", ANSWERS["age_to"])):
+        match = re.search(rf'<input[^>]*name="{field}"[^>]*>', body)
+        assert match, f"the {field} control vanished from the form"
+        assert f'value="{expected}"' in match.group(0), \
+            f"the age range was cleared by the rejection ({match.group(0)})"
     print("  a rejection keeps the label, the brand and the audience ✓")
 
 

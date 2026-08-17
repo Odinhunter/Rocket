@@ -345,7 +345,7 @@ def create_app(
             try:
                 chosen, ans = _resolve_audience(answers or {}, brands)
                 line = audience_form.reach(
-                    audience_form.build_spec(chosen.template, ans),
+                    audience_form.build_spec(chosen.template, ans, chosen.dispositions),
                     list(chosen.dispositions)).sentence
             except Exception:  # noqa: BLE001 — a reach line is never load-bearing
                 line = ""
@@ -399,7 +399,7 @@ def create_app(
                 "gender": gender, "income": income, "geography": geography}
         try:
             chosen, answers = _resolve_audience(data, brands)
-            spec = audience_form.build_spec(chosen.template, answers)
+            spec = audience_form.build_spec(chosen.template, answers, chosen.dispositions)
             return JSONResponse({
                 "sentence": audience_form.reach(
                     spec, list(chosen.dispositions)).sentence,
@@ -498,7 +498,7 @@ def create_app(
         # customer supplies `demographics`; the consumer types, attention
         # moments, behavioural mix and panel size come from the brand's own
         # hand-built research and are not theirs to author.
-        spec = audience_form.build_spec(chosen.template, answers)
+        spec = audience_form.build_spec(chosen.template, answers, chosen.dispositions)
         config = build_run_config(
             asset_path=recorded, asset_label=label,
             audience_spec=spec, category=chosen.category,

@@ -45,7 +45,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-from agent import calibration_log, credits
+from agent import calibration_log, credits, population
 from agent.artifact_pack import load_pack
 from agent.config import RunConfig
 from agent.entities import DispositionLibrary
@@ -498,6 +498,16 @@ class RunService:
             config.account_id, config.brand_profile_id
         )
         dispositions = library.resolve(spec.disposition_labels)
+        # ⚠ NARROWED TO THE PEOPLE THIS BUY REACHES, and it has to happen HERE
+        # rather than only in the form. `resolve` returns each buyer type with
+        # its FULL set of people, so a tier-scoped buy that the form correctly
+        # narrowed would get every metro sibling handed straight back — measured
+        # 2026-08-16 as a "smaller towns" buy simulating a panel in Mumbai and
+        # metro NCR. `population.eligible` keeps the same labels (so `build_panel`
+        # still matches them against the spec) and drops only the people the buy
+        # does not reach. It is idempotent, so running it after a form that
+        # already selected costs nothing.
+        dispositions = population.eligible(dispositions, spec.demographics)
 
         # Build the panel (deterministic stratified allocation). Marketer-led
         # composition (rocket-2.1.0) is opt-in via config.marketer_led.

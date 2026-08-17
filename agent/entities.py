@@ -30,10 +30,22 @@ from agent.vectors import (
     NamedDisposition,
 )
 
-# A single run's audience may select at most this many dispositions. L2
-# fan-out is per-(disposition x chaos-band); 7 x 3 = 21 L2 calls is the
-# ceiling that keeps per-run cost bounded.
-AUDIENCE_DISPOSITION_CAP = 7
+# A single run's audience may select at most this many dispositions.
+#
+# ⚠ RAISED FROM 7 TO 64 ON 2026-08-14, and the old value was the thing that
+# made the panel a pyramid. Seven stances scaled across a hundred agents is
+# seven opinions however many biographies hang off them — measured: 100 agents
+# produced THREE distinct behavioural positions, with four of five dispositions
+# agreeing 100% internally. Diversity of opinion is the deliverable, and the cap
+# was the ceiling on it.
+#
+# ⚠ THE COST THE OLD COMMENT WAS PROTECTING IS REAL, and it moves to
+# `segment_granularity`. L2 fans out per segment: at "disposition_chaos_band" a
+# 40-type panel is min(panel_size, 40x3) segments — up to 100 x $0.04 = $4.00 a
+# run, against 15 x $0.04 = $0.60 today. At "disposition" it is 40 x $0.04 =
+# $1.60. Run a wide panel on chaos-band granularity without meaning to and every
+# read costs ~$2.40 more, forever. Choose the granularity deliberately.
+AUDIENCE_DISPOSITION_CAP = 64
 
 # A run's context envelope must be 3-5 attention states.
 _CONTEXT_ENVELOPE_MIN = 3

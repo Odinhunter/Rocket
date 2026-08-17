@@ -1,0 +1,140 @@
+{
+  "demographics": [
+    {
+      "gender": "any",
+      "age_min": 18,
+      "age_max": 34,
+      "income_lpa_min": 7.0,
+      "income_lpa_max": 17.0,
+      "geography": "tier-1 and tier-2",
+      "occupation_hint": "",
+      "household_hint": ""
+    }
+  ],
+  "disposition_labels": [
+    "loyalist_desk_drawer_bar",
+    "loyalist_midnight_dairy_milk",
+    "loyalist_biozyme_scoop",
+    "loyalist_morning_poha_pack",
+    "loyalist_ninety_six_bar",
+    "loyalist_haldiram_travel_tin",
+    "loyalist_prescribed_sachet_reorder",
+    "switcher_4pm_bar_rotation",
+    "switcher_11pm_swap_hunt",
+    "switcher_tub_to_tub_hopper",
+    "switcher_morning_grab_swap",
+    "switcher_weekend_permission_treat",
+    "switcher_airport_counter_rethink",
+    "switcher_ninety_day_hair_trial",
+    "switcher_family_cupboard_swap",
+    "upgrader_desk_drawer_tradeup",
+    "upgrader_11pm_better_sweet",
+    "upgrader_gold_standard_step_up",
+    "upgrader_one_hand_breakfast",
+    "upgrader_dark_chocolate_stepup",
+    "upgrader_airport_counter_tradeup",
+    "upgrader_cheap_multivit_stepup",
+    "upgrader_kids_cupboard_tradeup",
+    "aspirant_4pm_desk_watcher",
+    "aspirant_morning_pill_intention",
+    "aspirant_healthier_trolley_wish",
+    "skeptic_4pm_wrapper_math",
+    "skeptic_late_night_marketing",
+    "skeptic_post_gym_food_first",
+    "skeptic_morning_protein_claim",
+    "skeptic_guilt_free_wording",
+    "skeptic_airport_markup",
+    "skeptic_daily_pill_pointless",
+    "skeptic_trolley_price_per_kg",
+    "aspirant_11pm_reel_saved",
+    "aspirant_gym_counter_watcher",
+    "aspirant_desk_bag_breakfast_wish",
+    "aspirant_cafe_treat_envy",
+    "aspirant_glovebox_upgrade_intent",
+    "loyalist_biscuit_tin_kirana"
+  ],
+  "context_envelope": [
+    {
+      "label": "commute_scroll",
+      "vector": {
+        "attention_level": "low",
+        "device_posture": "commute",
+        "intent_state": "killing_time",
+        "energy_state": "drained",
+        "social_setting": "public"
+      }
+    },
+    {
+      "label": "pre_purchase_research",
+      "vector": {
+        "attention_level": "high",
+        "device_posture": "desk",
+        "intent_state": "actively_shopping",
+        "energy_state": "alert",
+        "social_setting": "alone"
+      }
+    },
+    {
+      "label": "late_night_wind_down",
+      "vector": {
+        "attention_level": "low",
+        "device_posture": "lying_down",
+        "intent_state": "killing_time",
+        "energy_state": "drained",
+        "social_setting": "alone"
+      }
+    },
+    {
+      "label": "weekend_afternoon_browse",
+      "vector": {
+        "attention_level": "medium",
+        "device_posture": "couch",
+        "intent_state": "passive_browse",
+        "energy_state": "neutral",
+        "social_setting": "alone"
+      }
+    }
+  ],
+  "chaos_distribution": {
+    "weighted": [
+      {
+        "profile": {
+          "label": "impulsive",
+          "vector": {
+            "decision_velocity": "impulsive",
+            "suggestibility": "high",
+            "consistency": "erratic",
+            "risk_tolerance": "seeking"
+          }
+        },
+        "weight": 0.25
+      },
+      {
+        "profile": {
+          "label": "moderate",
+          "vector": {
+            "decision_velocity": "moderate",
+            "suggestibility": "medium",
+            "consistency": "variable",
+            "risk_tolerance": "balanced"
+          }
+        },
+        "weight": 0.45
+      },
+      {
+        "profile": {
+          "label": "deliberate",
+          "vector": {
+            "decision_velocity": "deliberate",
+            "suggestibility": "low",
+            "consistency": "steady",
+            "risk_tolerance": "averse"
+          }
+        },
+        "weight": 0.3
+      }
+    ]
+  },
+  "panel_size": 100,
+  "cycle_mix": null
+}

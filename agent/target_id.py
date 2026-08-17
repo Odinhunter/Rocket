@@ -399,8 +399,16 @@ def identify_target(
     # We therefore omit `thinking` and rely on effort alone — on Opus 4.7,
     # omitting thinking config disables thinking, and effort=low controls
     # output-token spend and stochasticity.
+    # ⚠ max_tokens MUST SCALE WITH THE POOL. The flat 4000 here was sized when
+    # an audience carried 6-7 dispositions; every one of them costs roughly a
+    # label, a verdict and a sentence of reasoning. A 40-type pool blew straight
+    # through it on 2026-08-14 and the tool_use block came back TRUNCATED — the
+    # request returned HTTP 200, was billed in full, and simply had no
+    # `disposition_classifications` key in it. There is no error to catch: an
+    # under-budgeted classification looks exactly like a malformed one.
+    per_disposition = 150
     create_kwargs: dict = {
-        "max_tokens": 4000,
+        "max_tokens": max(4000, 2000 + per_disposition * len(disposition_pool)),
         "system": _SYSTEM,
         "messages": [{"role": "user", "content": user_content}],
         "tools": [_TOOL],

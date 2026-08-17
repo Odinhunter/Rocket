@@ -389,8 +389,28 @@ def _clipped_bundle_points(
 ) -> tuple[list[DemographicPoint], list[float]]:
     """The (points, weights) to draw a CORE disposition's agents from: each
     overlapping bundle clipped to its best declared frame, weighted by
-    bundle.weight × overlap. Falls back to the declared frames themselves
-    (equal weight) when the disposition has no bundles or none overlap."""
+    bundle.weight × overlap.
+
+    A disposition with NO bundles is demographically unspecified — it lives
+    everywhere — so it is simulated at the declared frames themselves, equally
+    weighted. That is the truthful answer for those libraries, and
+    `audience_mass` agrees by returning 1.0 for them.
+
+    ⚠ A DISPOSITION THAT *HAS* BUNDLES AND OVERLAPS NONE OF THEM IS A BUG, AND
+    IT USED TO FABRICATE. Until 2026-08-16 this fell back to the declared frames
+    in that case too, which meant a buy nobody in the library matched — `women
+    55-75, tier-3` against a library whose oldest person was 54 — produced a
+    panel of blank shells carrying the FRAME as their identity: no occupation,
+    no household, no city. Measured: all 32 buyer types came back "eligible",
+    100 agents were built, no error was raised, and **the panel looked FULLER
+    the worse the mismatch was**. The 62-biography layer silently evaporated.
+
+    Selection (`agent.population.select`) is what prevents it: only types with a
+    real overlap are ever handed to `build_panel`. So reaching this state means
+    selection was bypassed, and the honest response is to say so loudly rather
+    than to invent people. ⚠ A thin buy is NOT this case — it runs as-is with
+    however few real people it has, which is the user's explicit call.
+    """
     points: list[DemographicPoint] = []
     weights: list[float] = []
     for b in disposition.demographic_bundles:
@@ -404,6 +424,16 @@ def _clipped_bundle_points(
             points.append(_clip_point(b.point, best_f))
             weights.append(b.weight * best_ov)
     if not points:
+        if disposition.demographic_bundles:
+            raise ValueError(
+                f"disposition {disposition.label!r} has "
+                f"{len(disposition.demographic_bundles)} demographic bundle(s) "
+                f"and none of them overlaps the declared audience, so it has no "
+                f"real people to simulate. It should have been excluded by "
+                f"agent.population.select before reaching build_panel — "
+                f"inventing agents from the declared frame is what produced "
+                f"blank, career-less personas."
+            )
         points = list(declared)
         weights = [1.0] * len(declared)
     return points, weights

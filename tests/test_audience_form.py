@@ -41,6 +41,21 @@ def _brand(world: Path):
     return brands[0]
 
 
+def _seated(brand, spec):
+    """The dispositions the spec actually names, in its own order.
+
+    ⚠ Since 2026-08-16 `build_spec` SELECTS: a library is uncapped and grows
+    with every generated region, while a run carries at most
+    `AUDIENCE_DISPOSITION_CAP` buyer types, so the spec names the seats rather
+    than the whole library. `build_panel` refuses a disposition list that does
+    not match those labels, and this is the same resolve step
+    `RunService.prepare` does via `DispositionLibrary.resolve`. A test handing
+    it the full library is testing a call the product never makes.
+    """
+    by_label = {d.label: d for d in brand.dispositions}
+    return [by_label[label] for label in spec.disposition_labels]
+
+
 # ---- the load-bearing one ---------------------------------------------
 
 
@@ -61,8 +76,8 @@ def test_the_answers_actually_change_who_gets_simulated(world) -> None:
 
     def panel(**answers):
         parsed = audience_form.parse({**ANSWERS, **answers})
-        spec = audience_form.build_spec(brand.template, parsed)
-        return build_panel(spec, dispositions,
+        spec = audience_form.build_spec(brand.template, parsed, brand.dispositions)
+        return build_panel(spec, _seated(brand, spec),
                            category="health_wellness_nutrition",
                            marketer_led=True, seed=71)
 
@@ -99,8 +114,8 @@ def test_the_library_supplies_the_life_detail_the_form_never_asks_for(world) -> 
     assert frame.occupation_hint == "" and frame.household_hint == "", \
         "the form started asking for life detail it has no business asking for"
 
-    agents = build_panel(audience_form.build_spec(brand.template, parsed),
-                         list(brand.dispositions),
+    spec = audience_form.build_spec(brand.template, parsed, brand.dispositions)
+    agents = build_panel(spec, _seated(brand, spec),
                          category="health_wellness_nutrition",
                          marketer_led=True, seed=71)
     assert all(a.demographic.occupation_hint for a in agents), \
@@ -116,7 +131,7 @@ def test_building_a_spec_does_not_re_aim_the_brands_saved_audience(world) -> Non
     brand = _brand(world)
     before = json.dumps(brand.template.to_dict(), sort_keys=True)
     audience_form.build_spec(brand.template, audience_form.parse(
-        {**ANSWERS, "age_from": "18", "age_to": "24"}))
+        {**ANSWERS, "age_from": "18", "age_to": "24"}), brand.dispositions)
     assert json.dumps(brand.template.to_dict(), sort_keys=True) == before, \
         "build_spec mutated the brand's saved audience"
     print("  the saved audience survives a run being composed from it ✓")
@@ -128,12 +143,18 @@ def test_the_spec_inherits_everything_the_customer_cannot_author(world) -> None:
     demographics ignores their answers, and asking for the rest asks them to do
     our research."""
     brand = _brand(world)
-    spec = audience_form.build_spec(brand.template, audience_form.parse(ANSWERS))
+    spec = audience_form.build_spec(brand.template, audience_form.parse(ANSWERS),
+                                    brand.dispositions)
     assert len(spec.demographics) == 1, "one buy, one declared frame"
-    for field in ("disposition_labels", "context_envelope", "panel_size",
-                  "cycle_mix"):
+    for field in ("context_envelope", "panel_size", "cycle_mix"):
         assert getattr(spec, field) == getattr(brand.template, field), \
             f"{field} was not inherited from the brand's saved audience"
+    # ⚠ `disposition_labels` is deliberately NOT inherited since 2026-08-16. The
+    # template lists what the brand HAS; the spec lists who this BUY reaches,
+    # capped at the seats a run carries. Inheriting it is how a growing
+    # population would have shipped a spec naming the entire library.
+    assert set(spec.disposition_labels) <= set(brand.template.disposition_labels)
+    assert spec.disposition_labels, "a buy with people in it named none of them"
     assert spec.chaos_distribution.to_dict() == \
         brand.template.chaos_distribution.to_dict()
     print("  demographics are theirs; everything else is the brand's ✓")
@@ -157,9 +178,15 @@ def test_the_targeting_sentence_reads_as_english_in_every_band() -> None:
     assert sentence() == "adults 25-44, metro tier-1, ₹7-17L household income"
     assert sentence(gender="female") .startswith("women 25-44")
     assert sentence(gender="male").startswith("men 25-44")
-    # 65+ is a display convention: the oldest library bundle runs to 75, so the
-    # value is 75 and only the wording says 65+.
-    assert sentence(age_to="75").startswith("adults 25-65+")
+    # ⚠ Open-ended phrasing is for the CEILING only, since 2026-08-16. It used
+    # to be hard-coded to 75 — the old dropdown's top value — but age is free
+    # entry now, so "45-63" must read as itself and only a buy that really runs
+    # to the ceiling gets a "+". Describing a 63 buy as "65+" would mislead
+    # `target_id` as much as the reader.
+    assert sentence(age_to=str(audience_form.AGE_MAX)).startswith(
+        f"adults 25-{audience_form.AGE_MAX}+")
+    assert sentence(age_to="63").startswith("adults 25-63")
+    assert sentence(age_to="75").startswith("adults 25-75")
     assert sentence(income="0:3.5").endswith("under ₹3.5L household income")
     assert sentence(income="40:100").endswith("₹40L+ household income")
     # "Any income" narrows nothing, so claiming an income band would be a lie
@@ -176,7 +203,12 @@ def test_answers_are_validated_against_the_vocabulary_not_merely_coerced() -> No
     browser is absent from a direct post, and every value below is one the form
     can never produce."""
     bad = {
-        "an age off the list": {"age_from": "31"},
+        # ⚠ NOT "an age off the list" any more. Age became FREE ENTRY on
+        # 2026-08-16 — 31 and 47 are ordinary buys and are asserted valid
+        # below — so what is still rejected is a non-number, a reversed range,
+        # and anything outside the sanity bounds.
+        "an age below the floor": {"age_from": "12"},
+        "an age above the ceiling": {"age_to": "140"},
         "an age that is not a number": {"age_from": "old"},
         "a reversed range": {"age_from": "45", "age_to": "24"},
         "an invented gender": {"gender": "other-value"},
@@ -187,6 +219,19 @@ def test_answers_are_validated_against_the_vocabulary_not_merely_coerced() -> No
     for name, answers in bad.items():
         with pytest.raises(audience_form.AudienceAnswerError):
             audience_form.parse({**ANSWERS, **answers})
+
+    # POSITIVE CONTROL — the point of free entry. An age that is NOT one of the
+    # five old dropdown boundaries must now be accepted, or the rejection loop
+    # above is passing because everything is rejected.
+    # ⚠ 47-63 is the exact buy that used to be unexpressible, and it is the one
+    # that returned ZERO buyer types against a banded library.
+    for ok in ({"age_from": "31", "age_to": "44"},
+               {"age_from": "47", "age_to": "63"},
+               {"age_from": "18", "age_to": "99"}):
+        parsed = audience_form.parse({**ANSWERS, **ok})
+        assert parsed.age_from == int(ok["age_from"])
+        assert parsed.age_to == int(ok["age_to"])
+
     # And the message is written for the customer, not about a field id.
     try:
         audience_form.parse({**ANSWERS, "gender": "nonsense"})
@@ -218,10 +263,10 @@ def test_reach_reports_what_the_panel_builder_will_actually_do(world) -> None:
                      "income": "0:3.5"},
                     {"age_from": "18", "age_to": "75", "income": "0:100"}):
         parsed = audience_form.parse({**ANSWERS, **answers})
-        spec = audience_form.build_spec(brand.template, parsed)
+        spec = audience_form.build_spec(brand.template, parsed, brand.dispositions)
         promised = audience_form.reach(spec, list(brand.dispositions))
         actual = {a.disposition.label for a in build_panel(
-            spec, list(brand.dispositions),
+            spec, _seated(brand, spec),
             category="health_wellness_nutrition", marketer_led=True, seed=71)}
         assert set(promised.labels) == actual, (
             f"promised {sorted(promised.labels)}, ran {sorted(actual)}")
@@ -243,7 +288,7 @@ def test_a_narrow_buy_says_so_plainly_and_a_wide_one_does_not(world) -> None:
     def line(**kw):
         parsed = audience_form.parse({**ANSWERS, **kw})
         return audience_form.reach(
-            audience_form.build_spec(brand.template, parsed),
+            audience_form.build_spec(brand.template, parsed, brand.dispositions),
             list(brand.dispositions)).sentence
 
     narrow = line(age_from="18", age_to="24", gender="male", income="0:3.5")
@@ -266,7 +311,7 @@ def test_a_buy_that_reaches_nobody_says_what_to_do(world) -> None:
     # Men, 45-65+, under ₹3.5L: no bundle in the fixture library overlaps it.
     parsed = audience_form.parse({**ANSWERS, "age_from": "45", "age_to": "75",
                                   "gender": "male", "income": "0:3.5"})
-    line = audience_form.reach(audience_form.build_spec(brand.template, parsed),
+    line = audience_form.reach(audience_form.build_spec(brand.template, parsed, brand.dispositions),
                                list(brand.dispositions)).sentence
     assert "doesn't overlap" in line and "widen" in line, line
     print("  a buy that reaches nobody says how to fix it ✓")
