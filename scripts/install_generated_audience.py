@@ -91,6 +91,23 @@ def main() -> None:
     data = json.loads(Path(args.path).read_text())
     if "dispositions" not in data:
         sys.exit("no converted dispositions in that file — run the generator first")
+
+    # ⚠ THE PACK A REGION WAS WRITTEN AGAINST IS PART OF WHAT IT IS, AND
+    # MERGING TWO PACKS INTO ONE POPULATION IS SILENT. The anchors quote the
+    # brands, prices and channels of ONE world; a library holding types written
+    # against the supplements pack AND the snacking pack describes a market
+    # that does not exist, and no gate reads `category`. Measured 2026-08-19:
+    # `generate_audience.py --category` defaults to `health_wellness_nutrition`
+    # and a probe silently took it while the region it was replacing had been
+    # written against `health_nutrition_snacking`.
+    file_category = data.get("category")
+    if file_category and file_category != args.category:
+        sys.exit(
+            f"this file was generated against the {file_category!r} pack but "
+            f"you are installing it as {args.category!r}.\n"
+            "  The anchors name that pack's brands and prices, so the two do "
+            "not describe one market.\n"
+            f"  Pass --category {file_category} if that is what you meant.")
     dispositions = [NamedDisposition.from_dict(d) for d in data["dispositions"]]
 
     # The control's saved audience supplies everything that is NOT the audience.
@@ -105,8 +122,21 @@ def main() -> None:
         dispositions = _merge(before, dispositions)
         print(f"  population {len(before)} -> {len(dispositions)} buyer types")
 
+    # ⚠ `--brand` USED TO BE HALF-HONOURED, AND THAT IS WORSE THAN NOT AT ALL.
+    # The library was written to `args.brand` while the BrandProfile and the
+    # SavedAudience below hardcoded `NEW_BRAND`, so `--brand something_else`
+    # scattered one install across two brands: a library nothing pointed at,
+    # and a brand profile pointing at a library that had just been overwritten
+    # under it. Both ids are derived from the target brand now, so the whole
+    # install lands in one place. Found 2026-08-19 while reading the script
+    # before running it; it never fired because every use so far took the
+    # default.
+    brand = args.brand
+    library_id = NEW_LIBRARY if brand == NEW_BRAND else f"{brand}_lib"
+    audience_id = NEW_AUDIENCE if brand == NEW_BRAND else f"{brand}_audience"
+
     library = DispositionLibrary(
-        library_id=NEW_LIBRARY, brand_profile_id=args.brand,
+        library_id=library_id, brand_profile_id=brand,
         account_id=ACCOUNT, dispositions=dispositions,
     )
     library.validate()
@@ -134,24 +164,24 @@ def main() -> None:
     spec.validate()
 
     profile = BrandProfile(
-        brand_profile_id=NEW_BRAND, account_id=ACCOUNT,
-        categories=[args.category], library_id=NEW_LIBRARY,
-        audience_ids=[NEW_AUDIENCE],
+        brand_profile_id=brand, account_id=ACCOUNT,
+        categories=[args.category], library_id=library_id,
+        audience_ids=[audience_id],
     )
     profile.validate()
 
     saved = SavedAudience(
-        audience_id=NEW_AUDIENCE, name="Snacking demand space — generated",
-        brand_profile_id=NEW_BRAND, account_id=ACCOUNT, spec=spec,
+        audience_id=audience_id, name="Snacking demand space — generated",
+        brand_profile_id=brand, account_id=ACCOUNT, spec=spec,
     )
     saved.validate()
 
     for obj in (library, profile, saved):
         print(f"  wrote {obj.save()}")
 
-    print(f"\n{len(dispositions)} buyer types installed as {ACCOUNT}/{NEW_BRAND}")
-    print(f"  library    : {NEW_LIBRARY}")
-    print(f"  audience   : {NEW_AUDIENCE}  ({len(spec.disposition_labels)} types, "
+    print(f"\n{len(dispositions)} buyer types installed as {ACCOUNT}/{brand}")
+    print(f"  library    : {library_id}")
+    print(f"  audience   : {audience_id}  ({len(spec.disposition_labels)} types, "
           f"panel {spec.panel_size}, granularity {spec.segment_granularity})")
     print(f"  contexts   : {[c.label for c in spec.context_envelope]}   (copied from the control)")
     print(f"\n⚠ {SOURCE_BRAND} untouched.")
