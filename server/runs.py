@@ -201,7 +201,11 @@ def discover_brands(runs_root: Path, *, account: str) -> list[BrandChoice]:
                 saved = SavedAudience.from_dict(json.loads(
                     (entities / "audiences" / f"{audience_id}.json").read_text()))
                 saved.spec.validate()
-                dispositions = library.resolve(saved.spec.disposition_labels)
+                # ⚠ RESOLVED AS A CHECK, THEN DELIBERATELY DISCARDED. A saved
+                # audience naming a type its library dropped must not be
+                # offered — that dies inside `RunService.prepare`. But the
+                # resolved SUBSET is not what a buy selects from; see below.
+                library.resolve(saved.spec.disposition_labels)
             except Exception:  # noqa: BLE001
                 continue
             out.append(BrandChoice(
@@ -210,7 +214,28 @@ def discover_brands(runs_root: Path, *, account: str) -> list[BrandChoice]:
                 library_id=profile.library_id,
                 audience_id=audience_id,
                 template=saved.spec,
-                dispositions=tuple(dispositions),
+                # ⚠⚠ THE WHOLE LIBRARY, NOT THE TEMPLATE'S LABEL LIST — FIXED
+                # 2026-08-19, AND IT HAD SILENTLY CAPPED THE POPULATION.
+                # `audience_form.build_spec` documents in its own signature that
+                # this argument "is the brand's WHOLE population — not the
+                # template's label list", because a library grows every time a
+                # region is generated while a saved audience carries at most
+                # AUDIENCE_DISPOSITION_CAP seats chosen ONCE, against whatever
+                # demographic frame the template happened to hold.
+                #
+                # Passing the resolved subset meant a newly installed region was
+                # unreachable unless it had won a seat in a selection made
+                # before it existed. Measured the day it first mattered: after
+                # appending a 45-60/tier-3 region, a 45-60/tier-3 buy reached
+                # **1 of 1** consumer types through the app while the same buy
+                # over the real library reached **7 of 50**. The engine was
+                # answering a question about a stale list.
+                #
+                # ⚠ The saved audience still supplies everything structural —
+                # contexts, chaos mix, panel size, purchase-cycle mix. Only WHO
+                # is re-selected per buy, which is the split `build_spec`
+                # describes.
+                dispositions=tuple(library.dispositions),
             ))
             break
     out.sort(key=lambda b: b.brand_profile_id)

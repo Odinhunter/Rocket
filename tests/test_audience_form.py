@@ -357,3 +357,86 @@ def test_the_form_renders_the_reach_without_javascript(world) -> None:
         "the reach line exists only in JavaScript"
     assert 'id="reach"' in page
     print("  the reach line is server-rendered, not JS-only ✓")
+
+
+# ---- the population a buy selects from --------------------------------
+
+def test_a_buy_selects_from_the_whole_library_not_the_saved_audience(world: Path):
+    """⚠⚠ THE DEFECT THAT MADE A NEWLY GENERATED REGION UNREACHABLE — fixed
+    2026-08-19, and invisible until the day a second region existed.
+
+    `BrandChoice.dispositions` carried `library.resolve(saved.spec.
+    disposition_labels)` — the seats a saved audience named ONCE, chosen
+    against whatever demographic frame the template happened to hold. But
+    `build_spec` documents in its own signature that this argument "is the
+    brand's WHOLE population — not the template's label list", because a
+    library GROWS every time a region is generated while a saved audience is
+    written once and frozen.
+
+    So a buy could only ever reach people who had already won a seat in a
+    selection made BEFORE they existed. Measured through the app the day it
+    first mattered: after appending a 45-60/tier-3 region, a 45-60/tier-3 buy
+    reported reaching **1 of 1** consumer types, while the same buy over the
+    real library reached **7 of 50**.
+
+    ⚠ This is the whole point of an accumulating population — `--append` and
+    `_merge` in `install_generated_audience.py` exist so a brand's population
+    is the union of every region anyone has bought against. A frozen seat list
+    silently undoes that.
+    """
+    entities = world / "runs" / "demo" / BRAND / "entities"
+    library = DispositionLibrary.from_dict(
+        json.loads((entities / "library.json").read_text()))
+
+    # Shrink the SAVED AUDIENCE to one seat, leaving the library untouched —
+    # exactly the shape a freshly appended region produces.
+    audience_path = next((entities / "audiences").glob("*.json"))
+    saved = json.loads(audience_path.read_text())
+    kept = saved["spec"]["disposition_labels"][0]
+    saved["spec"]["disposition_labels"] = [kept]
+    audience_path.write_text(json.dumps(saved))
+
+    brand = _brand(world)
+    assert len(brand.dispositions) == len(library.dispositions), (
+        f"the brand offers {len(brand.dispositions)} consumer types but its "
+        f"library holds {len(library.dispositions)} — the saved audience is "
+        "capping the population again, and every region generated after it "
+        "was written is unreachable")
+
+    # ⚠ POSITIVE CONTROL, AND IT IS THE SHARP ONE: a buy must be able to seat
+    # a type the saved audience NEVER NAMED. A bigger pool that still cannot
+    # reach past the frozen list would satisfy the count assertion above and
+    # fix nothing. The buy is deliberately wide — the fixture's default answers
+    # reach exactly one of its three types on demographics alone, so a narrow
+    # buy could not tell the two failures apart.
+    parsed = audience_form.parse({**ANSWERS, "age_from": "18", "age_to": "75",
+                                  "gender": "any", "income": "0:100",
+                                  "geography": "all india"})
+    spec = audience_form.build_spec(brand.template, parsed, brand.dispositions)
+    assert len(spec.disposition_labels) > 1, (
+        "the buy still seats only the one type the saved audience named, so "
+        "widening the pool changed nothing that reaches a panel")
+    assert set(spec.disposition_labels) - {kept}, (
+        f"every seated type came from the saved audience's frozen list "
+        f"({kept!r}) — a region installed after that list was written is "
+        "still unreachable")
+
+
+def test_a_saved_audience_naming_a_missing_type_is_still_refused(world: Path):
+    """⚠ NEGATIVE CONTROL for the widening above.
+
+    The resolve of the saved audience's labels is still performed — it is just
+    discarded afterwards. It is the check that keeps a brand whose audience
+    names a dropped type OUT of the picker, because that combination dies
+    inside `RunService.prepare`, after the creative is uploaded. Widening the
+    pool must not have quietly deleted that guard.
+    """
+    entities = world / "runs" / "demo" / BRAND / "entities"
+    audience_path = next((entities / "audiences").glob("*.json"))
+    saved = json.loads(audience_path.read_text())
+    saved["spec"]["disposition_labels"] = ["a_type_that_was_dropped"]
+    audience_path.write_text(json.dumps(saved))
+
+    assert not discover_brands(world / "runs", account="demo"), (
+        "a brand whose saved audience names a type its library does not hold "
+        "is being offered — that fails after the upload, inside prepare")
