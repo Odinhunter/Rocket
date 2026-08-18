@@ -9,8 +9,14 @@ Mtok, two cache writes because two runs). Criterion pre-registered before the ru
 ## ⚠⚠ THE VERDICT: INCONCLUSIVE — NOT A REFUTATION
 
 Against the pre-registered criterion the beverage arm **fails all three checks.** But the
-kill-switch did **not** fire, because **the trigger was never connected**: the beverages were
-added to the pack, and *the pack is not where a persona's incumbent comes from.*
+kill-switch did **not** fire. **Three explanations compete, and the third is the strongest:**
+
+1. **The pack is the wrong lever** — incumbents come from the grid, not the pack (below).
+2. **The design claim is weak** — the lines were in the prompt and went unused (below).
+3. ⭐⭐ **THE TEST CELL WAS WRONG** — at this moment, for this population, tea is a **complement,
+   not a competitor**, so no substitution exists to detect. **100% of tea mentions in both arms
+   are companion-framed.** ⚠ **The user caught this; see below. It is the most parsimonious
+   reading and it is directly visible in the output.**
 
 ⚠ **Do NOT record this as "beverages don't change the people."** That claim is not tested here.
 
@@ -80,6 +86,58 @@ pack was never what decided it.**
 
 ---
 
+## ⚠⚠ THE USER'S CATCH, 2026-08-19 — AND IT OUTRANKS BOTH READINGS ABOVE
+
+**They asked: "whom did you test this with — it might just be that they don't drink as many
+beverages."** ⭐⭐ **They are right, in a sharper way than the question puts it: this population
+drinks enormous amounts of tea, but AT THIS MOMENT THE TEA IS NOT A CHOICE.**
+
+⭐ **Measured, and it is unanimous: 100% of tea mentions in BOTH arms are companion-framed.**
+Every one, without exception:
+
+> *"wants tea to have something **with** it"* · *"knows which biscuit **softens in tea**"* ·
+> *"the same tea **and** the same two biscuits"* · *"the afternoon tea **and something to dip**"* ·
+> *"ate three **with** tea"* · *"the doctor said cut the sweet, **not the tea**"* ·
+> *"kept in the steel dabba for the week's four o'clock tea"*
+
+**Not one persona in sixteen treats tea as an alternative to the snack.** The tea is the fixed
+ritual; the snack is the only variable. ⚠ **No substitution can be detected where none exists** —
+so the criterion was looking for a behaviour this cell cannot produce.
+
+### ⭐ Only two of the seven added brands were ever candidates here
+
+| added | fit to women 45-60, tier-3, at 4pm |
+|---|---|
+| Tata Tea, Red Label | ⭐ **highly relevant** — ₹120-125 a 250g packet, bought monthly, completely ordinary. **But a complement at this moment, not a competitor** |
+| Nescafé (₹230/50g), Bru | ❌ **wrong population.** Median household here is **₹3.0-3.2 lakh/yr**; the pragmatist's entire snack spend is ₹10-20 three or four times a week. A ₹230 coffee jar is weeks of it. Coffee also skews southern and metro |
+| Horlicks (₹264), Bournvita, Boost | ❌ **wrong moment.** Malted milk is a bedtime, children's and convalescent drink — not a 4pm-dip item |
+
+⭐ **THE MODEL WAS ARGUABLY RIGHT TO IGNORE FIVE OF THE SEVEN**, and to treat the other two as
+the substrate rather than the choice.
+
+### ⚠⚠ SO THE TEST CELL WAS WRONG, AND THAT IS THE LIKELIEST EXPLANATION OF ALL
+
+`desk_slump_4pm × women 45-60 tier-3` is close to the **worst** cell in the grid for detecting
+beverage-snack substitution, not the best. It was chosen because the design doc says *"chai wins
+the 4pm dip in India more often than any biscuit"* — but ⚠ **that sentence describes a metro
+office worker choosing chai INSTEAD of a snack. It does not describe a tier-3 homemaker who has
+chai every day at 4pm regardless and decides only what goes with it.**
+
+⚠ **AND THE PRE-REGISTRATION MISSED IT.** It listed limits about occasion-generality, sample
+size and one-pack-pair — and never asked **whether this population could produce the behaviour
+the criterion looks for.** ⭐ **Generalise: a pre-registered criterion is only as good as the
+question "can the sample physically exhibit this?"** Same defect class as
+`a_probe_is_not_an_audience` — validating something the sample was never able to show.
+
+### ⭐ One real signal that WAS under-reported
+
+The beverage arm's loyalist buys *"**the tea packet monthly at the kirana** and a small biscuit
+pack every few days"*; the control's loyalist buys *"the ₹40 Marie Gold pack and a ₹10 Parle-G"*.
+**One of eight types did shift its purchase pattern to carry a beverage staple** — unbranded, and
+still a complement, but not nothing. ⚠ At n=8 it is one line, not a finding.
+
+---
+
 ## ⚠ THE HONEST COUNTER-READING, WHICH THIS TEST CANNOT RULE OUT
 
 The 13 beverage lines **were** in the prompt — verified in the dry-run diff before spending. The
@@ -96,7 +154,15 @@ this inconclusive rather than negative — but it is a reason, not a measurement
 
 ## What the corrected test is
 
-Move the beverages into the layer that decides, and change **only** that:
+⚠⚠ **CHANGE THE CELL FIRST — IT IS CHEAPER AND MORE DECISIVE THAN CHANGING THE LEVER.** Re-run
+the same two arms at **`--occasion breakfast_on_the_run`**, same region, ~$0.57. ⭐ That moment's
+`competes_with` **already names beverage-as-substitute in the grid text** — *"toast, poha,
+cereal, a bought sandwich, **coffee alone**, skipping"* — so substitution is a behaviour the cell
+can actually produce, and only ONE variable moves from this run. ⭐ A metro region at
+`desk_slump_4pm` is the other candidate — it tests the design doc's claim about the person the
+claim is actually about — but it moves the region instead, so run one or the other, not both.
+
+**Then, only if that is also null,** move the beverages into the layer that decides:
 
 1. add branded, priced beverages to `everyday_alternatives` — *"Tata Tea / Red Label — ₹120-₹125
    the 250g packet, made at home; the 4pm tea is the fixed point and the snack is what goes
