@@ -813,10 +813,30 @@ def _grid_brief(grid: dict) -> str:
     return "\n".join(out)
 
 
-def _cells(grid: dict, n: int) -> list[tuple[str, str]]:
+def _cells(grid: dict, n: int, occasion: str | None = None) -> list[tuple[str, str]]:
     """Walk occasions x stances so consecutive batches spread across the grid
     rather than exhausting one occasion first — a batch of five siblings from
-    one occasion is exactly how near-duplicates get written."""
+    one occasion is exactly how near-duplicates get written.
+
+    ⭐ `occasion` PINS ONE MOMENT AND WALKS THE STANCES INSIDE IT, which the
+    occasion-major walk above cannot express at any count. Added 2026-08-19 for
+    the F&B part-A test, which needs ONE moment across ALL EIGHT stances.
+
+    ⚠⚠ THE DEFECT THIS EXISTS TO FIX HAS BITTEN TWICE. Because the default walk
+    is occasion-MAJOR, `--count 8` against an 8x8 grid returns eight different
+    occasions all at `loyalist` — the first stance, eight times. That is
+    precisely how the 2026-08-19 probe came back as 8 loyalists + 2 switchers
+    and was then installed as an "audience" that could not disagree with
+    itself. A partial count is not a sample of the grid; it is the first
+    column of it.
+
+    ⚠ With `occasion` set there are only `len(stances)` cells in the space, so
+    a larger `n` would cycle and emit duplicate coordinates. The caller is
+    responsible for capping n — `main` does, and refuses rather than truncating
+    silently.
+    """
+    if occasion is not None:
+        return [(occasion, s) for s in grid["stances"]][:n]
     occ = [o["key"] for o in grid["occasions"]]
     out = []
     i = 0
@@ -1153,13 +1173,26 @@ def _generate(client, tool, grid, pack, cells: list[tuple[str, str]],
     return produced
 
 
-def _full_grid(grid: dict) -> list[tuple[str, str]]:
+def _full_grid(grid: dict, occasion: str | None = None) -> list[tuple[str, str]]:
     """Every cell in the grid. `_cells(grid, n)` walks the same space but stops
     at n, and because it walks OCCASION-MAJOR a partial count is not a random
     sample — `--count 40` against an 8x8 grid asks for the first five stances
     across all eight occasions and never mentions the last three at all. That
     is why the v2 file has no purist, pragmatist or gifter: they were not
-    generated badly, they were never requested."""
+    generated badly, they were never requested.
+
+    ⚠⚠ `occasion` IS NOT COSMETIC HERE — IT IS THE GUARD ON A ~$1.40 MISTAKE.
+    A file generated with `--occasion` holds one moment's 8 cells. Without this
+    parameter a later `--fill` on that file would compute a 64-cell target,
+    find 56 "missing", and buy the other seven moments — turning a $0.15
+    single-moment artifact into a full region nobody asked for, silently, and
+    breaking the part-A comparison it existed to serve. The restriction is
+    persisted in the payload precisely so the fill path can read it back;
+    `saved_region` already sets the precedent that the FILE, not the flags,
+    is the authority on what a saved run is.
+    """
+    if occasion is not None:
+        return [(occasion, s) for s in grid["stances"]]
     return [(o["key"], s) for s in grid["stances"] for o in grid["occasions"]]
 
 
@@ -1204,6 +1237,11 @@ def main() -> None:
     ap.add_argument("--from-raw", metavar="PATH",
                     help="re-convert a saved raw file without paying again")
     ap.add_argument("--market", default="snacking", choices=sorted(GRIDS))
+    ap.add_argument("--occasion", default=None, metavar="KEY",
+                    help="pin ONE moment and walk every stance inside it, "
+                         "instead of the default occasion-major walk across "
+                         "the whole grid. Without this, --count 8 returns "
+                         "eight occasions all at the FIRST stance.")
     ap.add_argument("--category", default="health_wellness_nutrition")
     # ⚠ Both default to None so `--fill` can mean something different by
     # DEFAULT than a fresh run without changing what a fresh run does: a fresh
@@ -1281,18 +1319,28 @@ def main() -> None:
                 + str(p))
 
         keep, drop = _triage(raw)
-        target = _cells(grid, args.count) if args.count else _full_grid(grid)
+        # ⚠⚠ THE RESTRICTION COMES FROM THE FILE, NEVER FROM THE FLAGS — the
+        # same rule `saved_region` follows one line up. A file generated with
+        # --occasion holds ONE moment; without this its fill would target all
+        # 64 cells, find 56 missing and buy seven moments nobody asked for.
+        saved_occasion = payload.get("occasion")
+        target = (_cells(grid, args.count, saved_occasion) if args.count
+                  else _full_grid(grid, saved_occasion))
         have = {(t["occasion"], t["stance"]) for t in keep}
         # ⚠ A CELL ALREADY REFUSED IS SETTLED, NOT MISSING. Re-asking it on every
         # fill would grind the model down until it invented the person it had
         # already said does not exist in this region.
         have |= {(r["occasion"], r["stance"]) for r in prior_refusals}
         todo = [c for c in target if c not in have]
-        n_cells = len(grid["occasions"]) * len(grid["stances"])
+        n_cells = (len(grid["stances"]) if saved_occasion
+                   else len(grid["occasions"]) * len(grid["stances"]))
 
         print(f"market      : {grid['market']}")
         print(f"grid        : {len(grid['occasions'])} occasions x "
               f"{len(grid['stances'])} stances = {n_cells} cells")
+        if saved_occasion:
+            print(f"occasion    : {saved_occasion} — PINNED BY THE FILE, so a "
+                  f"fill targets {n_cells} cells, not the whole grid")
         print(f"region      : {region.brief()}")
         print(f"pack        : {payload['category']} ({len(pack.brand_landscape)} brands)")
         print(f"on file     : {len(raw)} types — {len(keep)} usable, "
@@ -1421,12 +1469,39 @@ def main() -> None:
 
     grid = GRIDS[args.market]
     pack = load_pack(args.category)
-    count = args.count if args.count else 40
-    cells = _cells(grid, count)
+
+    # ⚠ VALIDATE THE OCCASION AGAINST THE GRID BEFORE ANYTHING ELSE. A typo
+    # would otherwise produce a file of 8 types whose `occasion` matches no
+    # cell in the grid — well-formed, gate-passing, and unfillable and
+    # unmergeable forever after.
+    if args.occasion is not None:
+        keys = [o["key"] for o in grid["occasions"]]
+        if args.occasion not in keys:
+            raise SystemExit(
+                f"no occasion {args.occasion!r} in the {args.market!r} grid.\n"
+                f"  choose one of: {', '.join(keys)}")
+
+    # ⚠ THE DEFAULT COUNT DEPENDS ON THE SPACE BEING WALKED. Pinning one
+    # occasion leaves only len(stances) distinct cells, so the usual default of
+    # 40 would cycle the stance list five times and ask for 40 types at 8
+    # coordinates — every one after the eighth a duplicate that `_triage` would
+    # then drop as a DUPLICATE coordinate, after it had been paid for.
+    n_available = len(grid["stances"]) if args.occasion else None
+    count = args.count if args.count else (n_available or 40)
+    if args.occasion and count > n_available:
+        raise SystemExit(
+            f"--occasion {args.occasion} has only {n_available} cells (one per "
+            f"stance) but --count is {count}.\n"
+            f"  Asking for more would emit duplicate coordinates and pay for "
+            f"them. Drop --count, or set it to {n_available} or fewer.")
+    cells = _cells(grid, count, args.occasion)
     batches = [cells[i:i + _PER_BATCH] for i in range(0, len(cells), _PER_BATCH)]
 
     print(f"market      : {grid['market']}")
     print(f"grid        : {len(grid['occasions'])} occasions x {len(grid['stances'])} stances")
+    if args.occasion:
+        print(f"occasion    : {args.occasion} — PINNED, walking all "
+              f"{len(grid['stances'])} stances inside it")
     print(f"region      : {cli_region.brief()}")
     print(f"generating  : {count} buyer types in {len(batches)} batches of {_PER_BATCH}")
     print(f"model       : {MODEL}")
@@ -1465,8 +1540,12 @@ def main() -> None:
     # a crash leaves a partial file that `--fill` resumes for the cost of the
     # REMAINING cells only.
     out = Path(args.out) if args.out else Path("generated_audience.json")
+    # ⚠ `occasion` IS PERSISTED SO --fill CANNOT LATER BUY THE REST OF THE GRID.
+    # See `_full_grid`. It is written even when None, so a reader can tell "no
+    # restriction" from "written by a version that did not record one".
     payload = {"market": args.market, "category": args.category,
-               "grid": grid, "region": asdict(cli_region),
+               "grid": grid, "occasion": args.occasion,
+               "region": asdict(cli_region),
                "raw": done, "refusals": refusals}
 
     def _checkpoint() -> None:

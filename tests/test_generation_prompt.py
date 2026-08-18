@@ -37,7 +37,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts
 
 from agent.artifact_pack import load_pack                      # noqa: E402
 from generate_audience import (                                # noqa: E402
-    GRIDS, Region, _build, _cells, _tool,
+    GRIDS, Region, _build, _cells, _full_grid, _tool,
 )
 
 GRID = GRIDS["snacking"]
@@ -373,3 +373,60 @@ def test_the_unpaid_classifier_catches_the_phrasings_the_probe_produced():
                 "sorts and bags chilli at a small spice unit, six days a week",
                 "cooks and cleans in two houses in the officers' colony"):
         assert not demo.looks_unpaid(job), f"a paid job now reads as unpaid: {job!r}"
+
+
+# ---- pinning ONE moment across every stance ----------------------------
+#
+# ⚠⚠ THE DEFECT THESE PIN HAS BITTEN TWICE AND COST A PROBE. The default walk
+# is occasion-MAJOR, so a partial `--count` is the FIRST COLUMN of the grid,
+# not a sample of it: `--count 8` against 8x8 returns eight occasions all at
+# `loyalist`. That is exactly how the 2026-08-19 probe came back 8 loyalists +
+# 2 switchers and was installed as an "audience" that could not disagree with
+# itself. The F&B part-A test needs the opposite shape — ONE moment, ALL eight
+# stances — which the old signature could not express at any count.
+
+def test_the_default_walk_really_does_return_one_stance_eight_times():
+    """The negative control, and it must keep failing to be worth anything.
+
+    If this ever stops being true the --occasion flag is solving a problem
+    that no longer exists, and the two tests below would pass vacuously.
+    """
+    cells = _cells(GRID, 8)
+    assert len({o for o, _ in cells}) == 8, "the default walk stopped spreading across occasions"
+    assert len({s for _, s in cells}) == 1, (
+        "the occasion-major walk no longer collapses to one stance — if this "
+        "was fixed at the source, --occasion may be redundant")
+
+
+def test_pinning_an_occasion_walks_every_stance_inside_it():
+    cells = _cells(GRID, len(GRID["stances"]), "desk_slump_4pm")
+    assert {o for o, _ in cells} == {"desk_slump_4pm"}, "a pinned run left its moment"
+    assert [s for _, s in cells] == GRID["stances"], (
+        "a pinned run did not ask for every stance — the whole point is that "
+        "the disagreement lives in the stance column")
+
+
+def test_a_pinned_fill_targets_one_moment_not_the_whole_grid():
+    """⚠ THE ~$1.40 GUARD. A file generated with --occasion holds one moment's
+    8 cells. If `_full_grid` ignored the restriction, a later --fill would
+    compute a 64-cell target, find 56 missing and buy seven moments nobody
+    asked for — silently, and destroying the part-A comparison in the process.
+    """
+    assert len(_full_grid(GRID)) == 64, "the unpinned grid is no longer 8x8"
+    pinned = _full_grid(GRID, "desk_slump_4pm")
+    assert len(pinned) == len(GRID["stances"]), (
+        f"a pinned fill targets {len(pinned)} cells — it is about to buy the "
+        "rest of the grid")
+    assert {o for o, _ in pinned} == {"desk_slump_4pm"}
+
+
+def test_a_pinned_run_cannot_be_asked_for_more_cells_than_it_has():
+    """Asking for 40 types at 8 coordinates emits duplicates, and `_triage`
+    would only drop them AFTER they had been paid for. `_cells` truncates
+    rather than cycling; `main` refuses outright.
+    """
+    cells = _cells(GRID, 40, "desk_slump_4pm")
+    assert len(cells) == len(GRID["stances"]), (
+        "a pinned walk cycled past its own cell count and is emitting "
+        "duplicate coordinates")
+    assert len(set(cells)) == len(cells), "a pinned walk emitted a duplicate coordinate"
