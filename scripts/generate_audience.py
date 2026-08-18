@@ -386,7 +386,15 @@ def _tool(grid: dict) -> dict:
                                                "45-54 on ₹4-8L'. Every one of them must fall "
                                                "inside the declared region. Vary them within "
                                                "it: different ages, different cities, different "
-                                               "work.",
+                                               "work. ⚠ AND VARY WHAT THEY LACK, not only what "
+                                               "they have. Across the people you write, the "
+                                               "region's population figures should be visible: "
+                                               "some with no paid work, some with no spouse, "
+                                               "some with four children and some with none, "
+                                               "some doing manual or farm work. Writing every "
+                                               "one of them employed, married and comfortable "
+                                               "is the measured failure of this field — see "
+                                               "rule 6.",
                                 "items": {
                                     "type": "object",
                                     "additionalProperties": False,
@@ -404,15 +412,59 @@ def _tool(grid: dict) -> dict:
                                             "description": "This person's age, in years. "
                                                            "Not a range.",
                                         },
+                                        # ⚠ THE FLOOR GOES MISSING BEFORE THE
+                                        # JOBS DO. In the audited region the
+                                        # median household sat at ₹5.5L and
+                                        # almost nobody was near the bottom —
+                                        # and the manual, farm and domestic
+                                        # workers were missing in exactly the
+                                        # same proportion. The two failures are
+                                        # one: an income band that never goes
+                                        # low cannot hold the people who do
+                                        # that work. ⚠ NO SOURCED INCOME
+                                        # DISTRIBUTION EXISTS ON DISK — NFHS
+                                        # publishes wealth quintiles, not
+                                        # rupees — so this states the
+                                        # CONSTRAINT and invents no number.
                                         "income_lpa": {
                                             "type": "number",
-                                            "description": "This person's annual household "
+                                            "description": "This person's annual HOUSEHOLD "
                                                            "income in lakhs. Not a range. A "
-                                                           "real figure, e.g. 5.4.",
+                                                           "real figure, e.g. 5.4. ⚠ Use the "
+                                                           "whole width the region allows, "
+                                                           "including the bottom of it. A woman "
+                                                           "who packs at a spice unit and a "
+                                                           "woman who runs a bank back-office "
+                                                           "team do not live in the same "
+                                                           "household income — so if these "
+                                                           "figures all cluster in one "
+                                                           "comfortable band, the manual and "
+                                                           "farm work you were asked for has "
+                                                           "quietly disappeared along with "
+                                                           "them.",
                                         },
+                                        # ⚠ THE TIER WORD WAS NOISE, MEASURED.
+                                        # In the audited region 12 people lived
+                                        # in a "tier-3 city" and 180 in a
+                                        # "tier-3 town" — and all eight of
+                                        # those "cities" appear as "towns"
+                                        # elsewhere in the same file. A label
+                                        # that flips at random on the same
+                                        # place is worse than no label: it
+                                        # reads as a real distinction.
                                         "geography": {
                                             "type": "string",
-                                            "description": "City / tier, e.g. 'Indore / tier-2 city'",
+                                            "description": "City and tier, e.g. 'Indore / "
+                                                           "tier-2'. ⚠ Use the tier the region "
+                                                           "declares, spelled exactly "
+                                                           "'tier-1'/'tier-2'/'tier-3', and do "
+                                                           "not add 'city' or 'town' after it — "
+                                                           "the same place was labelled both "
+                                                           "ways in one file. Real places only, "
+                                                           "and sized to the tier. Spread them: "
+                                                           "no two people in a batch from the "
+                                                           "same town, and never two people who "
+                                                           "share both a town and an age.",
                                         },
                                         # ⚠ THE FIELD KEY STAYS `occupation_hint`.
                                         # It is a real field on `DemographicPoint`,
@@ -429,14 +481,50 @@ def _tool(grid: dict) -> dict:
                                                            "and specifically — not necessarily a "
                                                            "paid job. A real contemporary Indian "
                                                            "occupation is right when they hold "
-                                                           "one; so is 'runs the house — cooking, "
-                                                           "the grandchildren after school, and "
-                                                           "the Tuesday temple committee', or "
-                                                           "'helps at her husband's hardware shop "
-                                                           "in the afternoons, takes no salary', "
-                                                           "or 'retired from the state transport "
-                                                           "depot, now does the morning market "
-                                                           "run'. Never a generic label. ⚠ It "
+                                                           # ⚠ THREE EXEMPLARS, EACH DEMONSTRATING
+                                                           # A SHAPE THIS FIELD GOT WRONG, AND
+                                                           # NONE OF THEM REPEATED ANYWHERE ELSE
+                                                           # IN THE PROMPT. The old set repeated
+                                                           # `demography.brief`'s line verbatim
+                                                           # and named a family shop that came
+                                                           # back as 8% of the panel. ⚠ The third
+                                                           # one used to read "retired from the
+                                                           # state transport depot, NOW DOES THE
+                                                           # MORNING MARKET RUN" — the prompt was
+                                                           # demonstrating the exact defect the
+                                                           # audit found, a retiree who is
+                                                           # immediately given a second
+                                                           # occupation. Eleven of twelve retired
+                                                           # people came back re-employed.
+                                                           # ⚠ THE PAID-MANUAL EXEMPLAR WAS
+                                                           # REMOVED 2026-08-19 ON ITS OWN
+                                                           # EVIDENCE. It read "packs and seals at
+                                                           # a spice unit on the edge of town" and
+                                                           # the probe run came back with TWO of
+                                                           # its thirty women at a spice unit —
+                                                           # 6.7%, from a single mention, in the
+                                                           # same session that removed the last
+                                                           # menu for the same reason. The
+                                                           # industry spread in the population
+                                                           # brief now names manual work as a
+                                                           # CLASS with a percentage, and the
+                                                           # probe drew a rice mill, a paper-bag
+                                                           # piece rate, an orange orchard and a
+                                                           # court-sweeping job out of it without
+                                                           # any exemplar at all. ⭐ So the two
+                                                           # that remain are the two the table
+                                                           # cannot express: unpaid family work,
+                                                           # and a retirement that actually ends.
+                                                           "one; so is 'works unpaid in the "
+                                                           "family's trade and would not call it "
+                                                           "a job — takes no salary from it', or "
+                                                           "'retired from the municipal school "
+                                                           "two years ago and has not worked "
+                                                           "since'. ⚠ Those are SHAPES, not a "
+                                                           "menu — do not lift the trades. Take "
+                                                           "the kind of work from the region's "
+                                                           "spread and invent the specific job "
+                                                           "inside it. Never a generic label. ⚠ It "
                                                            "MUST fit THIS person's age. It need "
                                                            "NOT be what earns the household its "
                                                            "income — that figure is the "
@@ -449,9 +537,59 @@ def _tool(grid: dict) -> dict:
                                                            "NO income word, NO product, NO "
                                                            "opinion about the category.",
                                         },
+                                        # ⚠ THE FIELD THAT WAS SPECIFIED IN
+                                        # TWENTY-THREE CHARACTERS — "ONE
+                                        # household detail. Same bans." — while
+                                        # `occupation_hint` beside it carried
+                                        # seven hundred. Everything the audit of
+                                        # 2026-08-18 found in family life
+                                        # followed from that asymmetry: a
+                                        # median age at first birth of 28-31
+                                        # against a real 21.7, one-child
+                                        # families at 28% against a real 9%,
+                                        # widows at 1% against a real 11.5%,
+                                        # and two arithmetically impossible
+                                        # grandmothers. The field description
+                                        # IS the spec — see the trap note about
+                                        # `occupation_hint` being described as
+                                        # "The job".
                                         "household_hint": {
                                             "type": "string",
-                                            "description": "ONE household detail. Same bans.",
+                                            "description": "ONE household detail: who is in "
+                                                           "the house with this person, or who "
+                                                           "is missing from it. A husband who "
+                                                           "works away, a mother-in-law who "
+                                                           "needs help, a daughter who has "
+                                                           "married out, a son looking for work, "
+                                                           "nobody at all between eight and six. "
+                                                           "⚠⚠ DO THE ARITHMETIC BEFORE YOU "
+                                                           "WRITE IT — this is the single most "
+                                                           "common error in this field. Every "
+                                                           "relative you name has an age implied "
+                                                           "by their life stage, and it must "
+                                                           "work against THIS person's age. "
+                                                           "Subtract: her age minus the child's "
+                                                           "age is how old she was when she had "
+                                                           "them, and the population figures say "
+                                                           "what that number usually is. A "
+                                                           "49-year-old with a grandchild in "
+                                                           "school needs to have given birth at "
+                                                           "16 AND her daughter at 17 — so "
+                                                           "either that grandchild is a toddler "
+                                                           "or this woman is older. A "
+                                                           "55-year-old whose son is sitting "
+                                                           "police recruitment had him at 33, "
+                                                           "which is possible but is not the "
+                                                           "median and must not be the default. "
+                                                           "⚠ Retirement is arithmetic too: "
+                                                           "government, bank and school service "
+                                                           "runs to the late fifties or sixty, "
+                                                           "so nobody is retired at 52 and a "
+                                                           "57-year-old is not 'ten years from "
+                                                           "retirement'. ⚠ Same bans as "
+                                                           "occupation_hint: NO ₹ figure, NO "
+                                                           "income word, NO product, NO brand, "
+                                                           "NO opinion about the category.",
                                         },
                                         "weight": {"type": "number"},
                                     },
@@ -519,7 +657,8 @@ stances were scaled across a hundred slots. Two buyers who would react the same 
 way to the same ad are one buyer, however different their jobs and cities are. \
 Difference of OPINION is the product; difference of biography is decoration.
 
-FIVE RULES, and the third is the one people get wrong.
+SIX RULES. The third is the one people get wrong; the sixth is the one \
+this generator has failed three separate times.
 
 1. AIM AT THE TOP 20% OF A COHORT, NEVER THE TOP 0.1%. An engaged buyer watches \
 one review video and reads three Amazon reviews. She does not keep a comparison \
@@ -564,6 +703,38 @@ tell you why someone picked the chocolate bar instead.
 write a second version of a type that already exists — you will be shown every \
 type written so far, and a near-duplicate is a wasted slot.
 
+6. WRITE ABSENCE. ⚠⚠ THE FAILURE THIS GENERATOR HAS NOW MADE THREE TIMES, AND \
+IT IS ONE FAILURE IN THREE COSTUMES. Asked for a region of 194 women it gave \
+193 of them a paid job, and it re-employed eleven of the twelve people it \
+retired. Being told the real participation rate fixed the first of those — the \
+next file had 71 of 192 running households instead of 1 of 194 — and the \
+defect simply moved: that same corrected file gave 190 of its 192 women a \
+living husband, in a population where one in nine that age is a widow. It \
+writes widowed sisters, jobless brothers-in-law and bedridden fathers without \
+hesitation. So it is not that it cannot imagine absence — it cannot give \
+absence to the person the type is ABOUT, and fixing one face of that just \
+relocates it to the next.
+
+Some of these people have no job. Some have no income of their own. Some have \
+no spouse — never married, or widowed, or he works in another city. Some have \
+no children, and some have four. Some have nobody at home during the day and \
+some cannot leave the house alone. The population figures below carry the \
+proportion for each of those in THIS region; they are not a garnish and they \
+are not sad exceptions, they are the ordinary spread of a real population.
+
+⚠ SHOW EACH ABSENCE THROUGH WHAT THE PERSON DOES OR WHO IS THERE, NEVER \
+THROUGH A MONEY WORD. The hint fields are checked for income language and the \
+words "income", "earns", "salary" and "affluent" will fail the file — see the \
+ban at the foot of this brief. So: "has never worked outside the house", not \
+"has no income"; "her husband died four years ago and the shop went with him", \
+not "lost the household earnings". The absence is a fact about her life, and \
+writing it as a fact about her money is both a gate failure and a worse line.
+
+⚠ AND THE REASON IT MATTERS FOR AN AD, not just for realism: a panel in which \
+everyone has a job, an income, a husband and one convenient child is a panel of \
+the comfortable half. It has no one for whom ₹80 is a real decision, and it \
+will find almost any ad acceptable. Absence is where disagreement comes from.
+
 ON WHO THESE PEOPLE ARE: the anchor lines carry NO demographics. No age, no \
 city, no job, no income, no gendered pronoun. Those live in the bundles, which \
 is a separate layer the engine cross-products against the anchor. A biography \
@@ -581,22 +752,27 @@ people, women who earn a little from home and would not call it a job — these 
 are the majority of some regions and they are people, not a diversity garnish. \
 The population figures below tell you the real proportion for THIS region. Hit \
 it.
-- REAL AND CURRENT. Where there IS a job, the jobs Indians actually hold in \
-2026, across the whole economy — and the whole economy is mostly not salaried. \
-Running a shop, tailoring at home, a tiffin or catering setup, tuition, a \
-beauty parlour, dairy or a bit of land, contract and commission work, gig \
-delivery, sales, teaching, nursing, logistics, government, retail, banking \
-operations, hospitality, lab technician, civil services prep. Two monocultures \
-fail here: five variations on "software engineer", and the quieter one where \
-everybody has an employer.
+- REAL AND CURRENT, AND SPREAD ACROSS THE WHOLE ECONOMY. Where there IS a job, \
+the jobs Indians actually hold in 2026 — and the whole economy is mostly not \
+salaried. ⚠ THIS PROMPT USED TO LIST FIFTEEN TRADES HERE AND THE LIST IS GONE \
+ON PURPOSE. Measured: six of those nouns came back as 49% of the people, and \
+ten jobs covered 69% of a 192-person panel whose job strings were all \
+different. An illustrative list is read as a menu. The population figures \
+below give you the real spread BY KIND OF WORK instead — manual and production, \
+services, selling, farm, professional, clerical, with a percentage on each. \
+Work from those proportions and invent the specific job inside the class. \
+Three monocultures fail here: five variations on "software engineer"; the \
+quieter one where everybody has an employer; and the quietest one, where \
+everybody runs a small respectable business of their own and nobody works a \
+shift, a site or a field.
 - SIZED TO THE PERSON. It must be plausible at THIS person's exact age. It need \
 not explain the household's income — somebody else in the house may be earning \
 it, and for a homemaker somebody else usually is.
-- SPECIFIC WITHOUT BEING A CV. "back-office operations team lead at a bank" is \
-right, and so is "runs the house; her afternoons go to the two grandchildren \
-and the RWA committee". "professional" is empty; "housewife" alone is nearly \
-empty — say what the day actually contains. "VP of Global Payments \
-Infrastructure" is a LinkedIn headline. One clause, the day and its setting.
+- SPECIFIC WITHOUT BEING A CV. This is a CONTRAST, not a menu — do not lift \
+the words. "professional" is empty. "housewife" alone is nearly empty. "VP of \
+Global Payments Infrastructure" is a LinkedIn headline. "back-office \
+operations team lead at a bank" is right, because it says what the day \
+contains and where. One clause, the day and its setting.
 
 ⚠ INCOME NEVER APPEARS IN A HINT. Not a ₹ figure, not "affluent", not \
 "budget-conscious". The occupation and household hints reach the persona writer \
@@ -1261,7 +1437,13 @@ def main() -> None:
         print("\n" + "=" * 70)
         print(system[0]["text"])
         print("-" * 70)
-        print(system[1]["text"][:2000] + "\n  ...")
+        # ⚠ WHOLE, NOT TRUNCATED. This used to print the first 2000
+        # characters — a habit from when the prompt was short and the block was
+        # mostly the pack. The population brief that fixes the audit's eight
+        # defects sits at the END of this block, so a truncated dry-run showed
+        # everything except the part being reviewed. Reviewing the prompt
+        # before spending is the entire purpose of this flag.
+        print(system[1]["text"])
         print("-" * 70)
         print(user)
         print("=" * 70)

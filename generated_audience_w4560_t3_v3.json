@@ -1,0 +1,1143 @@
+{
+  "market": "snacking",
+  "category": "health_wellness_nutrition",
+  "grid": {
+    "market": "Indian urban snacking and nutrition",
+    "occasions": [
+      {
+        "key": "desk_slump_4pm",
+        "moment": "the 4pm dip at a desk — hungry, flagging, two hours from dinner",
+        "competes_with": "biscuits from the office jar, a chocolate bar, samosa/vada from the canteen, chai, a banana, or skipping it entirely",
+        "decided_by": "speed, taste, what is within arm's reach, mild guilt",
+        "channel": "office pantry, vending machine, the desk drawer stocked on Blinkit"
+      },
+      {
+        "key": "late_night_craving",
+        "moment": "11pm, scrolling in bed, wants something sweet",
+        "competes_with": "chocolate, ice cream, leftover mithai, biscuits, nothing",
+        "decided_by": "craving, what is in the fridge, 10-minute delivery",
+        "channel": "Blinkit / Zepto / Instamart, the kitchen cupboard"
+      },
+      {
+        "key": "post_workout",
+        "moment": "straight after the gym, 45 minutes before a proper meal",
+        "competes_with": "a whey shake, eggs, a banana, dal-chawal at home, nothing",
+        "decided_by": "protein per serving, habit, what the trainer said",
+        "channel": "gym counter, HealthKart, Amazon, the gym bag"
+      },
+      {
+        "key": "breakfast_on_the_run",
+        "moment": "leaving the house late, will not sit down to eat",
+        "competes_with": "toast, poha, cereal, a bought sandwich, coffee alone, skipping",
+        "decided_by": "one hand, no crumbs, keeps until 11am",
+        "channel": "kitchen counter, the metro station kiosk, monthly grocery order"
+      },
+      {
+        "key": "guilt_free_treat",
+        "moment": "a weekend or a bad day — wants a treat but not to feel bad about it",
+        "competes_with": "dark chocolate, a 'healthy' dessert, regular chocolate anyway, fruit",
+        "decided_by": "permission — whether it reads as a treat or as a compromise",
+        "channel": "quick commerce, the supermarket aisle, a cafe"
+      },
+      {
+        "key": "travel_and_commute",
+        "moment": "airport, long drive, or a two-hour commute with no real meal in sight",
+        "competes_with": "airport sandwich, chips, nuts, a Snickers at the counter, nothing",
+        "decided_by": "portability, shelf life, what the counter is selling",
+        "channel": "airport store, highway stop, petrol pump, packed from home"
+      },
+      {
+        "key": "daily_health_routine",
+        "moment": "a standing daily habit someone has decided to keep",
+        "competes_with": "a powder, gummies, a multivitamin, real food, nothing",
+        "decided_by": "routine, whether it is working, cost per day",
+        "channel": "Amazon subscribe, HealthKart, the pharmacy, D2C"
+      },
+      {
+        "key": "household_stock_up",
+        "moment": "the monthly or weekly shop — buying for other people as well as themselves",
+        "competes_with": "biscuit packs, namkeen, cereal, whatever the kids will eat",
+        "decided_by": "price per unit, family acceptance, keeps in the cupboard",
+        "channel": "supermarket, BigBasket, the local kirana"
+      }
+    ],
+    "everyday_alternatives": [
+      "Cadbury Dairy Milk — ₹10 to ₹100 depending on size; the default sweet thing",
+      "Snickers — ~₹40 for 50g; the 'it's basically food' bar at the counter",
+      "KitKat / Perk / Munch — ₹10-₹40 impulse chocolate",
+      "Britannia Good Day, Marie Gold, 50-50, Bourbon — ₹10-₹40 biscuit packs",
+      "Parle-G — ₹5-₹10; the floor of the category",
+      "Sunfeast Dark Fantasy — ~₹30; the indulgent biscuit",
+      "Lay's / Kurkure / Bingo — ₹20 chips and namkeen",
+      "Haldiram's namkeen — ₹20-₹50 packs, and the household tin",
+      "Amul / Kwality Walls ice cream — ₹40-₹80 for the late-night version",
+      "canteen samosa, vada pav, or chai — ₹10-₹25, hot and immediate",
+      "a banana or an apple from the fruit cart — ₹10-₹20",
+      "leftover mithai in the fridge after any festival",
+      "nothing at all — waiting it out until the next meal"
+    ],
+    "stances": [
+      "loyalist",
+      "switcher",
+      "upgrader",
+      "aspirant",
+      "skeptic",
+      "purist",
+      "pragmatist",
+      "gifter"
+    ]
+  },
+  "region": {
+    "gender": "female",
+    "age_min": 45,
+    "age_max": 60,
+    "income_min": 0.0,
+    "income_max": 100.0,
+    "tier": "tier-3"
+  },
+  "raw": [
+    {
+      "label": "loyalist_four_pm_chai_biscuit",
+      "occasion": "desk_slump_4pm",
+      "stance": "loyalist",
+      "category_relationship": "never",
+      "brand_stance": "hostile",
+      "price_orientation": "price_first",
+      "decision_driver": "habit",
+      "category_involvement": "low",
+      "prior_experience_valence": "neutral",
+      "channel_behavior": "offline_first",
+      "life_stage": "settled",
+      "l1_context": "Never came to it. The afternoon dip has been chai and two biscuits for twenty years and nothing has ever needed replacing.",
+      "l2_category": "Buys nothing in this category. Biscuit packet from the kirana on the way home, ₹10-30, opened at the four o'clock tea and shared.",
+      "l3_knowledge": "Knows biotin gummies exist because a niece takes them. Does NOT know what whey protein is or that it comes in flavours; does NOT know any of these brands by name or where they are sold online.",
+      "l4_stance": "Wants the tea break to stay the tea break. Rejects packaged bars outright — expensive, sweet, and food that comes wrapped is not food.",
+      "l5_behavior": "Bought a Britannia Marie Gold packet at the kirana last week and kept it in the steel tin for the afternoon tea.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 54,
+          "income_lpa": 1.8,
+          "geography": "Bhadrachalam / tier-3",
+          "occupation_hint": "sorts and packs dried chillies at a spice unit on the town edge, six days a week",
+          "household_hint": "husband died five years ago; her youngest son, twenty-two, is still looking for work and lives with her",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 48,
+          "income_lpa": 3.2,
+          "geography": "Sirsa / tier-3",
+          "occupation_hint": "runs the house — cooking for seven, the buffalo in the morning, and her mother-in-law's medicines",
+          "household_hint": "four children, the eldest daughter married out last year; husband drives a tempo between mandis and is away most nights",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 59,
+          "income_lpa": 2.4,
+          "geography": "Barpeta / tier-3",
+          "occupation_hint": "clears and sweeps at a district court building in the mornings, home by one",
+          "household_hint": "lives with her unmarried younger sister; her three children are grown and two are in Guwahati",
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_eleven_pm_icecream",
+      "occasion": "late_night_craving",
+      "stance": "loyalist",
+      "category_relationship": "occasional",
+      "brand_stance": "skeptical",
+      "price_orientation": "value_calculator",
+      "decision_driver": "habit",
+      "category_involvement": "low",
+      "prior_experience_valence": "mixed",
+      "channel_behavior": "quick_commerce",
+      "life_stage": "family",
+      "l1_context": "Daughter installed a delivery app and now the late sweet arrives at the door. Tried her daughter's 'healthy' bar once at that hour.",
+      "l2_category": "Almost never buys it; one bar tried out of curiosity. Late-night order is ice cream or leftover mithai, ₹40-80, once or twice a week.",
+      "l3_knowledge": "Knows a bar can say twenty grams of protein because her daughter reads it out. Does NOT know what that number is meant to do for her; does NOT know the difference between a plant protein and a whey one.",
+      "l4_stance": "Wants the sweetness to actually finish the craving. Rejects the ₹96 bar — it tasted of dates and she was still hungry, so it was a wasted order.",
+      "l5_behavior": "Added Amul vanilla to the Blinkit basket at eleven last Sunday after her daughter's Whole Truth bar left her still poking in the fridge.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 46,
+          "income_lpa": 6.5,
+          "geography": "Hoshiarpur / tier-3",
+          "occupation_hint": "keeps the ledgers and cash box at her husband's cycle-parts shop, takes nothing from it as a wage",
+          "household_hint": "three children at home, the eldest in second year of a private college in Jalandhar",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 50,
+          "income_lpa": 4.1,
+          "geography": "Chittoor / tier-3",
+          "occupation_hint": "stitches blouse falls and petticoats for neighbours on a machine in the front room",
+          "household_hint": "married at seventeen; her daughter, thirty-one, lives two streets away with a toddler who comes over most evenings",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 45,
+          "income_lpa": 11.0,
+          "geography": "Karimnagar / tier-3",
+          "occupation_hint": "assistant headmistress at an aided high school, corrects papers after dinner",
+          "household_hint": "two teenage sons; her husband has been posted to Hyderabad for two years and comes home alternate weekends",
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_doctor_number_powder",
+      "occasion": "post_workout",
+      "stance": "loyalist",
+      "category_relationship": "regular",
+      "brand_stance": "loyalist",
+      "price_orientation": "quality_first",
+      "decision_driver": "function",
+      "category_involvement": "medium",
+      "prior_experience_valence": "positive",
+      "channel_behavior": "offline_first",
+      "life_stage": "empty_nest",
+      "l1_context": "Knee pain sent her to an ortho, who told her to walk daily and put her on calcium; the physio said add protein after the walk.",
+      "l2_category": "Daily. Pharmacy-bought calcium tablet at night, and a scoop of unflavoured whey in milk after the morning walk group; reorders on the doctor's slip.",
+      "l3_knowledge": "Knows her vitamin-D number was low and that the tablet fixed it. Does NOT know what a certification seal or QR check is; does NOT know that protein powders come in flavours or that gyms sell them.",
+      "l4_stance": "Wants what the doctor wrote and nothing extra. Rejects anything sold on Instagram for skin or hair — that is not medicine, and she did not ask for it.",
+      "l5_behavior": "Refilled Shelcal at the Apollo counter last month and asked the chemist for the same plain whey tin the physio had written down.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 57,
+          "income_lpa": 8.0,
+          "geography": "Bhilwara / tier-3",
+          "occupation_hint": "senior clerk in the tehsil land records office, three years from retiring",
+          "household_hint": "both daughters married and away; she and her husband live alone and the house is empty till evening",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 60,
+          "income_lpa": 3.6,
+          "geography": "Palakkad / tier-3",
+          "occupation_hint": "retired from the panchayat school two years ago and has not worked since; morning walking group at the stadium",
+          "household_hint": "widowed nine years; her son sends money from Sharjah and she lives with his wife and their two children",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 52,
+          "income_lpa": 5.4,
+          "geography": "Rae Bareli / tier-3",
+          "occupation_hint": "works the family's two bighas at the town edge with a hired hand, mostly wheat and mustard",
+          "household_hint": "four children; the youngest son, twenty-four, is preparing for the constable recruitment and stays home",
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_morning_poha_packed",
+      "occasion": "breakfast_on_the_run",
+      "stance": "loyalist",
+      "category_relationship": "never",
+      "brand_stance": "hostile",
+      "price_orientation": "price_first",
+      "decision_driver": "identity",
+      "category_involvement": "low",
+      "prior_experience_valence": "unspecified",
+      "channel_behavior": "offline_first",
+      "life_stage": "family",
+      "l1_context": "Feeds four people out of the door before eight every morning and has done for twenty-five years. The category arrived on her son's phone, not in her kitchen.",
+      "l2_category": "Buys none of it. Morning is poha or last night's roti rolled with sabzi, wrapped in foil; the monthly kirana list has no bars on it.",
+      "l3_knowledge": "Knows her son eats a wrapped bar on the bus and thinks it is breakfast. Does NOT know what is inside it; does NOT know that these things are also sold for women or for hair.",
+      "l4_stance": "Wants everyone fed properly before they leave. Rejects the wrapped bar as breakfast — dal, ghee and rice fed generations, this is money for air.",
+      "l5_behavior": "Made an extra portion of poha at six-forty and packed it in a steel dabba because her son was reaching for a bar on the counter.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 47,
+          "income_lpa": 2.2,
+          "geography": "Deoria / tier-3",
+          "occupation_hint": "rolls and glues paper bags at piece rate for a trader who collects them Fridays",
+          "household_hint": "five children in the house, the eldest daughter fifteen and already doing most of the cooking with her",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 53,
+          "income_lpa": 4.8,
+          "geography": "Nandurbar / tier-3",
+          "occupation_hint": "cooks and cleans in two houses in the officers' colony, leaves at seven and returns at noon",
+          "household_hint": "her husband has not worked since a fall from a scaffold; two sons drive autos and a daughter is in tenth",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 49,
+          "income_lpa": 9.5,
+          "geography": "Bharuch / tier-3",
+          "occupation_hint": "runs a tiffin service out of her kitchen, thirty-one dabbas a day to a chemical plant office",
+          "household_hint": "married at eighteen; three children, the middle one just started an ITI course in Ankleshwar",
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_sunday_darkchocolate",
+      "occasion": "guilt_free_treat",
+      "stance": "loyalist",
+      "category_relationship": "occasional",
+      "brand_stance": "favorable",
+      "price_orientation": "value_calculator",
+      "decision_driver": "identity",
+      "category_involvement": "medium",
+      "prior_experience_valence": "mixed",
+      "channel_behavior": "marketplace",
+      "life_stage": "settled",
+      "l1_context": "Sugar came up borderline at a camp check-up, so the weekend sweet became dark chocolate. Bars in the wellness aisle looked like the same permission.",
+      "l2_category": "Weekend only. One dark chocolate block from the supermarket, ₹100-ish, broken into squares over three days; bought a protein bar variety pack once on Flipkart.",
+      "l3_knowledge": "Knows sugar-free and 'no added sugar' are different because a chemist explained. Does NOT know what maltodextrin is; does NOT know that protein bars are sold on quick-commerce apps at all.",
+      "l4_stance": "Wants a treat that does not undo the week. Rejects anything marketed as a diet product — she is not dieting, and the pastel packs are for her daughter-in-law's age.",
+      "l5_behavior": "Bought a Yogabar five-pack on Flipkart during a sale; ate two, gave the rest to her grandson, went back to the dark chocolate block.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 56,
+          "income_lpa": 7.2,
+          "geography": "Gondia / tier-3",
+          "occupation_hint": "sits at the counter of the family's hardware shop from four to eight while her husband does deliveries",
+          "household_hint": "married at seventeen; her eldest daughter's son, eleven, eats at her house after school every day",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 51,
+          "income_lpa": 13.0,
+          "geography": "Shivamogga / tier-3",
+          "occupation_hint": "branch operations officer at a cooperative bank, handles the loan files",
+          "household_hint": "never married; lives with her widowed mother and manages her diabetes diet",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 58,
+          "income_lpa": 3.0,
+          "geography": "Chhindwara / tier-3",
+          "occupation_hint": "weeds and picks at a nearby orange orchard in season, at home the rest of the year",
+          "household_hint": "widowed three years; four grown children, and only the unmarried youngest daughter still in the house",
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_bus_journey_theplas",
+      "occasion": "travel_and_commute",
+      "stance": "loyalist",
+      "category_relationship": "never",
+      "brand_stance": "hostile",
+      "price_orientation": "price_first",
+      "decision_driver": "habit",
+      "category_involvement": "low",
+      "prior_experience_valence": "unspecified",
+      "channel_behavior": "offline_first",
+      "life_stage": "settled",
+      "l1_context": "Long bus rides to a married daughter's town four or five times a year; food for the road has always been wrapped at home the night before.",
+      "l2_category": "Buys nothing from the category, ever. On the road it is theplas, a steel dabba, sometimes ₹20 biscuits at the stand if the bus breaks the journey.",
+      "l3_knowledge": "Knows the wellness aisle exists because a nephew showed her a bar on his phone. Does NOT know any brand name in it. Does NOT know what 'protein' is measured in or why a number on a wrapper matters.",
+      "l4_stance": "Wants food that will not spoil by evening and will not shame her in front of strangers. Rejects buying packaged food when a kitchen exists.",
+      "l5_behavior": "Packed methi theplas and a jaggery piece for a nine-hour bus to her daughter's place last month; refused the tea-stall packets at the halt.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 58,
+          "income_lpa": 1.6,
+          "geography": "Bhadrachalam / tier-3",
+          "occupation_hint": "weeds and transplants on a rented half-acre at the town's edge through the season, and rests between",
+          "household_hint": "husband died six years ago; the youngest son sleeps at home but is away on building work most weeks",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 47,
+          "income_lpa": 3.1,
+          "geography": "Chittorgarh / tier-3",
+          "occupation_hint": "runs the house — three meals, the buffalo, and her mother-in-law's medicines and bath",
+          "household_hint": "four children, the eldest daughter married out at nineteen and lives two districts away",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 53,
+          "income_lpa": 2.4,
+          "geography": "Barpeta / tier-3",
+          "occupation_hint": "stitches blouse pieces taken in from a tailor two lanes away, paid by the piece",
+          "household_hint": "husband works as a loader in Guwahati and comes home once a month",
+          "weight": 0.9
+        }
+      ]
+    },
+    {
+      "label": "loyalist_pharmacy_iron_habit",
+      "occasion": "daily_health_routine",
+      "stance": "loyalist",
+      "category_relationship": "regular",
+      "brand_stance": "loyalist",
+      "price_orientation": "value_calculator",
+      "decision_driver": "function",
+      "category_involvement": "medium",
+      "prior_experience_valence": "positive",
+      "channel_behavior": "offline_first",
+      "life_stage": "family",
+      "l1_context": "A blood test after months of breathlessness came back low. The doctor wrote a tablet and a date to come back, and the habit has held since.",
+      "l2_category": "Buys the prescribed strip at the same medical shop every few weeks, under ₹100 a strip. Takes it after lunch so it does not turn her stomach.",
+      "l3_knowledge": "Knows her haemoglobin number and that the tablet binds her up. Does NOT know that whey, collagen and her tablet are sold as one category. Does NOT know what a D2C website is.",
+      "l4_stance": "Wants the number on the report to move and the doctor to say stop. Rejects anything not written on a prescription — including powders relatives recommend.",
+      "l5_behavior": "Sent her son to the medical shop with the old Livogen strip as reference when it ran out, rather than take a cousin's suggested tonic.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 46,
+          "income_lpa": 2.0,
+          "geography": "Nandurbar / tier-3",
+          "occupation_hint": "sorts and bags chilli at a small spice unit on the highway side, six days a week",
+          "household_hint": "five in the house; her second daughter, seventeen, has stopped school to mind the youngest",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 51,
+          "income_lpa": 7.2,
+          "geography": "Bhandara / tier-3",
+          "occupation_hint": "teaches Marathi at the municipal upper-primary school and handles its attendance registers",
+          "household_hint": "two sons, the elder sitting for bank exams for a third year; her husband's leg has not healed since a fall",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 60,
+          "income_lpa": 1.2,
+          "geography": "Rayagada / tier-3",
+          "occupation_hint": "sweeps and washes in two houses near the tehsil office each morning",
+          "household_hint": "widowed young; lives with a married son, his wife and their three children in two rooms",
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_kirana_biscuit_tin",
+      "occasion": "household_stock_up",
+      "stance": "loyalist",
+      "category_relationship": "never",
+      "brand_stance": "skeptical",
+      "price_orientation": "price_first",
+      "decision_driver": "habit",
+      "category_involvement": "low",
+      "prior_experience_valence": "neutral",
+      "channel_behavior": "offline_first",
+      "life_stage": "family",
+      "l1_context": "Thirty years of the same monthly list at the same kirana. The category only ever appears as something a child asks for after seeing it somewhere.",
+      "l2_category": "Monthly: biscuit family packs, a namkeen tin, tea, oil. Buys on the kirana's khata and settles at month end. Nothing over ₹50 goes in for a snack.",
+      "l3_knowledge": "Knows which biscuit each child in the house will actually eat. Does NOT know what a protein bar costs. Does NOT know the difference between a supplement and a medicine.",
+      "l4_stance": "Wants a cupboard that lasts the month and food nobody refuses. Rejects one expensive packet that feeds one person once.",
+      "l5_behavior": "Put two Good Day family packs and a Haldiram's tin in last month's kirana list and told her grandson the wrapper he wanted was not coming.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 55,
+          "income_lpa": 3.6,
+          "geography": "Sitapur / tier-3",
+          "occupation_hint": "runs the house and minds the shop counter unpaid for two hours while her husband eats",
+          "household_hint": "four children; the youngest daughter, twenty-one, still at home and being shown photographs",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 49,
+          "income_lpa": 2.2,
+          "geography": "Jagdalpur / tier-3",
+          "occupation_hint": "cooks midday meals in the anganwadi kitchen and walks back by two",
+          "household_hint": "husband left for Raipur work years ago and rarely returns; she heads the house with her two teenage sons",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 59,
+          "income_lpa": 9.5,
+          "geography": "Gondia / tier-3",
+          "occupation_hint": "keeps the ledgers and daily cash for the family's grain commission shop, takes nothing from it as pay",
+          "household_hint": "three sons married, two grandchildren under five in the joint house",
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "switcher_afternoon_bar_trial",
+      "occasion": "desk_slump_4pm",
+      "stance": "switcher",
+      "category_relationship": "occasional",
+      "brand_stance": "neutral",
+      "price_orientation": "value_calculator",
+      "decision_driver": "function",
+      "category_involvement": "medium",
+      "prior_experience_valence": "mixed",
+      "channel_behavior": "marketplace",
+      "life_stage": "settled",
+      "l1_context": "Sits at a counter through the afternoon and the tea-and-biscuit habit was blamed for a widening waist by a nurse at a camp.",
+      "l2_category": "Tries a different afternoon thing every few months — roasted chana, then a bar a colleague's daughter ordered, now back to a banana. Around ₹20-40 a day, tops.",
+      "l3_knowledge": "Knows the bar filled her up longer than biscuits. Does NOT know which brand it was — the wrapper went in the bin. Does NOT know these things are also sold as tubs and powders.",
+      "l4_stance": "Wants the four o'clock hunger to stop without a heavy stomach. Rejects paying near ₹100 for one small bar when fruit is at the gate.",
+      "l5_behavior": "Ate a Yogabar a younger colleague brought from Nagpur for three afternoons, then went back to buying a banana from the cart outside.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 45,
+          "income_lpa": 4.8,
+          "geography": "Deoria / tier-3",
+          "occupation_hint": "sits at the billing counter of a two-doctor diagnostic lab, afternoon to evening shift",
+          "household_hint": "married at eighteen; her elder daughter is already a mother and visits on Sundays",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 50,
+          "income_lpa": 6.5,
+          "geography": "Karimnagar / tier-3",
+          "occupation_hint": "clerk in the sub-registrar's record room, stamping and filing all day",
+          "household_hint": "never married; lives with an unmarried brother and their ageing mother",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 54,
+          "income_lpa": 3.0,
+          "geography": "Palakkad / tier-3",
+          "occupation_hint": "minds the till and packs at a cloth shop on the main road, standing most of the day",
+          "household_hint": "husband died three years ago; her son works nights at a hotel and sleeps through her afternoons",
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "switcher_night_sweet_swap",
+      "occasion": "late_night_craving",
+      "stance": "switcher",
+      "category_relationship": "occasional",
+      "brand_stance": "skeptical",
+      "price_orientation": "quality_first",
+      "decision_driver": "habit",
+      "category_involvement": "medium",
+      "prior_experience_valence": "burned",
+      "channel_behavior": "quick_commerce",
+      "life_stage": "empty_nest",
+      "l1_context": "The house is quiet by ten and something sweet after the last serial has become the one thing that is hers. A daughter-in-law keeps suggesting substitutes.",
+      "l2_category": "Cycles what she keeps in the fridge for that hour — mithai, then dates, then a bar the daughter-in-law ordered on Blinkit. Never spends past ₹100 on it.",
+      "l3_knowledge": "Knows the date-sweetened bar tasted like a laddoo pressed flat. Does NOT know what collagen or whey are for. Does NOT know which of these are made abroad or here.",
+      "l4_stance": "Wants the sweet want to end, not to be lectured. Rejects anything that tastes like medicine or leaves her hunting the fridge again at midnight.",
+      "l5_behavior": "Kept a Whole Truth bar in the fridge for the eleven o'clock sweet for a fortnight, then went back to the leftover Diwali mithai.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 57,
+          "income_lpa": 5.5,
+          "geography": "Hoshiarpur / tier-3",
+          "occupation_hint": "runs the house alone all day and takes the evening kirtan duty at the gurdwara on Thursdays",
+          "household_hint": "three children all married and out; only she and her husband, who is on the night shift at a mill",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 52,
+          "income_lpa": 2.8,
+          "geography": "Dhamtari / tier-3",
+          "occupation_hint": "packs and labels at a rice mill through the season and stays home when it shuts",
+          "household_hint": "widowed eight years; her youngest son, twenty-two, is looking for work and eats at home",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 60,
+          "income_lpa": 11.0,
+          "geography": "Shivamogga / tier-3",
+          "occupation_hint": "retired from the cooperative bank's deposit counter last year and now keeps the temple committee's accounts",
+          "household_hint": "one son in Bengaluru who visits twice a year; her husband and she alone in the house",
+          "weight": 0.8
+        }
+      ]
+    }
+  ],
+  "refusals": [],
+  "dispositions": [
+    {
+      "label": "loyalist_four_pm_chai_biscuit",
+      "vector": {
+        "category_relationship": "never",
+        "brand_stance": "hostile",
+        "price_orientation": "price_first",
+        "decision_driver": "habit",
+        "category_involvement": "low",
+        "prior_experience_valence": "neutral",
+        "channel_behavior": "offline_first",
+        "life_stage": "settled"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=desk_slump_4pm stance=loyalist region=f45-60_0-100_t3",
+      "anchor": "Never came to it. The afternoon dip has been chai and two biscuits for twenty years and nothing has ever needed replacing.\n\nBuys nothing in this category. Biscuit packet from the kirana on the way home, ₹10-30, opened at the four o'clock tea and shared.\n\nKnows biotin gummies exist because a niece takes them. Does NOT know what whey protein is or that it comes in flavours; does NOT know any of these brands by name or where they are sold online.\n\nWants the tea break to stay the tea break. Rejects packaged bars outright — expensive, sweet, and food that comes wrapped is not food.\n\nBought a Britannia Marie Gold packet at the kirana last week and kept it in the steel tin for the afternoon tea.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 54,
+            "age_max": 54,
+            "income_lpa_min": 1.8,
+            "income_lpa_max": 1.8,
+            "geography": "Bhadrachalam / tier-3",
+            "occupation_hint": "sorts and packs dried chillies at a spice unit on the town edge, six days a week",
+            "household_hint": "husband died five years ago; her youngest son, twenty-two, is still looking for work and lives with her"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 48,
+            "age_max": 48,
+            "income_lpa_min": 3.2,
+            "income_lpa_max": 3.2,
+            "geography": "Sirsa / tier-3",
+            "occupation_hint": "runs the house — cooking for seven, the buffalo in the morning, and her mother-in-law's medicines",
+            "household_hint": "four children, the eldest daughter married out last year; husband drives a tempo between mandis and is away most nights"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 59,
+            "age_max": 59,
+            "income_lpa_min": 2.4,
+            "income_lpa_max": 2.4,
+            "geography": "Barpeta / tier-3",
+            "occupation_hint": "clears and sweeps at a district court building in the mornings, home by one",
+            "household_hint": "lives with her unmarried younger sister; her three children are grown and two are in Guwahati"
+          },
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_eleven_pm_icecream",
+      "vector": {
+        "category_relationship": "occasional",
+        "brand_stance": "skeptical",
+        "price_orientation": "value_calculator",
+        "decision_driver": "habit",
+        "category_involvement": "low",
+        "prior_experience_valence": "mixed",
+        "channel_behavior": "quick_commerce",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=late_night_craving stance=loyalist region=f45-60_0-100_t3",
+      "anchor": "Daughter installed a delivery app and now the late sweet arrives at the door. Tried her daughter's 'healthy' bar once at that hour.\n\nAlmost never buys it; one bar tried out of curiosity. Late-night order is ice cream or leftover mithai, ₹40-80, once or twice a week.\n\nKnows a bar can say twenty grams of protein because her daughter reads it out. Does NOT know what that number is meant to do for her; does NOT know the difference between a plant protein and a whey one.\n\nWants the sweetness to actually finish the craving. Rejects the ₹96 bar — it tasted of dates and she was still hungry, so it was a wasted order.\n\nAdded Amul vanilla to the Blinkit basket at eleven last Sunday after her daughter's Whole Truth bar left her still poking in the fridge.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 46,
+            "age_max": 46,
+            "income_lpa_min": 6.5,
+            "income_lpa_max": 6.5,
+            "geography": "Hoshiarpur / tier-3",
+            "occupation_hint": "keeps the ledgers and cash box at her husband's cycle-parts shop, takes nothing from it as a wage",
+            "household_hint": "three children at home, the eldest in second year of a private college in Jalandhar"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 50,
+            "age_max": 50,
+            "income_lpa_min": 4.1,
+            "income_lpa_max": 4.1,
+            "geography": "Chittoor / tier-3",
+            "occupation_hint": "stitches blouse falls and petticoats for neighbours on a machine in the front room",
+            "household_hint": "married at seventeen; her daughter, thirty-one, lives two streets away with a toddler who comes over most evenings"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 45,
+            "age_max": 45,
+            "income_lpa_min": 11.0,
+            "income_lpa_max": 11.0,
+            "geography": "Karimnagar / tier-3",
+            "occupation_hint": "assistant headmistress at an aided high school, corrects papers after dinner",
+            "household_hint": "two teenage sons; her husband has been posted to Hyderabad for two years and comes home alternate weekends"
+          },
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_doctor_number_powder",
+      "vector": {
+        "category_relationship": "regular",
+        "brand_stance": "loyalist",
+        "price_orientation": "quality_first",
+        "decision_driver": "function",
+        "category_involvement": "medium",
+        "prior_experience_valence": "positive",
+        "channel_behavior": "offline_first",
+        "life_stage": "empty_nest"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=post_workout stance=loyalist region=f45-60_0-100_t3",
+      "anchor": "Knee pain sent her to an ortho, who told her to walk daily and put her on calcium; the physio said add protein after the walk.\n\nDaily. Pharmacy-bought calcium tablet at night, and a scoop of unflavoured whey in milk after the morning walk group; reorders on the doctor's slip.\n\nKnows her vitamin-D number was low and that the tablet fixed it. Does NOT know what a certification seal or QR check is; does NOT know that protein powders come in flavours or that gyms sell them.\n\nWants what the doctor wrote and nothing extra. Rejects anything sold on Instagram for skin or hair — that is not medicine, and she did not ask for it.\n\nRefilled Shelcal at the Apollo counter last month and asked the chemist for the same plain whey tin the physio had written down.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 57,
+            "age_max": 57,
+            "income_lpa_min": 8.0,
+            "income_lpa_max": 8.0,
+            "geography": "Bhilwara / tier-3",
+            "occupation_hint": "senior clerk in the tehsil land records office, three years from retiring",
+            "household_hint": "both daughters married and away; she and her husband live alone and the house is empty till evening"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 60,
+            "age_max": 60,
+            "income_lpa_min": 3.6,
+            "income_lpa_max": 3.6,
+            "geography": "Palakkad / tier-3",
+            "occupation_hint": "retired from the panchayat school two years ago and has not worked since; morning walking group at the stadium",
+            "household_hint": "widowed nine years; her son sends money from Sharjah and she lives with his wife and their two children"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 52,
+            "age_max": 52,
+            "income_lpa_min": 5.4,
+            "income_lpa_max": 5.4,
+            "geography": "Rae Bareli / tier-3",
+            "occupation_hint": "works the family's two bighas at the town edge with a hired hand, mostly wheat and mustard",
+            "household_hint": "four children; the youngest son, twenty-four, is preparing for the constable recruitment and stays home"
+          },
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_morning_poha_packed",
+      "vector": {
+        "category_relationship": "never",
+        "brand_stance": "hostile",
+        "price_orientation": "price_first",
+        "decision_driver": "identity",
+        "category_involvement": "low",
+        "prior_experience_valence": "unspecified",
+        "channel_behavior": "offline_first",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=breakfast_on_the_run stance=loyalist region=f45-60_0-100_t3",
+      "anchor": "Feeds four people out of the door before eight every morning and has done for twenty-five years. The category arrived on her son's phone, not in her kitchen.\n\nBuys none of it. Morning is poha or last night's roti rolled with sabzi, wrapped in foil; the monthly kirana list has no bars on it.\n\nKnows her son eats a wrapped bar on the bus and thinks it is breakfast. Does NOT know what is inside it; does NOT know that these things are also sold for women or for hair.\n\nWants everyone fed properly before they leave. Rejects the wrapped bar as breakfast — dal, ghee and rice fed generations, this is money for air.\n\nMade an extra portion of poha at six-forty and packed it in a steel dabba because her son was reaching for a bar on the counter.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 47,
+            "age_max": 47,
+            "income_lpa_min": 2.2,
+            "income_lpa_max": 2.2,
+            "geography": "Deoria / tier-3",
+            "occupation_hint": "rolls and glues paper bags at piece rate for a trader who collects them Fridays",
+            "household_hint": "five children in the house, the eldest daughter fifteen and already doing most of the cooking with her"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 53,
+            "age_max": 53,
+            "income_lpa_min": 4.8,
+            "income_lpa_max": 4.8,
+            "geography": "Nandurbar / tier-3",
+            "occupation_hint": "cooks and cleans in two houses in the officers' colony, leaves at seven and returns at noon",
+            "household_hint": "her husband has not worked since a fall from a scaffold; two sons drive autos and a daughter is in tenth"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 49,
+            "age_max": 49,
+            "income_lpa_min": 9.5,
+            "income_lpa_max": 9.5,
+            "geography": "Bharuch / tier-3",
+            "occupation_hint": "runs a tiffin service out of her kitchen, thirty-one dabbas a day to a chemical plant office",
+            "household_hint": "married at eighteen; three children, the middle one just started an ITI course in Ankleshwar"
+          },
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_sunday_darkchocolate",
+      "vector": {
+        "category_relationship": "occasional",
+        "brand_stance": "favorable",
+        "price_orientation": "value_calculator",
+        "decision_driver": "identity",
+        "category_involvement": "medium",
+        "prior_experience_valence": "mixed",
+        "channel_behavior": "marketplace",
+        "life_stage": "settled"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=guilt_free_treat stance=loyalist region=f45-60_0-100_t3",
+      "anchor": "Sugar came up borderline at a camp check-up, so the weekend sweet became dark chocolate. Bars in the wellness aisle looked like the same permission.\n\nWeekend only. One dark chocolate block from the supermarket, ₹100-ish, broken into squares over three days; bought a protein bar variety pack once on Flipkart.\n\nKnows sugar-free and 'no added sugar' are different because a chemist explained. Does NOT know what maltodextrin is; does NOT know that protein bars are sold on quick-commerce apps at all.\n\nWants a treat that does not undo the week. Rejects anything marketed as a diet product — she is not dieting, and the pastel packs are for her daughter-in-law's age.\n\nBought a Yogabar five-pack on Flipkart during a sale; ate two, gave the rest to her grandson, went back to the dark chocolate block.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 56,
+            "age_max": 56,
+            "income_lpa_min": 7.2,
+            "income_lpa_max": 7.2,
+            "geography": "Gondia / tier-3",
+            "occupation_hint": "sits at the counter of the family's hardware shop from four to eight while her husband does deliveries",
+            "household_hint": "married at seventeen; her eldest daughter's son, eleven, eats at her house after school every day"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 51,
+            "age_max": 51,
+            "income_lpa_min": 13.0,
+            "income_lpa_max": 13.0,
+            "geography": "Shivamogga / tier-3",
+            "occupation_hint": "branch operations officer at a cooperative bank, handles the loan files",
+            "household_hint": "never married; lives with her widowed mother and manages her diabetes diet"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 58,
+            "age_max": 58,
+            "income_lpa_min": 3.0,
+            "income_lpa_max": 3.0,
+            "geography": "Chhindwara / tier-3",
+            "occupation_hint": "weeds and picks at a nearby orange orchard in season, at home the rest of the year",
+            "household_hint": "widowed three years; four grown children, and only the unmarried youngest daughter still in the house"
+          },
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_bus_journey_theplas",
+      "vector": {
+        "category_relationship": "never",
+        "brand_stance": "hostile",
+        "price_orientation": "price_first",
+        "decision_driver": "habit",
+        "category_involvement": "low",
+        "prior_experience_valence": "unspecified",
+        "channel_behavior": "offline_first",
+        "life_stage": "settled"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=travel_and_commute stance=loyalist region=f45-60_0-100_t3",
+      "anchor": "Long bus rides to a married daughter's town four or five times a year; food for the road has always been wrapped at home the night before.\n\nBuys nothing from the category, ever. On the road it is theplas, a steel dabba, sometimes ₹20 biscuits at the stand if the bus breaks the journey.\n\nKnows the wellness aisle exists because a nephew showed her a bar on his phone. Does NOT know any brand name in it. Does NOT know what 'protein' is measured in or why a number on a wrapper matters.\n\nWants food that will not spoil by evening and will not shame her in front of strangers. Rejects buying packaged food when a kitchen exists.\n\nPacked methi theplas and a jaggery piece for a nine-hour bus to her daughter's place last month; refused the tea-stall packets at the halt.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 58,
+            "age_max": 58,
+            "income_lpa_min": 1.6,
+            "income_lpa_max": 1.6,
+            "geography": "Bhadrachalam / tier-3",
+            "occupation_hint": "weeds and transplants on a rented half-acre at the town's edge through the season, and rests between",
+            "household_hint": "husband died six years ago; the youngest son sleeps at home but is away on building work most weeks"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 47,
+            "age_max": 47,
+            "income_lpa_min": 3.1,
+            "income_lpa_max": 3.1,
+            "geography": "Chittorgarh / tier-3",
+            "occupation_hint": "runs the house — three meals, the buffalo, and her mother-in-law's medicines and bath",
+            "household_hint": "four children, the eldest daughter married out at nineteen and lives two districts away"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 53,
+            "age_max": 53,
+            "income_lpa_min": 2.4,
+            "income_lpa_max": 2.4,
+            "geography": "Barpeta / tier-3",
+            "occupation_hint": "stitches blouse pieces taken in from a tailor two lanes away, paid by the piece",
+            "household_hint": "husband works as a loader in Guwahati and comes home once a month"
+          },
+          "weight": 0.9
+        }
+      ]
+    },
+    {
+      "label": "loyalist_pharmacy_iron_habit",
+      "vector": {
+        "category_relationship": "regular",
+        "brand_stance": "loyalist",
+        "price_orientation": "value_calculator",
+        "decision_driver": "function",
+        "category_involvement": "medium",
+        "prior_experience_valence": "positive",
+        "channel_behavior": "offline_first",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=daily_health_routine stance=loyalist region=f45-60_0-100_t3",
+      "anchor": "A blood test after months of breathlessness came back low. The doctor wrote a tablet and a date to come back, and the habit has held since.\n\nBuys the prescribed strip at the same medical shop every few weeks, under ₹100 a strip. Takes it after lunch so it does not turn her stomach.\n\nKnows her haemoglobin number and that the tablet binds her up. Does NOT know that whey, collagen and her tablet are sold as one category. Does NOT know what a D2C website is.\n\nWants the number on the report to move and the doctor to say stop. Rejects anything not written on a prescription — including powders relatives recommend.\n\nSent her son to the medical shop with the old Livogen strip as reference when it ran out, rather than take a cousin's suggested tonic.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 46,
+            "age_max": 46,
+            "income_lpa_min": 2.0,
+            "income_lpa_max": 2.0,
+            "geography": "Nandurbar / tier-3",
+            "occupation_hint": "sorts and bags chilli at a small spice unit on the highway side, six days a week",
+            "household_hint": "five in the house; her second daughter, seventeen, has stopped school to mind the youngest"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 51,
+            "age_max": 51,
+            "income_lpa_min": 7.2,
+            "income_lpa_max": 7.2,
+            "geography": "Bhandara / tier-3",
+            "occupation_hint": "teaches Marathi at the municipal upper-primary school and handles its attendance registers",
+            "household_hint": "two sons, the elder sitting for bank exams for a third year; her husband's leg has not healed since a fall"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 60,
+            "age_max": 60,
+            "income_lpa_min": 1.2,
+            "income_lpa_max": 1.2,
+            "geography": "Rayagada / tier-3",
+            "occupation_hint": "sweeps and washes in two houses near the tehsil office each morning",
+            "household_hint": "widowed young; lives with a married son, his wife and their three children in two rooms"
+          },
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "loyalist_kirana_biscuit_tin",
+      "vector": {
+        "category_relationship": "never",
+        "brand_stance": "skeptical",
+        "price_orientation": "price_first",
+        "decision_driver": "habit",
+        "category_involvement": "low",
+        "prior_experience_valence": "neutral",
+        "channel_behavior": "offline_first",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=household_stock_up stance=loyalist region=f45-60_0-100_t3",
+      "anchor": "Thirty years of the same monthly list at the same kirana. The category only ever appears as something a child asks for after seeing it somewhere.\n\nMonthly: biscuit family packs, a namkeen tin, tea, oil. Buys on the kirana's khata and settles at month end. Nothing over ₹50 goes in for a snack.\n\nKnows which biscuit each child in the house will actually eat. Does NOT know what a protein bar costs. Does NOT know the difference between a supplement and a medicine.\n\nWants a cupboard that lasts the month and food nobody refuses. Rejects one expensive packet that feeds one person once.\n\nPut two Good Day family packs and a Haldiram's tin in last month's kirana list and told her grandson the wrapper he wanted was not coming.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 55,
+            "age_max": 55,
+            "income_lpa_min": 3.6,
+            "income_lpa_max": 3.6,
+            "geography": "Sitapur / tier-3",
+            "occupation_hint": "runs the house and minds the shop counter unpaid for two hours while her husband eats",
+            "household_hint": "four children; the youngest daughter, twenty-one, still at home and being shown photographs"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 49,
+            "age_max": 49,
+            "income_lpa_min": 2.2,
+            "income_lpa_max": 2.2,
+            "geography": "Jagdalpur / tier-3",
+            "occupation_hint": "cooks midday meals in the anganwadi kitchen and walks back by two",
+            "household_hint": "husband left for Raipur work years ago and rarely returns; she heads the house with her two teenage sons"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 59,
+            "age_max": 59,
+            "income_lpa_min": 9.5,
+            "income_lpa_max": 9.5,
+            "geography": "Gondia / tier-3",
+            "occupation_hint": "keeps the ledgers and daily cash for the family's grain commission shop, takes nothing from it as pay",
+            "household_hint": "three sons married, two grandchildren under five in the joint house"
+          },
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "switcher_afternoon_bar_trial",
+      "vector": {
+        "category_relationship": "occasional",
+        "brand_stance": "neutral",
+        "price_orientation": "value_calculator",
+        "decision_driver": "function",
+        "category_involvement": "medium",
+        "prior_experience_valence": "mixed",
+        "channel_behavior": "marketplace",
+        "life_stage": "settled"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=desk_slump_4pm stance=switcher region=f45-60_0-100_t3",
+      "anchor": "Sits at a counter through the afternoon and the tea-and-biscuit habit was blamed for a widening waist by a nurse at a camp.\n\nTries a different afternoon thing every few months — roasted chana, then a bar a colleague's daughter ordered, now back to a banana. Around ₹20-40 a day, tops.\n\nKnows the bar filled her up longer than biscuits. Does NOT know which brand it was — the wrapper went in the bin. Does NOT know these things are also sold as tubs and powders.\n\nWants the four o'clock hunger to stop without a heavy stomach. Rejects paying near ₹100 for one small bar when fruit is at the gate.\n\nAte a Yogabar a younger colleague brought from Nagpur for three afternoons, then went back to buying a banana from the cart outside.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 45,
+            "age_max": 45,
+            "income_lpa_min": 4.8,
+            "income_lpa_max": 4.8,
+            "geography": "Deoria / tier-3",
+            "occupation_hint": "sits at the billing counter of a two-doctor diagnostic lab, afternoon to evening shift",
+            "household_hint": "married at eighteen; her elder daughter is already a mother and visits on Sundays"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 50,
+            "age_max": 50,
+            "income_lpa_min": 6.5,
+            "income_lpa_max": 6.5,
+            "geography": "Karimnagar / tier-3",
+            "occupation_hint": "clerk in the sub-registrar's record room, stamping and filing all day",
+            "household_hint": "never married; lives with an unmarried brother and their ageing mother"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 54,
+            "age_max": 54,
+            "income_lpa_min": 3.0,
+            "income_lpa_max": 3.0,
+            "geography": "Palakkad / tier-3",
+            "occupation_hint": "minds the till and packs at a cloth shop on the main road, standing most of the day",
+            "household_hint": "husband died three years ago; her son works nights at a hotel and sleeps through her afternoons"
+          },
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "label": "switcher_night_sweet_swap",
+      "vector": {
+        "category_relationship": "occasional",
+        "brand_stance": "skeptical",
+        "price_orientation": "quality_first",
+        "decision_driver": "habit",
+        "category_involvement": "medium",
+        "prior_experience_valence": "burned",
+        "channel_behavior": "quick_commerce",
+        "life_stage": "empty_nest"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=late_night_craving stance=switcher region=f45-60_0-100_t3",
+      "anchor": "The house is quiet by ten and something sweet after the last serial has become the one thing that is hers. A daughter-in-law keeps suggesting substitutes.\n\nCycles what she keeps in the fridge for that hour — mithai, then dates, then a bar the daughter-in-law ordered on Blinkit. Never spends past ₹100 on it.\n\nKnows the date-sweetened bar tasted like a laddoo pressed flat. Does NOT know what collagen or whey are for. Does NOT know which of these are made abroad or here.\n\nWants the sweet want to end, not to be lectured. Rejects anything that tastes like medicine or leaves her hunting the fridge again at midnight.\n\nKept a Whole Truth bar in the fridge for the eleven o'clock sweet for a fortnight, then went back to the leftover Diwali mithai.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 57,
+            "age_max": 57,
+            "income_lpa_min": 5.5,
+            "income_lpa_max": 5.5,
+            "geography": "Hoshiarpur / tier-3",
+            "occupation_hint": "runs the house alone all day and takes the evening kirtan duty at the gurdwara on Thursdays",
+            "household_hint": "three children all married and out; only she and her husband, who is on the night shift at a mill"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 52,
+            "age_max": 52,
+            "income_lpa_min": 2.8,
+            "income_lpa_max": 2.8,
+            "geography": "Dhamtari / tier-3",
+            "occupation_hint": "packs and labels at a rice mill through the season and stays home when it shuts",
+            "household_hint": "widowed eight years; her youngest son, twenty-two, is looking for work and eats at home"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 60,
+            "age_max": 60,
+            "income_lpa_min": 11.0,
+            "income_lpa_max": 11.0,
+            "geography": "Shivamogga / tier-3",
+            "occupation_hint": "retired from the cooperative bank's deposit counter last year and now keeps the temple committee's accounts",
+            "household_hint": "one son in Bengaluru who visits twice a year; her husband and she alone in the house"
+          },
+          "weight": 0.8
+        }
+      ]
+    }
+  ]
+}
