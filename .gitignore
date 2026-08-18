@@ -7,7 +7,7 @@ __pycache__/
 .claude/
 FUTURE_IDEAS.md
 learnings.md
-HANDOFF.md
+HANDOFF*.md
 REVIEW.md
 runs/
 # Brand-manager session records: a named contact's unpublished ad outcomes and
@@ -16,3 +16,4 @@ runs/
 sessions/
 # Creatives uploaded through the operator server — a client's unreleased ad.
 uploads/
+region_review.html
