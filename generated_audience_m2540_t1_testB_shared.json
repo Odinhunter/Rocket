@@ -1,0 +1,213 @@
+{
+  "experiment": "part_b_shared_people",
+  "people_source": "generated_audience_m2540_t1_testA_metro_control.json",
+  "region": {
+    "gender": "male",
+    "age_min": 25,
+    "age_max": 40,
+    "income_min": 0.0,
+    "income_max": 100.0,
+    "tier": "tier-1"
+  },
+  "category": "health_nutrition_snacking",
+  "native_moment": "desk_slump_4pm",
+  "native_stances": {
+    "P1": "loyalist",
+    "P2": "switcher",
+    "P3": "upgrader",
+    "P4": "aspirant",
+    "P5": "skeptic",
+    "P6": "purist",
+    "P7": "pragmatist",
+    "P8": "gifter"
+  },
+  "people": [
+    {
+      "id": "P1",
+      "age": 31,
+      "income_lpa": 3.1,
+      "geography": "Pune / tier-1",
+      "occupation_hint": "runs the second shift press at a small auto-components unit in Bhosari",
+      "household_hint": "wife and a four-year-old son share one room with his younger brother, who is still looking for work"
+    },
+    {
+      "id": "P2",
+      "age": 26,
+      "income_lpa": 7.5,
+      "geography": "Hyderabad / tier-1",
+      "occupation_hint": "junior QA tester at an IT services vendor in Madhapur, two years in",
+      "household_hint": "shares a two-bedroom flat with three colleagues; parents are in Warangal and he has not married"
+    },
+    {
+      "id": "P3",
+      "age": 36,
+      "income_lpa": 22.0,
+      "geography": "Gurugram / tier-1",
+      "occupation_hint": "manages vendor contracts for a hospital chain's procurement desk",
+      "household_hint": "wife teaches at a nearby school; one son in nursery and no plans for a second"
+    },
+    {
+      "id": "P4",
+      "age": 25,
+      "income_lpa": 3.6,
+      "geography": "Jaipur / tier-1",
+      "occupation_hint": "helper-turned-assistant fitter at a lift installation contractor, on sites most days",
+      "household_hint": "unmarried, eldest of four, lives with parents and pays the electricity bill"
+    },
+    {
+      "id": "P5",
+      "age": 35,
+      "income_lpa": 5.2,
+      "geography": "Nagpur / tier-1",
+      "occupation_hint": "welder at a railway wagon repair workshop, general shift",
+      "household_hint": "wife, two school-going daughters, and his father who has been bedridden since a stroke"
+    },
+    {
+      "id": "P6",
+      "age": 34,
+      "income_lpa": 3.1,
+      "geography": "Kanpur / tier-1",
+      "occupation_hint": "runs a hand press at a leather goods unit, six-day shift with a half-day Saturday",
+      "household_hint": "wife, her mother who cannot manage stairs alone, and a four-year-old son in the same two rooms"
+    },
+    {
+      "id": "P7",
+      "age": 26,
+      "income_lpa": 4.6,
+      "geography": "Pune / tier-1",
+      "occupation_hint": "delivery rider on a food app, takes whatever the surge hours are",
+      "household_hint": "never married; lives with an elder cousin and the cousin's wife in a one-bedroom"
+    },
+    {
+      "id": "P8",
+      "age": 33,
+      "income_lpa": 13.5,
+      "geography": "Noida / tier-1",
+      "occupation_hint": "front-desk and rostering at a mid-size hotel, handles the evening handover",
+      "household_hint": "wife works in another city and comes home two weekends a month; no children"
+    }
+  ],
+  "moments": {
+    "daily_health_routine": {
+      "anchors": [
+        {
+          "person_id": "P2",
+          "stance": "skeptic",
+          "l1_context": "Flatmate who lifts left a whey tub in the kitchen; company health check last year flagged low vitamin D and he still has the doctor's slip.",
+          "l2_category": "Takes a Calcirol sachet in milk on Sundays, bought four at a time from the pharmacy near the flat; nothing else daily, no subscription.",
+          "l3_knowledge": "Knows Calcirol is 'the vitamin-D one' because a doctor named it. Does NOT know what a multivitamin actually contains, does NOT know the difference between HK Vitals and Carbamide Forte, has never opened HealthKart.",
+          "l4_stance": "Wants the one thing a doctor told him to fix and nothing more. Rejects daily capsules after the mislabelling news — 'if the protein numbers were fake, why trust these'.",
+          "l5_behavior": "Reordered Calcirol sachets on the pharmacy app last month and stirred one into the flat's Amul milk on a Sunday morning."
+        },
+        {
+          "person_id": "P3",
+          "stance": "pragmatist",
+          "l1_context": "Annual corporate health check two years running showed vitamin D low and cholesterol borderline; his wife keeps the strip on the kitchen shelf and asks if he took it.",
+          "l2_category": "One Uprise-D3 sachet weekly plus a multivitamin most mornings after breakfast; refills through a pharmacy delivery, occasionally an online marketplace when the pharmacy is out.",
+          "l3_knowledge": "Reads the report numbers and knows which brand the physician wrote. Does NOT know what collagen or biotin is meant to do, does NOT know what Wellbeing Nutrition or TrueBasics cost or why they cost it.",
+          "l4_stance": "Wants a routine he can forget about — cheap, prescribed, refillable. Rejects wellness brands with pastel pouches and Instagram reels as somebody's marketing, not medicine.",
+          "l5_behavior": "Set a phone reminder for Sunday and reordered the Uprise-D3 sachets through the pharmacy app the same week the report came."
+        },
+        {
+          "person_id": "P5",
+          "stance": "purist",
+          "l1_context": "Buys his father's blood-pressure and stroke medicines every month at the pharmacy; that counter is where 'daily tablets' means something serious in his house.",
+          "l2_category": "His own daily habit is food — two rotis with ghee at 6am, soaked chana some mornings; the only pharmacy money that leaves the house is his father's strip.",
+          "l3_knowledge": "Knows the names on his father's prescription and what Shelcal is for because the doctor said calcium. Does NOT know what whey protein is, does NOT know any online supplement seller exists.",
+          "l4_stance": "Wants strength that comes from dal, ghee and rice; rejects spending on a daily powder for himself while his father's medicines are the fixed monthly bill.",
+          "l5_behavior": "Last pharmacy trip he bought only his father's month strip and the Shelcal the doctor wrote, and walked past the counter's vitamin display."
+        },
+        {
+          "person_id": "P8",
+          "stance": "aspirant",
+          "l1_context": "Evening handover means he eats at odd hours; a hotel colleague who lifts talks about tubs, and a reel about vitamin D deficiency in night-shift workers stuck with him.",
+          "l2_category": "Bought Power Gummies once for hair, takes a Carbamide Forte multivitamin most mornings, and keeps meaning to make it every morning; orders on the marketplace when he remembers.",
+          "l3_knowledge": "Knows biotin is 'for hair' and that gummies are easier to keep taking. Does NOT know his own vitamin-D number, has never had a blood test read to him, does NOT know what MuscleBlaze is for.",
+          "l4_stance": "Wants a small daily thing that feels like looking after himself while his wife is away. Rejects whey tubs — 'that's gym-bro stuff, I don't lift'.",
+          "l5_behavior": "Reordered the Carbamide Forte multivitamin bottle on Amazon after finding the old one empty in the bathroom shelf for a week."
+        }
+      ],
+      "declines": [
+        {
+          "person_id": "P1",
+          "reason": "Second-shift press wage of ₹3.1L across five people; no pharmacy course, no daily tablet, and the household's medicine money goes to his son's fevers, not a standing habit."
+        },
+        {
+          "person_id": "P4",
+          "reason": "On lift sites daily and unmarried; his 'routine' is eggs and the canteen — no prescription, no HealthKart account, no ₹600 bottle enters his month."
+        },
+        {
+          "person_id": "P6",
+          "reason": "Hand press six days plus his mother-in-law's stairs; nothing daily is bought for himself and the pharmacy visit is only for her, not a standing supplement he keeps."
+        },
+        {
+          "person_id": "P7",
+          "reason": "Surge-hour riding means no fixed morning at all; he eats when a drop ends and has never had a daily-tablet or subscription habit of any kind."
+        }
+      ]
+    },
+    "late_night_craving": {
+      "anchors": [
+        {
+          "person_id": "P2",
+          "stance": "switcher",
+          "l1_context": "Flatmates order at night and split the delivery fee; he started tapping the app himself after a late deployment weekend two years ago.",
+          "l2_category": "Two or three nights a week on Zepto, ₹100-₹200 basket, usually a Kwality Wall's tub or a Silk bar; never a single small bar.",
+          "l3_knowledge": "Knows which app has the ice cream in stock at midnight and that small ₹20 bars are missing from apps. Does NOT know what a protein bar box costs, does NOT know Dark Fantasy has a sugar-free version.",
+          "l4_stance": "Wants the craving killed in ten minutes. Rejects anything that reads 'no added sugar' at 11pm — that is a morning purchase, not a treat.",
+          "l5_behavior": "Last Friday ordered a Kwality Wall's tub and a KitKat multipack on Zepto after midnight and ate half the tub in bed."
+        },
+        {
+          "person_id": "P3",
+          "stance": "pragmatist",
+          "l1_context": "His father's sugar reading changed what stays in the fridge; he still wants something after the laptop shuts and the house is quiet.",
+          "l2_category": "Three or four nights a week, mostly the kitchen cupboard, not the app; Bournville squares kept on the top shelf, ₹399 Silk pack when guests leftovers exist.",
+          "l3_knowledge": "Reads the sugar position on packs, knows Bournville is the less-sweet step. Does NOT know what The Whole Truth costs or where it is sold, does NOT trust protein numbers after the mislabelling news.",
+          "l4_stance": "Wants two squares and sleep, not a 200-calorie lecture. Rejects ordering ice cream at 11pm — he did it twice and felt stupid about it.",
+          "l5_behavior": "Broke two squares off a Bournville from the kitchen cupboard on Tuesday night and put the rest back before opening Instagram."
+        },
+        {
+          "person_id": "P8",
+          "stance": "pragmatist",
+          "l1_context": "Evening handover ends late; on the weeks his wife is away he eats standing up and the sweet thing lands at 11pm alone in the flat.",
+          "l2_category": "Four nights a week; Blinkit for a Kwality Wall's single-serve or leftover mithai from the hotel's festival boxes; ₹80-₹150 typical.",
+          "l3_knowledge": "Knows quick commerce carries the bigger Silk pack but not the ₹17 bar. Does NOT know what Yogabar or RiteBite are, does NOT know any of it is sold as boxes only.",
+          "l4_stance": "Wants something to end the shift with. Rejects biscuits as a treat — Marie Gold is what you give a guest with chai, not what fixes 11pm.",
+          "l5_behavior": "Ordered a Kwality Wall's single-serve on Blinkit at 11.20 last Wednesday and ate it scrolling reels in bed."
+        },
+        {
+          "person_id": "P7",
+          "stance": "pragmatist",
+          "l1_context": "Surge hours end near midnight; he comes home with the craving already going and nothing hot left in the kitchen.",
+          "l2_category": "Most nights, but bought at the kirana on the ride home before it shuts, not on an app; ₹17 Dairy Milk or a ₹10 Parle-G pack.",
+          "l3_knowledge": "Knows every 24-hour shop on his route and which cupboard the cousin's wife keeps biscuits in. Does NOT use quick-commerce apps as a customer, does NOT know protein bars are sold anywhere near him.",
+          "l4_stance": "Wants sweet and cheap and now. Rejects paying delivery charges on food when he is the one who delivers it.",
+          "l5_behavior": "Bought a ₹17 Dairy Milk at the kirana below the building last Saturday night and ate it on the stairs before going in."
+        },
+        {
+          "person_id": "P1",
+          "stance": "pragmatist",
+          "l1_context": "Second shift ends late; he eats after everyone is asleep and sometimes wants something sweet with the last cup of tea.",
+          "l2_category": "Once or twice a week, kitchen cupboard only; whatever biscuit pack is open, or a ₹17 Dairy Milk brought home for the boy that survived.",
+          "l3_knowledge": "Knows the count in a Parle-G pack has dropped. Does NOT have any delivery app installed, does NOT know what ice cream costs at 11pm on one.",
+          "l4_stance": "Wants the tea and two biscuits without waking the room. Rejects spending on himself at night when the boy's milk is the monthly line that matters.",
+          "l5_behavior": "Dipped Parle-G into tea standing by the door after the second shift last week rather than open the son's Milk Bikis."
+        }
+      ],
+      "declines": [
+        {
+          "person_id": "P4",
+          "reason": "Site work starts at 7; he is asleep by ten with parents and three siblings in the same rooms — no 11pm scrolling, no app, no cupboard he opens alone."
+        },
+        {
+          "person_id": "P5",
+          "reason": "General shift plus his father's night turning and medicines fills 11pm; the fridge holds the father's food and there is no quick-commerce order in this household."
+        },
+        {
+          "person_id": "P6",
+          "reason": "Six-day hand-press shift, lights out early in two rooms shared with mother-in-law and a four-year-old; late-night sweet buying does not exist at ₹3.1L with no app on the phone."
+        }
+      ]
+    }
+  }
+}
