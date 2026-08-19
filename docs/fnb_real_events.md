@@ -120,6 +120,102 @@ attached to a moment exactly as the proposed split predicts.**
 
 ---
 
-# EVENTS 2-5 — awaited from the user (four friends' days)
+# EVENT 2 — the SAME user's IDEAL day. ⚠⚠ ASPIRATIONAL, NOT OBSERVED.
 
-⚠ **Record them here verbatim-first, route them second, and do not revise the routings above.**
+⚠⚠ **THIS IS NOT A CONSUMPTION EVENT AND MUST NOT BE POOLED WITH ONE.** It did not happen. It
+cannot be routed as evidence that a moment *occurs*, only as evidence of what this person *wants*
+a moment to contain. ⭐ **Counted separately: the tally of real observed days is still 1, and the
+four friends' days are still owed.**
+
+⭐⭐ **But it is worth more than a third real day, for a different question** — because it is the
+**same person as event 1**, so actual and ideal can be diffed with everything else held constant.
+That pair is rare and it is the thing an ad actually addresses.
+
+⚠ **A hard constraint stated by the user and shaping every line: he is VEGETARIAN.**
+
+| # | when | ideal item |
+|---|---|---|
+| 2a | morning | **a cup of milk + sunflower and pumpkin seeds** |
+| 2b | office | **a cup of black coffee** |
+| 2c | lunch | **a high-protein meal — paneer and roti, or a Lebanese wrap** |
+| 2d | 4-5pm | **100g Greek yogurt + edamame beans**, *"along with, say, a cup of coffee"* |
+| 2e | dinner | **a tempeh sandwich, or protein hara bhara kebab** |
+| 2f | conditional | **a protein supplement — plant or whey — IF he has gone to the gym** |
+
+---
+
+## ⭐⭐ WHAT THE IDEAL DAY ESTABLISHES
+
+### 1. ⭐⭐ SEVEN PROTEIN DECISIONS, AND NOT ONE PACKAGED PROTEIN SNACK
+
+Every eating moment in this day is a protein decision — milk and seeds, paneer, Greek yogurt,
+edamame, tempeh, kebab. **The most protein-motivated buyer imaginable, who has organised his
+entire ideal day around the goal, wants a protein BAR at none of them.**
+
+⭐ The single exception is **2f, the post-gym supplement** — and it is conditional. ⭐⭐ **So
+packaged protein wins exactly ONE moment out of seven for this buyer, and it is the one moment
+where whole food genuinely cannot compete on speed.** That moment is `post_workout`, which the
+grid already has and where the pack's brands actually live.
+
+⚠⚠ **THE CONSEQUENCE FOR THE PRODUCT, AND IT IS UNCOMFORTABLE:** this buyer's real competitors
+are **paneer, Greek yogurt, edamame, tempeh and seeds** — mostly unbranded, several with no brand
+at all. **Ring 4 ("same moment, anything") is the DOMINANT ring for the most engaged buyer**,
+which inverts the usual assumption that engaged buyers shop inside the category. A pack of 45
+brands describes a world he has opted out of.
+
+### 2. ⭐⭐ THE SAME BEVERAGE PLAYS TWO ROLES IN ONE DAY, AND THE MOMENT DECIDES WHICH
+
+- **2b, the office coffee** — the same 11am black coffee as event 1c, where it **REPLACES** food.
+  ⭐ It survives into the ideal day unchanged, so it is a **chosen habit, not a compromise.**
+- **2d, the 4-5pm coffee** — *"along with"* Greek yogurt and edamame. **A COMPANION.**
+
+⭐⭐ **One person, one drink, one day: substitute at 11am, companion at 4pm.** Put beside the rest
+of the evidence — tier-3 women 100% companion at 4pm (`#60`), metro men companion at 4pm (`#62`) —
+**the pattern is that the MOMENT determines the role, not the product and not the person.**
+⭐ That is a direct argument for a moment-based map over a category-based one, and it is the
+cleanest instance of it we have.
+
+### 3. ⭐⭐ THE ACTUAL-VS-IDEAL GAP IS WIDEST EXACTLY WHERE SOMEONE ELSE PROVIDES THE FOOD
+
+| moment | actual (event 1) | ideal (event 2) | who controls it |
+|---|---|---|---|
+| morning | upma + **Provelac** (packaged) | milk + seeds (whole food) | him — ⚠ **and the ideal is LESS packaged than the actual** |
+| 11am | black coffee | black coffee | him — **no gap at all** |
+| lunch | canteen roti/subji/rajma | paneer, Lebanese wrap | ❌ **the office canteen** — widest gap |
+| 4-5pm | office samosas, chaat, pav bhaji (free) | Greek yogurt + edamame | ❌ **the office** — widest gap |
+| dinner | roti + subji + Diet Coke | tempeh sandwich, kebab | him — moderate gap |
+
+⭐⭐ **THE MOMENTS AN AD CAN MOVE ARE THE MOMENTS THE PERSON CONTROLS.** The canteen lunch is not
+winnable by a brand at any creative quality; the morning and the 4pm are. ⚠ **Nothing in the
+instrument currently distinguishes a self-provisioned moment from a provided one** — and event 1e
+already showed provided-and-free displacing a purchase.
+
+⭐ **And note the direction of 2a:** the packaged product he actually uses (Provelac) is the
+**compromise**, and the whole food is the aspiration. ⚠ A persona generator that treats packaged
+nutrition as the aspirational choice has this backwards for this buyer.
+
+### 4. ⚠⚠ "I AM A VEGETARIAN" IS LOAD-BEARING AND NO AXIS CARRIES IT
+
+**Verified in code:** the eight vector axes are `brand_stance`, `category_involvement`,
+`category_relationship`, `channel_behavior`, `decision_driver`, `life_stage`, `price_orientation`,
+`prior_experience_valence` — **none is diet.** The person fields are gender, age, income,
+geography, `occupation_hint`, `household_hint` — **none is diet.**
+
+⚠ In an Indian food market, vegetarian/non-vegetarian determines more of what a person will eat
+than income does. It can appear in anchor prose by accident, but it **cannot be selected on,
+counted, or guaranteed** — ⭐ **the same defect class as the incumbent-is-prose gap from the ring
+test.** Every protein source in this ideal day is vegetarian, and that is not a coincidence; it is
+the constraint doing the work.
+
+### 5. ⭐ "EVENT BEATS CLOCK" CONFIRMED AGAIN — 2f is conditional on the gym, not on a time
+
+*"I would have a protein supplement if I have gone to the gym."* Not a clock moment; a
+**triggered** one. ⭐ The router test's tie-break (*event beats clock*) handles it, and this is the
+second real-world confirmation of a procedure rule after event 1's one-sitting-two-moments.
+
+---
+
+# EVENTS 3-6 — awaited from the user (four friends' days)
+
+⚠ **Record them here verbatim-first, route them second, and do not revise any routing above.**
+⭐ **Still owed: four OBSERVED days.** Event 2 is aspirational and does not substitute for one.
