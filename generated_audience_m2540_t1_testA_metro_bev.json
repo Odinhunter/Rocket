@@ -1,0 +1,958 @@
+{
+  "market": "snacking",
+  "category": "health_nutrition_snacking_bev",
+  "grid": {
+    "market": "Indian urban snacking and nutrition",
+    "occasions": [
+      {
+        "key": "desk_slump_4pm",
+        "moment": "the 4pm dip at a desk — hungry, flagging, two hours from dinner",
+        "competes_with": "biscuits from the office jar, a chocolate bar, samosa/vada from the canteen, chai, a banana, or skipping it entirely",
+        "decided_by": "speed, taste, what is within arm's reach, mild guilt",
+        "channel": "office pantry, vending machine, the desk drawer stocked on Blinkit"
+      },
+      {
+        "key": "late_night_craving",
+        "moment": "11pm, scrolling in bed, wants something sweet",
+        "competes_with": "chocolate, ice cream, leftover mithai, biscuits, nothing",
+        "decided_by": "craving, what is in the fridge, 10-minute delivery",
+        "channel": "Blinkit / Zepto / Instamart, the kitchen cupboard"
+      },
+      {
+        "key": "post_workout",
+        "moment": "straight after the gym, 45 minutes before a proper meal",
+        "competes_with": "a whey shake, eggs, a banana, dal-chawal at home, nothing",
+        "decided_by": "protein per serving, habit, what the trainer said",
+        "channel": "gym counter, HealthKart, Amazon, the gym bag"
+      },
+      {
+        "key": "breakfast_on_the_run",
+        "moment": "leaving the house late, will not sit down to eat",
+        "competes_with": "toast, poha, cereal, a bought sandwich, coffee alone, skipping",
+        "decided_by": "one hand, no crumbs, keeps until 11am",
+        "channel": "kitchen counter, the metro station kiosk, monthly grocery order"
+      },
+      {
+        "key": "guilt_free_treat",
+        "moment": "a weekend or a bad day — wants a treat but not to feel bad about it",
+        "competes_with": "dark chocolate, a 'healthy' dessert, regular chocolate anyway, fruit",
+        "decided_by": "permission — whether it reads as a treat or as a compromise",
+        "channel": "quick commerce, the supermarket aisle, a cafe"
+      },
+      {
+        "key": "travel_and_commute",
+        "moment": "airport, long drive, or a two-hour commute with no real meal in sight",
+        "competes_with": "airport sandwich, chips, nuts, a Snickers at the counter, nothing",
+        "decided_by": "portability, shelf life, what the counter is selling",
+        "channel": "airport store, highway stop, petrol pump, packed from home"
+      },
+      {
+        "key": "daily_health_routine",
+        "moment": "a standing daily habit someone has decided to keep",
+        "competes_with": "a powder, gummies, a multivitamin, real food, nothing",
+        "decided_by": "routine, whether it is working, cost per day",
+        "channel": "Amazon subscribe, HealthKart, the pharmacy, D2C"
+      },
+      {
+        "key": "household_stock_up",
+        "moment": "the monthly or weekly shop — buying for other people as well as themselves",
+        "competes_with": "biscuit packs, namkeen, cereal, whatever the kids will eat",
+        "decided_by": "price per unit, family acceptance, keeps in the cupboard",
+        "channel": "supermarket, BigBasket, the local kirana"
+      }
+    ],
+    "everyday_alternatives": [
+      "Cadbury Dairy Milk — ₹10 to ₹100 depending on size; the default sweet thing",
+      "Snickers — ~₹40 for 50g; the 'it's basically food' bar at the counter",
+      "KitKat / Perk / Munch — ₹10-₹40 impulse chocolate",
+      "Britannia Good Day, Marie Gold, 50-50, Bourbon — ₹10-₹40 biscuit packs",
+      "Parle-G — ₹5-₹10; the floor of the category",
+      "Sunfeast Dark Fantasy — ~₹30; the indulgent biscuit",
+      "Lay's / Kurkure / Bingo — ₹20 chips and namkeen",
+      "Haldiram's namkeen — ₹20-₹50 packs, and the household tin",
+      "Amul / Kwality Walls ice cream — ₹40-₹80 for the late-night version",
+      "canteen samosa, vada pav, or chai — ₹10-₹25, hot and immediate",
+      "a banana or an apple from the fruit cart — ₹10-₹20",
+      "leftover mithai in the fridge after any festival",
+      "nothing at all — waiting it out until the next meal"
+    ],
+    "stances": [
+      "loyalist",
+      "switcher",
+      "upgrader",
+      "aspirant",
+      "skeptic",
+      "purist",
+      "pragmatist",
+      "gifter"
+    ]
+  },
+  "occasion": "desk_slump_4pm",
+  "region": {
+    "gender": "male",
+    "age_min": 25,
+    "age_max": 40,
+    "income_min": 0.0,
+    "income_max": 100.0,
+    "tier": "tier-1"
+  },
+  "raw": [
+    {
+      "label": "loyalist_kitkat_break_ritual",
+      "occasion": "desk_slump_4pm",
+      "stance": "loyalist",
+      "category_relationship": "regular",
+      "brand_stance": "loyalist",
+      "price_orientation": "price_first",
+      "decision_driver": "habit",
+      "category_involvement": "low",
+      "prior_experience_valence": "positive",
+      "channel_behavior": "offline_first",
+      "life_stage": "family",
+      "l1_context": "Never came to it as nutrition at all — the afternoon tea break with the shift mates has had the same wafer bar in it for years.",
+      "l2_category": "Buys a single bar at the shop near the gate four or five afternoons a week, always the same coin price, always with cutting chai.",
+      "l3_knowledge": "Knows which shops keep the bar cold and which sell stale stock. Does NOT know what whey is or that protein bars exist as a shelf. Does NOT read the back of any pack.",
+      "l4_stance": "Wants the same taste for the same coin at the same time. Rejects anything that has to be ordered in advance or comes in a box of eight.",
+      "l5_behavior": "Grabbed a KitKat at the kirana on the way back from the gate at 4, ate it standing with chai, put it on the running tab.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 33,
+          "income_lpa": 2.6,
+          "geography": "Kanpur / tier-1",
+          "occupation_hint": "runs a bobbin-changing shift on a textile mill floor, six days, second shift most weeks",
+          "household_hint": "wife and two small children in two rooms; his younger brother sleeps there too while looking for work",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 27,
+          "income_lpa": 3.4,
+          "geography": "Surat / tier-1",
+          "occupation_hint": "loads and tapes cartons at a diamond-polishing unit's dispatch table, paid by the day",
+          "household_hint": "never married, shares a room with three men from his village and sends money home each month",
+          "weight": 0.9
+        },
+        {
+          "gender": "male",
+          "age": 39,
+          "income_lpa": 5.2,
+          "geography": "Lucknow / tier-1",
+          "occupation_hint": "sits at a cloth wholesaler's counter cutting and billing all day, owner's nephew does the buying",
+          "household_hint": "wife, one son in class four, and his father who cannot manage the stairs alone",
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "switcher_canteen_samosa_swap",
+      "occasion": "desk_slump_4pm",
+      "stance": "switcher",
+      "category_relationship": "occasional",
+      "brand_stance": "neutral",
+      "price_orientation": "value_calculator",
+      "decision_driver": "function",
+      "category_involvement": "medium",
+      "prior_experience_valence": "mixed",
+      "channel_behavior": "quick_commerce",
+      "life_stage": "early_career",
+      "l1_context": "Fried canteen snack every afternoon started showing up as acidity and a heavy 5pm, so he began rotating whatever the drawer had instead.",
+      "l2_category": "Stocks the desk drawer on a ten-minute app once a fortnight; moves between namkeen packs, a protein bar box, and chips depending on mood.",
+      "l3_knowledge": "Knows the drawer gets raided and cheap packs vanish first. Does NOT know whether the protein figure on a bar is verified. Does NOT know the difference between whey isolate and concentrate.",
+      "l4_stance": "Wants something that holds until dinner and does not smell up the desk. Rejects any bar that tastes chalky — he will not finish a box out of loyalty.",
+      "l5_behavior": "Added a RiteBite Max Protein bar to a Blinkit top-up alongside Lay's, ate the bar Tuesday and the chips Wednesday.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 26,
+          "income_lpa": 7.8,
+          "geography": "Pune / tier-1",
+          "occupation_hint": "junior process associate on a night-shifted insurance claims desk at a business park",
+          "household_hint": "unmarried, rents a flat with two colleagues; nobody is home between eight and eight",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 31,
+          "income_lpa": 4.1,
+          "geography": "Jaipur / tier-1",
+          "occupation_hint": "field agent for a two-wheeler loan agency, on the bike most of the day chasing paperwork",
+          "household_hint": "wife and a toddler; his mother stays with them and does the cooking",
+          "weight": 0.9
+        },
+        {
+          "gender": "male",
+          "age": 36,
+          "income_lpa": 14.0,
+          "geography": "Hyderabad / tier-1",
+          "occupation_hint": "supervises the packing and labelling line at a pharma contract unit",
+          "household_hint": "married eight years, no children; wife works in another city and comes home alternate weekends",
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "upgrader_bournville_desk_drawer",
+      "occasion": "desk_slump_4pm",
+      "stance": "upgrader",
+      "category_relationship": "regular",
+      "brand_stance": "favorable",
+      "price_orientation": "quality_first",
+      "decision_driver": "identity",
+      "category_involvement": "medium",
+      "prior_experience_valence": "positive",
+      "channel_behavior": "quick_commerce",
+      "life_stage": "settled",
+      "l1_context": "A blood-sugar number on last year's company health check made him stop the two-biscuit-with-chai habit and look for a smaller, darker afternoon thing.",
+      "l2_category": "Keeps his own bar in a locked drawer, orders on a ten-minute app monthly, sticks to darker chocolate and one squares-not-bars rule.",
+      "l3_knowledge": "Knows dark tastes less sweet and that he eats less of it. Does NOT know how much sugar is actually in what he switched to. Does NOT know what a protein bar costs or where singles are sold.",
+      "l4_stance": "Wants a small grown-up treat that does not read as kids' food. Rejects pastel wellness packaging and anything with a cartoon or a percentage shouted on the front.",
+      "l5_behavior": "Ordered Bournville on Zepto with the tea packet, broke two squares at 4.15 and left the rest in the drawer.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 38,
+          "income_lpa": 18.5,
+          "geography": "Bengaluru / tier-1",
+          "occupation_hint": "assistant manager handling vendor bills in a hospital's accounts department",
+          "household_hint": "wife and a daughter in class two; his widowed mother-in-law lives with them",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 34,
+          "income_lpa": 6.4,
+          "geography": "Nagpur / tier-1",
+          "occupation_hint": "runs a mobile-accessory counter in a market lane, opens at eleven and shuts at nine",
+          "household_hint": "married, one son; his wife's brother helps at the counter on Sundays",
+          "weight": 0.9
+        },
+        {
+          "gender": "male",
+          "age": 40,
+          "income_lpa": 11.0,
+          "geography": "Ahmedabad / tier-1",
+          "occupation_hint": "draughtsman at a small structural design office, mostly at the same screen all day",
+          "household_hint": "never married, lives with his elder brother's family and pays part of the rent",
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "aspirant_wants_the_bar_habit",
+      "occasion": "desk_slump_4pm",
+      "stance": "aspirant",
+      "category_relationship": "never",
+      "brand_stance": "favorable",
+      "price_orientation": "value_calculator",
+      "decision_driver": "social_proof",
+      "category_involvement": "medium",
+      "prior_experience_valence": "neutral",
+      "channel_behavior": "marketplace",
+      "life_stage": "early_career",
+      "l1_context": "Saw a colleague pull a wrapped protein bar out of his bag every afternoon and has been meaning to start the same thing since Diwali.",
+      "l2_category": "Still eats the canteen vada pav most days; has a bar box saved in the marketplace cart and keeps not placing the order.",
+      "l3_knowledge": "Knows the names from reels and from that colleague. Does NOT know which brand is actually better or what 20g of protein does for someone who does not lift. Does NOT know a box cannot be bought as one bar downstairs.",
+      "l4_stance": "Wants to look like someone with a routine, not like someone dieting. Rejects committing to a full box before tasting one — that is the whole reason he hasn't ordered.",
+      "l5_behavior": "Ate half a Yogabar a teammate offered in the pantry, said it was fine, then bought vada pav from the cart the next afternoon.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 25,
+          "income_lpa": 4.6,
+          "geography": "Mumbai / tier-1",
+          "occupation_hint": "trainee steward on the floor of a hotel coffee shop, split shifts",
+          "household_hint": "unmarried, lives with parents and an unmarried aunt in a chawl room in the suburbs",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 29,
+          "income_lpa": 9.2,
+          "geography": "Chennai / tier-1",
+          "occupation_hint": "quality checker on an auto-component assembly bench in an industrial estate",
+          "household_hint": "married last year; wife is finishing her nursing course and they have no children yet",
+          "weight": 0.9
+        },
+        {
+          "gender": "male",
+          "age": 32,
+          "income_lpa": 3.0,
+          "geography": "Patna / tier-1",
+          "occupation_hint": "helps at his uncle's stationery and photocopy shop and takes no salary from it",
+          "household_hint": "wife and three children in his father's house; his father has not worked since a stroke",
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "skeptic_protein_on_everything",
+      "occasion": "desk_slump_4pm",
+      "stance": "skeptic",
+      "category_relationship": "lapsed",
+      "brand_stance": "hostile",
+      "price_orientation": "price_first",
+      "decision_driver": "function",
+      "category_involvement": "medium",
+      "prior_experience_valence": "burned",
+      "channel_behavior": "offline_first",
+      "life_stage": "family",
+      "l1_context": "Bought into the bar habit for a month during a gym phase two years ago; the gym stopped and the leftover bars sat in a drawer until someone else ate them.",
+      "l2_category": "Now brings tea from home in a flask and eats whatever the office jar has; buys nothing packaged in the afternoon most days.",
+      "l3_knowledge": "Knows the lab-testing story about protein numbers being wrong and repeats it. Does NOT know which brands were actually tested or by whom. Does NOT know what his own protein intake is.",
+      "l4_stance": "Wants to stop paying for packaging and claims. Rejects 'high protein' on a biscuit or a chip outright — if it is on everything it means nothing.",
+      "l5_behavior": "Turned down a shared Yogabar wafer at the desk and had two Parle-G from the office jar with his own chai instead.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 35,
+          "income_lpa": 5.8,
+          "geography": "Indore / tier-1",
+          "occupation_hint": "welder-fitter on site with a small fabrication contractor, work comes in stretches",
+          "household_hint": "wife and two daughters; his wife's father lives with them and needs help to the toilet",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 30,
+          "income_lpa": 12.5,
+          "geography": "Delhi / tier-1",
+          "occupation_hint": "clerk in a district court's filing section, same window every morning",
+          "household_hint": "divorced two years ago, lives alone and eats dinner at his sister's on Sundays",
+          "weight": 0.9
+        },
+        {
+          "gender": "male",
+          "age": 28,
+          "income_lpa": 2.9,
+          "geography": "Coimbatore / tier-1",
+          "occupation_hint": "works his family's half-acre of plantain on the city's edge before coming in to drive a tempo on hire",
+          "household_hint": "unmarried, lives with his mother and a younger sister still in college",
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "purist_ghee_dal_rice_4pm",
+      "occasion": "desk_slump_4pm",
+      "stance": "purist",
+      "category_relationship": "never",
+      "brand_stance": "hostile",
+      "price_orientation": "quality_first",
+      "decision_driver": "identity",
+      "category_involvement": "low",
+      "prior_experience_valence": "neutral",
+      "channel_behavior": "offline_first",
+      "life_stage": "family",
+      "l1_context": "Grew up eating whatever came from the home kitchen at four o'clock and sees no reason a wrapper should replace it; carries food from home.",
+      "l2_category": "Almost never buys packaged snacks for himself; a chai from the stall most afternoons, roasted chana or a banana from the cart alongside.",
+      "l3_knowledge": "Knows chai and something home-made holds him till dinner. Does NOT know what whey concentrate is or how it differs from anything. Does NOT know protein bars come in boxes rather than singles, and has never looked up a price.",
+      "l4_stance": "Wants food that was cooked, not manufactured. Rejects 'high protein' snacks outright as city anxiety sold in foil — says dal and roti already did it.",
+      "l5_behavior": "Refused the protein bar a cousin handed him at a wedding and ate two extra rotis packed for the afternoon instead.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 34,
+          "income_lpa": 2.4,
+          "geography": "Kanpur / tier-1",
+          "occupation_hint": "loads and stacks sacks at a wholesale grain market from before dawn, paid by the day",
+          "household_hint": "wife and three young children in two rooms; his younger brother sleeps there too between contract jobs",
+          "weight": 1.1
+        },
+        {
+          "gender": "male",
+          "age": 28,
+          "income_lpa": 3.6,
+          "geography": "Lucknow / tier-1",
+          "occupation_hint": "cooks and serves at a small dhaba near the bus stand, six days on the tandoor",
+          "household_hint": "never married; shares a room above the dhaba with two other men from his village",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 39,
+          "income_lpa": 8.5,
+          "geography": "Coimbatore / tier-1",
+          "occupation_hint": "works the family's vegetable patch on the town's edge in the mornings and minds his father's cycle-repair shed after",
+          "household_hint": "his mother lives with him and his wife; no children after eleven years of marriage",
+          "weight": 0.9
+        }
+      ]
+    },
+    {
+      "label": "pragmatist_whatever_stops_hunger",
+      "occasion": "desk_slump_4pm",
+      "stance": "pragmatist",
+      "category_relationship": "occasional",
+      "brand_stance": "neutral",
+      "price_orientation": "value_calculator",
+      "decision_driver": "function",
+      "category_involvement": "medium",
+      "prior_experience_valence": "mixed",
+      "channel_behavior": "offline_first",
+      "life_stage": "early_career",
+      "l1_context": "Long gap between a rushed lunch and a late dinner after the shift; started grabbing something at four purely so he stops feeling shaky.",
+      "l2_category": "Buys at the counter near work most days, coin prices, whatever is cold or filling; Snickers when he wants it to count as food.",
+      "l3_knowledge": "Knows a peanut bar holds him longer than a wafer one. Does NOT know how many grams of protein anything has and has never turned a pack over. Does NOT know which better-for-you brands exist beyond having seen one on a shelf.",
+      "l4_stance": "Wants to not be hungry until dinner for small money. Rejects anything sold as a health product — says if it were really filling it wouldn't need the word.",
+      "l5_behavior": "Picked a Snickers at the shop by the depot gate last week because a KitKat had left him hungry again by six.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 26,
+          "income_lpa": 4.2,
+          "geography": "Surat / tier-1",
+          "occupation_hint": "operates a sizing machine on the second shift at a textile unit",
+          "household_hint": "never married; sends most of what he has to parents in a village and lives four to a room",
+          "weight": 1.2
+        },
+        {
+          "gender": "male",
+          "age": 31,
+          "income_lpa": 6.8,
+          "geography": "Pune / tier-1",
+          "occupation_hint": "rides a food-delivery bike ten hours a day and fixes his own punctures",
+          "household_hint": "wife and a two-year-old; her mother comes over most days while he is out",
+          "weight": 1.1
+        },
+        {
+          "gender": "male",
+          "age": 37,
+          "income_lpa": 12.0,
+          "geography": "Hyderabad / tier-1",
+          "occupation_hint": "counter salesman at an electrical-fittings shop, on his feet from ten to nine",
+          "household_hint": "separated from his wife two years ago; his son lives with her and visits on Sundays",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 29,
+          "income_lpa": 2.8,
+          "geography": "Patna / tier-1",
+          "occupation_hint": "casual mason's helper, picks up work at the labour chowk most mornings and some days gets none",
+          "household_hint": "lives with his widowed mother and an unmarried sister; he is the only one going out to work",
+          "weight": 1.1
+        }
+      ]
+    },
+    {
+      "label": "gifter_desk_drawer_for_the_team",
+      "occasion": "desk_slump_4pm",
+      "stance": "gifter",
+      "category_relationship": "regular",
+      "brand_stance": "favorable",
+      "price_orientation": "price_first",
+      "decision_driver": "social_proof",
+      "category_involvement": "medium",
+      "prior_experience_valence": "positive",
+      "channel_behavior": "quick_commerce",
+      "life_stage": "settled",
+      "l1_context": "Ended up the one who keeps the shared box on the shelf because the afternoon slump makes everyone irritable and nobody else bothers ordering.",
+      "l2_category": "Orders a multipack or a family tin on the app once a fortnight; anything expensive vanishes in a day so he buys the cheap loud stuff.",
+      "l3_knowledge": "Knows exactly which packs get finished first and which get left. Does NOT know what anyone's protein needs are. Does NOT know that health bars are mostly sold as boxes and has never priced one.",
+      "l4_stance": "Wants packs that get eaten and shared without comment. Rejects single premium bars for a shared box — one bar for eight people starts an argument, not a break.",
+      "l5_behavior": "Put a KitKat multipack and a Haldiram's aloo bhujia family pack on the Blinkit order for the shelf last Tuesday.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 33,
+          "income_lpa": 9.5,
+          "geography": "Jaipur / tier-1",
+          "occupation_hint": "supervises the packing line at a marble-fittings unit and keeps the attendance register",
+          "household_hint": "wife and one daughter in nursery; his father-in-law stays with them since his stroke",
+          "weight": 1.1
+        },
+        {
+          "gender": "male",
+          "age": 27,
+          "income_lpa": 5.5,
+          "geography": "Nagpur / tier-1",
+          "occupation_hint": "runs a mobile-recharge and photocopy counter he took over from an uncle",
+          "household_hint": "never married; lives with parents and a younger brother still finishing college",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 40,
+          "income_lpa": 22.0,
+          "geography": "Bengaluru / tier-1",
+          "occupation_hint": "accounts clerk at a logistics firm, does the petty-cash book and the office ordering",
+          "household_hint": "two school-age sons; his wife works nights at a hospital so evenings at home are his",
+          "weight": 0.9
+        }
+      ]
+    }
+  ],
+  "refusals": [],
+  "dispositions": [
+    {
+      "label": "loyalist_kitkat_break_ritual",
+      "vector": {
+        "category_relationship": "regular",
+        "brand_stance": "loyalist",
+        "price_orientation": "price_first",
+        "decision_driver": "habit",
+        "category_involvement": "low",
+        "prior_experience_valence": "positive",
+        "channel_behavior": "offline_first",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=desk_slump_4pm stance=loyalist region=m25-40_0-100_t1",
+      "anchor": "Never came to it as nutrition at all — the afternoon tea break with the shift mates has had the same wafer bar in it for years.\n\nBuys a single bar at the shop near the gate four or five afternoons a week, always the same coin price, always with cutting chai.\n\nKnows which shops keep the bar cold and which sell stale stock. Does NOT know what whey is or that protein bars exist as a shelf. Does NOT read the back of any pack.\n\nWants the same taste for the same coin at the same time. Rejects anything that has to be ordered in advance or comes in a box of eight.\n\nGrabbed a KitKat at the kirana on the way back from the gate at 4, ate it standing with chai, put it on the running tab.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 33,
+            "age_max": 33,
+            "income_lpa_min": 2.6,
+            "income_lpa_max": 2.6,
+            "geography": "Kanpur / tier-1",
+            "occupation_hint": "runs a bobbin-changing shift on a textile mill floor, six days, second shift most weeks",
+            "household_hint": "wife and two small children in two rooms; his younger brother sleeps there too while looking for work"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 27,
+            "age_max": 27,
+            "income_lpa_min": 3.4,
+            "income_lpa_max": 3.4,
+            "geography": "Surat / tier-1",
+            "occupation_hint": "loads and tapes cartons at a diamond-polishing unit's dispatch table, paid by the day",
+            "household_hint": "never married, shares a room with three men from his village and sends money home each month"
+          },
+          "weight": 0.9
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 39,
+            "age_max": 39,
+            "income_lpa_min": 5.2,
+            "income_lpa_max": 5.2,
+            "geography": "Lucknow / tier-1",
+            "occupation_hint": "sits at a cloth wholesaler's counter cutting and billing all day, owner's nephew does the buying",
+            "household_hint": "wife, one son in class four, and his father who cannot manage the stairs alone"
+          },
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "switcher_canteen_samosa_swap",
+      "vector": {
+        "category_relationship": "occasional",
+        "brand_stance": "neutral",
+        "price_orientation": "value_calculator",
+        "decision_driver": "function",
+        "category_involvement": "medium",
+        "prior_experience_valence": "mixed",
+        "channel_behavior": "quick_commerce",
+        "life_stage": "early_career"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=desk_slump_4pm stance=switcher region=m25-40_0-100_t1",
+      "anchor": "Fried canteen snack every afternoon started showing up as acidity and a heavy 5pm, so he began rotating whatever the drawer had instead.\n\nStocks the desk drawer on a ten-minute app once a fortnight; moves between namkeen packs, a protein bar box, and chips depending on mood.\n\nKnows the drawer gets raided and cheap packs vanish first. Does NOT know whether the protein figure on a bar is verified. Does NOT know the difference between whey isolate and concentrate.\n\nWants something that holds until dinner and does not smell up the desk. Rejects any bar that tastes chalky — he will not finish a box out of loyalty.\n\nAdded a RiteBite Max Protein bar to a Blinkit top-up alongside Lay's, ate the bar Tuesday and the chips Wednesday.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 26,
+            "age_max": 26,
+            "income_lpa_min": 7.8,
+            "income_lpa_max": 7.8,
+            "geography": "Pune / tier-1",
+            "occupation_hint": "junior process associate on a night-shifted insurance claims desk at a business park",
+            "household_hint": "unmarried, rents a flat with two colleagues; nobody is home between eight and eight"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 31,
+            "age_max": 31,
+            "income_lpa_min": 4.1,
+            "income_lpa_max": 4.1,
+            "geography": "Jaipur / tier-1",
+            "occupation_hint": "field agent for a two-wheeler loan agency, on the bike most of the day chasing paperwork",
+            "household_hint": "wife and a toddler; his mother stays with them and does the cooking"
+          },
+          "weight": 0.9
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 36,
+            "age_max": 36,
+            "income_lpa_min": 14.0,
+            "income_lpa_max": 14.0,
+            "geography": "Hyderabad / tier-1",
+            "occupation_hint": "supervises the packing and labelling line at a pharma contract unit",
+            "household_hint": "married eight years, no children; wife works in another city and comes home alternate weekends"
+          },
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "upgrader_bournville_desk_drawer",
+      "vector": {
+        "category_relationship": "regular",
+        "brand_stance": "favorable",
+        "price_orientation": "quality_first",
+        "decision_driver": "identity",
+        "category_involvement": "medium",
+        "prior_experience_valence": "positive",
+        "channel_behavior": "quick_commerce",
+        "life_stage": "settled"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=desk_slump_4pm stance=upgrader region=m25-40_0-100_t1",
+      "anchor": "A blood-sugar number on last year's company health check made him stop the two-biscuit-with-chai habit and look for a smaller, darker afternoon thing.\n\nKeeps his own bar in a locked drawer, orders on a ten-minute app monthly, sticks to darker chocolate and one squares-not-bars rule.\n\nKnows dark tastes less sweet and that he eats less of it. Does NOT know how much sugar is actually in what he switched to. Does NOT know what a protein bar costs or where singles are sold.\n\nWants a small grown-up treat that does not read as kids' food. Rejects pastel wellness packaging and anything with a cartoon or a percentage shouted on the front.\n\nOrdered Bournville on Zepto with the tea packet, broke two squares at 4.15 and left the rest in the drawer.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 38,
+            "age_max": 38,
+            "income_lpa_min": 18.5,
+            "income_lpa_max": 18.5,
+            "geography": "Bengaluru / tier-1",
+            "occupation_hint": "assistant manager handling vendor bills in a hospital's accounts department",
+            "household_hint": "wife and a daughter in class two; his widowed mother-in-law lives with them"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 34,
+            "age_max": 34,
+            "income_lpa_min": 6.4,
+            "income_lpa_max": 6.4,
+            "geography": "Nagpur / tier-1",
+            "occupation_hint": "runs a mobile-accessory counter in a market lane, opens at eleven and shuts at nine",
+            "household_hint": "married, one son; his wife's brother helps at the counter on Sundays"
+          },
+          "weight": 0.9
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 40,
+            "age_max": 40,
+            "income_lpa_min": 11.0,
+            "income_lpa_max": 11.0,
+            "geography": "Ahmedabad / tier-1",
+            "occupation_hint": "draughtsman at a small structural design office, mostly at the same screen all day",
+            "household_hint": "never married, lives with his elder brother's family and pays part of the rent"
+          },
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "aspirant_wants_the_bar_habit",
+      "vector": {
+        "category_relationship": "never",
+        "brand_stance": "favorable",
+        "price_orientation": "value_calculator",
+        "decision_driver": "social_proof",
+        "category_involvement": "medium",
+        "prior_experience_valence": "neutral",
+        "channel_behavior": "marketplace",
+        "life_stage": "early_career"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=desk_slump_4pm stance=aspirant region=m25-40_0-100_t1",
+      "anchor": "Saw a colleague pull a wrapped protein bar out of his bag every afternoon and has been meaning to start the same thing since Diwali.\n\nStill eats the canteen vada pav most days; has a bar box saved in the marketplace cart and keeps not placing the order.\n\nKnows the names from reels and from that colleague. Does NOT know which brand is actually better or what 20g of protein does for someone who does not lift. Does NOT know a box cannot be bought as one bar downstairs.\n\nWants to look like someone with a routine, not like someone dieting. Rejects committing to a full box before tasting one — that is the whole reason he hasn't ordered.\n\nAte half a Yogabar a teammate offered in the pantry, said it was fine, then bought vada pav from the cart the next afternoon.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 25,
+            "age_max": 25,
+            "income_lpa_min": 4.6,
+            "income_lpa_max": 4.6,
+            "geography": "Mumbai / tier-1",
+            "occupation_hint": "trainee steward on the floor of a hotel coffee shop, split shifts",
+            "household_hint": "unmarried, lives with parents and an unmarried aunt in a chawl room in the suburbs"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 29,
+            "age_max": 29,
+            "income_lpa_min": 9.2,
+            "income_lpa_max": 9.2,
+            "geography": "Chennai / tier-1",
+            "occupation_hint": "quality checker on an auto-component assembly bench in an industrial estate",
+            "household_hint": "married last year; wife is finishing her nursing course and they have no children yet"
+          },
+          "weight": 0.9
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 32,
+            "age_max": 32,
+            "income_lpa_min": 3.0,
+            "income_lpa_max": 3.0,
+            "geography": "Patna / tier-1",
+            "occupation_hint": "helps at his uncle's stationery and photocopy shop and takes no salary from it",
+            "household_hint": "wife and three children in his father's house; his father has not worked since a stroke"
+          },
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "skeptic_protein_on_everything",
+      "vector": {
+        "category_relationship": "lapsed",
+        "brand_stance": "hostile",
+        "price_orientation": "price_first",
+        "decision_driver": "function",
+        "category_involvement": "medium",
+        "prior_experience_valence": "burned",
+        "channel_behavior": "offline_first",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=desk_slump_4pm stance=skeptic region=m25-40_0-100_t1",
+      "anchor": "Bought into the bar habit for a month during a gym phase two years ago; the gym stopped and the leftover bars sat in a drawer until someone else ate them.\n\nNow brings tea from home in a flask and eats whatever the office jar has; buys nothing packaged in the afternoon most days.\n\nKnows the lab-testing story about protein numbers being wrong and repeats it. Does NOT know which brands were actually tested or by whom. Does NOT know what his own protein intake is.\n\nWants to stop paying for packaging and claims. Rejects 'high protein' on a biscuit or a chip outright — if it is on everything it means nothing.\n\nTurned down a shared Yogabar wafer at the desk and had two Parle-G from the office jar with his own chai instead.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 35,
+            "age_max": 35,
+            "income_lpa_min": 5.8,
+            "income_lpa_max": 5.8,
+            "geography": "Indore / tier-1",
+            "occupation_hint": "welder-fitter on site with a small fabrication contractor, work comes in stretches",
+            "household_hint": "wife and two daughters; his wife's father lives with them and needs help to the toilet"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 30,
+            "age_max": 30,
+            "income_lpa_min": 12.5,
+            "income_lpa_max": 12.5,
+            "geography": "Delhi / tier-1",
+            "occupation_hint": "clerk in a district court's filing section, same window every morning",
+            "household_hint": "divorced two years ago, lives alone and eats dinner at his sister's on Sundays"
+          },
+          "weight": 0.9
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 28,
+            "age_max": 28,
+            "income_lpa_min": 2.9,
+            "income_lpa_max": 2.9,
+            "geography": "Coimbatore / tier-1",
+            "occupation_hint": "works his family's half-acre of plantain on the city's edge before coming in to drive a tempo on hire",
+            "household_hint": "unmarried, lives with his mother and a younger sister still in college"
+          },
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "purist_ghee_dal_rice_4pm",
+      "vector": {
+        "category_relationship": "never",
+        "brand_stance": "hostile",
+        "price_orientation": "quality_first",
+        "decision_driver": "identity",
+        "category_involvement": "low",
+        "prior_experience_valence": "neutral",
+        "channel_behavior": "offline_first",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=desk_slump_4pm stance=purist region=m25-40_0-100_t1",
+      "anchor": "Grew up eating whatever came from the home kitchen at four o'clock and sees no reason a wrapper should replace it; carries food from home.\n\nAlmost never buys packaged snacks for himself; a chai from the stall most afternoons, roasted chana or a banana from the cart alongside.\n\nKnows chai and something home-made holds him till dinner. Does NOT know what whey concentrate is or how it differs from anything. Does NOT know protein bars come in boxes rather than singles, and has never looked up a price.\n\nWants food that was cooked, not manufactured. Rejects 'high protein' snacks outright as city anxiety sold in foil — says dal and roti already did it.\n\nRefused the protein bar a cousin handed him at a wedding and ate two extra rotis packed for the afternoon instead.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 34,
+            "age_max": 34,
+            "income_lpa_min": 2.4,
+            "income_lpa_max": 2.4,
+            "geography": "Kanpur / tier-1",
+            "occupation_hint": "loads and stacks sacks at a wholesale grain market from before dawn, paid by the day",
+            "household_hint": "wife and three young children in two rooms; his younger brother sleeps there too between contract jobs"
+          },
+          "weight": 1.1
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 28,
+            "age_max": 28,
+            "income_lpa_min": 3.6,
+            "income_lpa_max": 3.6,
+            "geography": "Lucknow / tier-1",
+            "occupation_hint": "cooks and serves at a small dhaba near the bus stand, six days on the tandoor",
+            "household_hint": "never married; shares a room above the dhaba with two other men from his village"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 39,
+            "age_max": 39,
+            "income_lpa_min": 8.5,
+            "income_lpa_max": 8.5,
+            "geography": "Coimbatore / tier-1",
+            "occupation_hint": "works the family's vegetable patch on the town's edge in the mornings and minds his father's cycle-repair shed after",
+            "household_hint": "his mother lives with him and his wife; no children after eleven years of marriage"
+          },
+          "weight": 0.9
+        }
+      ]
+    },
+    {
+      "label": "pragmatist_whatever_stops_hunger",
+      "vector": {
+        "category_relationship": "occasional",
+        "brand_stance": "neutral",
+        "price_orientation": "value_calculator",
+        "decision_driver": "function",
+        "category_involvement": "medium",
+        "prior_experience_valence": "mixed",
+        "channel_behavior": "offline_first",
+        "life_stage": "early_career"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=desk_slump_4pm stance=pragmatist region=m25-40_0-100_t1",
+      "anchor": "Long gap between a rushed lunch and a late dinner after the shift; started grabbing something at four purely so he stops feeling shaky.\n\nBuys at the counter near work most days, coin prices, whatever is cold or filling; Snickers when he wants it to count as food.\n\nKnows a peanut bar holds him longer than a wafer one. Does NOT know how many grams of protein anything has and has never turned a pack over. Does NOT know which better-for-you brands exist beyond having seen one on a shelf.\n\nWants to not be hungry until dinner for small money. Rejects anything sold as a health product — says if it were really filling it wouldn't need the word.\n\nPicked a Snickers at the shop by the depot gate last week because a KitKat had left him hungry again by six.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 26,
+            "age_max": 26,
+            "income_lpa_min": 4.2,
+            "income_lpa_max": 4.2,
+            "geography": "Surat / tier-1",
+            "occupation_hint": "operates a sizing machine on the second shift at a textile unit",
+            "household_hint": "never married; sends most of what he has to parents in a village and lives four to a room"
+          },
+          "weight": 1.2
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 31,
+            "age_max": 31,
+            "income_lpa_min": 6.8,
+            "income_lpa_max": 6.8,
+            "geography": "Pune / tier-1",
+            "occupation_hint": "rides a food-delivery bike ten hours a day and fixes his own punctures",
+            "household_hint": "wife and a two-year-old; her mother comes over most days while he is out"
+          },
+          "weight": 1.1
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 37,
+            "age_max": 37,
+            "income_lpa_min": 12.0,
+            "income_lpa_max": 12.0,
+            "geography": "Hyderabad / tier-1",
+            "occupation_hint": "counter salesman at an electrical-fittings shop, on his feet from ten to nine",
+            "household_hint": "separated from his wife two years ago; his son lives with her and visits on Sundays"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 29,
+            "age_max": 29,
+            "income_lpa_min": 2.8,
+            "income_lpa_max": 2.8,
+            "geography": "Patna / tier-1",
+            "occupation_hint": "casual mason's helper, picks up work at the labour chowk most mornings and some days gets none",
+            "household_hint": "lives with his widowed mother and an unmarried sister; he is the only one going out to work"
+          },
+          "weight": 1.1
+        }
+      ]
+    },
+    {
+      "label": "gifter_desk_drawer_for_the_team",
+      "vector": {
+        "category_relationship": "regular",
+        "brand_stance": "favorable",
+        "price_orientation": "price_first",
+        "decision_driver": "social_proof",
+        "category_involvement": "medium",
+        "prior_experience_valence": "positive",
+        "channel_behavior": "quick_commerce",
+        "life_stage": "settled"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=desk_slump_4pm stance=gifter region=m25-40_0-100_t1",
+      "anchor": "Ended up the one who keeps the shared box on the shelf because the afternoon slump makes everyone irritable and nobody else bothers ordering.\n\nOrders a multipack or a family tin on the app once a fortnight; anything expensive vanishes in a day so he buys the cheap loud stuff.\n\nKnows exactly which packs get finished first and which get left. Does NOT know what anyone's protein needs are. Does NOT know that health bars are mostly sold as boxes and has never priced one.\n\nWants packs that get eaten and shared without comment. Rejects single premium bars for a shared box — one bar for eight people starts an argument, not a break.\n\nPut a KitKat multipack and a Haldiram's aloo bhujia family pack on the Blinkit order for the shelf last Tuesday.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 33,
+            "age_max": 33,
+            "income_lpa_min": 9.5,
+            "income_lpa_max": 9.5,
+            "geography": "Jaipur / tier-1",
+            "occupation_hint": "supervises the packing line at a marble-fittings unit and keeps the attendance register",
+            "household_hint": "wife and one daughter in nursery; his father-in-law stays with them since his stroke"
+          },
+          "weight": 1.1
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 27,
+            "age_max": 27,
+            "income_lpa_min": 5.5,
+            "income_lpa_max": 5.5,
+            "geography": "Nagpur / tier-1",
+            "occupation_hint": "runs a mobile-recharge and photocopy counter he took over from an uncle",
+            "household_hint": "never married; lives with parents and a younger brother still finishing college"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 40,
+            "age_max": 40,
+            "income_lpa_min": 22.0,
+            "income_lpa_max": 22.0,
+            "geography": "Bengaluru / tier-1",
+            "occupation_hint": "accounts clerk at a logistics firm, does the petty-cash book and the office ordering",
+            "household_hint": "two school-age sons; his wife works nights at a hospital so evenings at home are his"
+          },
+          "weight": 0.9
+        }
+      ]
+    }
+  ]
+}
