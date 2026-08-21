@@ -64,12 +64,38 @@ def test_resolve_cycle_mix() -> None:
 # ---- the deterministic (uncached) cycle prose ----
 
 def test_cycle_line_prose() -> None:
-    assert "nearly out of coffee" in _cycle_line("running_low", "coffee")
-    assert ("recently stocked up on health wellness nutrition"
-            in _cycle_line("just_bought", "health_wellness_nutrition"))
+    """⚠⚠ THIS TEST USED TO RATIFY A BUG. Until 2026-08-22 it asserted
+    `"recently stocked up on health wellness nutrition"` — i.e. it pinned the
+    raw category SLUG being read aloud to the persona as a mass noun. With the
+    F&B pack that produced *"you are partway through your current fnb world"*,
+    and a model reading the same slug elsewhere told every agent in a $3.85 run
+    that the ad was for "international food and drink" — for an INDIAN pack.
+
+    ⭐ A test that asserts the defect is a stronger blocker than no test at all:
+    fixing the bug broke the suite, which is how the bug survived. It now
+    asserts the LAW instead of the output — no category value, of any spelling,
+    may reach this line."""
+    assert "nearly out of" in _cycle_line("running_low", "coffee")
+    assert "recently stocked up" in _cycle_line("just_bought", "health_wellness_nutrition")
     assert "partway through" in _cycle_line("mid_cycle", "coffee")
     # an unknown position falls back to mid_cycle prose — never crashes.
     assert "partway through" in _cycle_line("weird", "coffee")
+
+
+def test_no_category_value_of_any_spelling_reaches_the_persona() -> None:
+    """⭐⭐ THE LAW, not the string. `_cycle_line` reaches EVERY agent in EVERY
+    run, so a category token here is read by every simulated person alive.
+
+    Mutation-proof by construction: the sentinel is passed as the argument, so
+    if anyone re-introduces interpolation in any form — raw, underscored,
+    humanised or title-cased — one of these four assertions fires."""
+    sentinel = "zzq_marker_category"
+    for position in ("just_bought", "mid_cycle", "running_low", "unknown"):
+        line = _cycle_line(position, sentinel)
+        assert sentinel not in line
+        assert sentinel.replace("_", " ") not in line
+        assert sentinel.replace("_", " ").title() not in line
+        assert "zzq" not in line.lower()
     print("  OK  _cycle_line templates deterministic prose (category interpolated)")
 
 

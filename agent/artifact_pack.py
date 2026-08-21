@@ -124,6 +124,17 @@ class CategoryArtifactPack:
     """
 
     category: str
+    # ⚠⚠ `category` IS A MACHINE IDENTIFIER AND NOTHING ELSE. It names the module
+    # (`packs/<category>.py`), keys the render cache, and gates the install guard.
+    # ⭐⭐ IT MUST NEVER REACH A MODEL OR A CUSTOMER. Measured 2026-08-22: the slug
+    # `fnb_world` was interpolated into the persona-facing context prose and a model
+    # read it as "international food and drink" — for an INDIAN F&B pack — and every
+    # agent in a $3.85 run was told the ad was for a foreign category.
+    # ⭐ `market_name` is the prose half, and the pattern is already proven: the
+    # demand grids have carried `market` ("Indian urban food and beverage") since
+    # `#69`, and `_grid_brief` has always used it rather than the slug.
+    # Pinned by `tests/test_identifiers_never_reach_a_reader.py`.
+    market_name: str = ""
     brand_landscape: list[BrandLandscapeEntry] = field(default_factory=list)
     price_points: list[PricePoint] = field(default_factory=list)
     retail_channels: list[str] = field(default_factory=list)
@@ -185,6 +196,7 @@ class CategoryArtifactPack:
                 else None
             ),
             # document projection — see the class docstring
+            "market_name": self.market_name,
             "market_stats": [dict(s) for s in self.market_stats],
             "occasions": [dict(o) for o in self.occasions],
             "journeys": [dict(j) for j in self.journeys],
@@ -216,6 +228,7 @@ class CategoryArtifactPack:
             default_chaos_distribution=(
                 ChaosDistribution.from_dict(dcd) if dcd is not None else None
             ),
+            market_name=data.get("market_name", ""),
             market_stats=[dict(s) for s in data.get("market_stats", [])],
             occasions=[dict(o) for o in data.get("occasions", [])],
             journeys=[dict(j) for j in data.get("journeys", [])],
@@ -301,6 +314,19 @@ def cut_to_moments(pack: CategoryArtifactPack,
     prices = [pp for pp in pack.price_points
               if not (_tokens(pp.item) | _tokens(pp.channel)) & exclusive]
     return replace(pack, brand_landscape=kept, price_points=prices)
+
+
+def market_name_for(category: str) -> str:
+    """The PROSE name of a market, for anything a model or a customer reads.
+
+    ⚠⚠ Call this instead of interpolating `category` into a prompt or a screen.
+    `category` is a module name; this is English. Falls back to the humanised
+    slug only if a pack forgot to set one — and
+    `tests/test_identifiers_never_reach_a_reader.py` asserts none has."""
+    try:
+        return load_pack(category).market_name or category.replace("_", " ")
+    except ValueError:
+        return category.replace("_", " ")
 
 
 def load_pack(category: str) -> CategoryArtifactPack:

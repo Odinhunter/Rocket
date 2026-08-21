@@ -106,6 +106,7 @@ def _chaos() -> ChaosDistribution:
 
 PACK = CategoryArtifactPack(
     category="health_nutrition_snacking",
+    market_name="Indian urban snacking and nutrition",
     brand_landscape=[
         # ---------------------------------------------------------------
         # THE EVERYDAY SHELF — the half that did not exist before, and the

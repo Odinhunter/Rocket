@@ -61,6 +61,7 @@ def _chaos() -> ChaosDistribution:
 
 PACK = CategoryArtifactPack(
     category="health_wellness_nutrition",
+    market_name="Indian D2C supplements, protein and wellness",
     brand_landscape=[
         # --- Performance / gym protein ---
         BrandLandscapeEntry(

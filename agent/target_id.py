@@ -17,6 +17,7 @@ exemplar.
 
 from __future__ import annotations
 
+from agent.artifact_pack import market_name_for
 import base64
 import logging
 import re
@@ -360,7 +361,7 @@ def build_target_id_user_content(
             "type": "text",
             "text": (
                 f"AD CONTEXT: {config.asset.label}\n"
-                f"Category: {config.category}\n"
+                f"Category: {market_name_for(config.category)}\n"
                 f"{archetype_line}"
                 f"{declared_line}"
                 f"{notes_line}"

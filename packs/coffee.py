@@ -56,6 +56,7 @@ def _chaos() -> ChaosDistribution:
 
 PACK = CategoryArtifactPack(
     category="coffee",
+    market_name="Indian coffee, at home and in cafes",
     brand_landscape=[
         BrandLandscapeEntry(
             name="Bru", tier="mass",

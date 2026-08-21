@@ -497,7 +497,7 @@ bullets, plain prose."""
 def _pack_brief(pack: CategoryArtifactPack) -> str:
     """The slice of the artifact pack handed to the render engine. This is
     the ONLY source of concrete artifacts the model is allowed to use."""
-    lines: list[str] = [f"CATEGORY: {pack.category}", ""]
+    lines: list[str] = [f"CATEGORY: {pack.market_name or pack.category}", ""]
     # render-10: the brand and platform lists are a LANDSCAPE, not a
     # shopping list. They used to read "use only these brand names", which
     # is a mandate — and a mandate plus a brand-naming anchor is how one
@@ -624,7 +624,7 @@ def _persona_user_payload(
 def _context_user_payload(ctx: ContextVector, pack: CategoryArtifactPack) -> str:
     return "\n".join(
         [
-            f"CATEGORY: {pack.category}",
+            f"CATEGORY: {pack.market_name or pack.category}",
             "",
             "CONTEXT VECTOR (attention state):",
             json.dumps(ctx.to_dict(), indent=2),

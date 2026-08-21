@@ -654,6 +654,7 @@ _PRICES = [
 
 PACK = CategoryArtifactPack(
     category="fnb_world",
+    market_name="Indian urban food and beverage",
     brand_landscape=_BRANDS,
     price_points=_PRICES,
     retail_channels=[

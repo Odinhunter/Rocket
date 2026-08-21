@@ -19,6 +19,7 @@ inputs — also not the model's job.
 
 from __future__ import annotations
 
+from agent.artifact_pack import market_name_for
 import json
 import logging
 import re
@@ -592,7 +593,7 @@ def _build_user_payload(
 ) -> str:
     payload = {
         "asset_label": config.asset.label,
-        "category": config.category,
+        "category": market_name_for(config.category),
         "context_labels_in_run": sorted(l3.context_fit.keys()),
         "target_classification": tc.to_dict(),
         "l3_summary": l3.to_dict(),

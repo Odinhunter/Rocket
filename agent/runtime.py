@@ -307,23 +307,43 @@ def parse_probe_signal(reflection_text: str) -> ProbeSignal | None:
 # ⚠ SECOND PERSON, like every other string that reaches the agent (render-8).
 # These are read BY the person they describe — a "their" here would talk about
 # the agent in the same breath the persona core talks to it.
+# ⭐⭐ NO CATEGORY IS INTERPOLATED HERE, DELIBERATELY, AND THAT IS THE FIX.
+# These lines used to read "you are nearly out of {cat}", filled with the raw
+# category SLUG — which produced "your current fnb world" and, once a model was
+# reading the same slug elsewhere, "international food and drink" for an Indian
+# F&B pack. Swapping the slug for a market NAME only moved the bug: "partway
+# through your current Indian urban food and beverage" is not English either,
+# because this slot needs a mass noun and a market description is not one.
+# ⭐ The persona's own core already names what they stock — "a box of The Whole
+# Truth bars in your desk drawer" — so the noun was always redundant. Deleting
+# the interpolation removes the coupling instead of feeding it a better value,
+# and it is what a real person thinks: "I'm nearly out", not "I'm nearly out of
+# Indian urban food and beverage".
 _CYCLE_PROSE = {
-    "just_bought": "you just recently stocked up on {cat} — well supplied, with no near-term need.",
-    "mid_cycle": "you are partway through your current {cat} — not thinking about restocking yet.",
-    "running_low": "you are nearly out of {cat} — you'll need to restock soon.",
+    "just_bought": "you recently stocked up on what you usually buy here — well supplied, with no near-term need.",
+    "mid_cycle": "you are partway through your current supply — not thinking about restocking yet.",
+    "running_low": "you are nearly out of what you usually buy here — you'll need to restock soon.",
 }
 
 
-def _cycle_line(cycle_position: str, category: str) -> str:
+def _cycle_line(cycle_position: str, market_name: str) -> str:
     """A deterministic, TEMPLATED (no model call) line stating where the persona
     is in their category cycle right now. Goes in the UNCACHED context block so it
-    never fragments the cached persona core (v3 A4, docs/v3_protocol.md §5)."""
-    cat = category.replace("_", " ")
-    body = _CYCLE_PROSE.get(cycle_position, _CYCLE_PROSE["mid_cycle"]).format(cat=cat)
+    never fragments the cached persona core (v3 A4, docs/v3_protocol.md §5).
+
+    ⚠⚠ `market_name` IS PROSE AND MUST NEVER BE A SLUG. This line reaches EVERY
+    agent in EVERY run, and `_CYCLE_PROSE` uses it as a MASS NOUN — "you are
+    nearly out of {cat}". Measured 2026-08-22: with the raw slug this emitted
+    "you are partway through your current fnb world", and a model reading the
+    same slug elsewhere described the market to personas as "international food
+    and drink" for an Indian F&B pack. Pass `pack.market_name`.
+    ⚠ The `replace` below is a LAST-RESORT fallback for a pack that never set
+    one; `tests/test_identifiers_never_reach_a_reader.py` asserts none exists."""
+    body = _CYCLE_PROSE.get(cycle_position, _CYCLE_PROSE["mid_cycle"])
     return "WHERE THINGS STAND FOR YOU RIGHT NOW: " + body
 
 
-def _context_block(context_prose: str, cycle_position: str, category: str) -> str:
+def _context_block(context_prose: str, cycle_position: str, market_name: str) -> str:
     """The uncached context preamble of the encoding turn: the feed moment, the
     cycle line, and the attention gate.
 
@@ -335,7 +355,7 @@ def _context_block(context_prose: str, cycle_position: str, category: str) -> st
     return (
         "THE EXACT MOMENT THIS AD APPEARS IN YOUR FEED\n\n"
         f"{context_prose.strip()}\n\n"
-        f"{_cycle_line(cycle_position, category)}\n\n"
+        f"{_cycle_line(cycle_position, market_name)}\n\n"
         "Attention gates everything that follows. If this context implies "
         "low attention, the ad probably gets a sub-second thumb-flick "
         "regardless of whether you would be interested in a more "
@@ -366,6 +386,7 @@ def build_encoding_prompt(
     config: RunConfig,
     core_prose: str,
     context_prose: str,
+    market_name: str = "",
 ) -> tuple[list[dict], list[dict]]:
     """Assemble (system, user_content) for the Encoding call. Pure — no API.
 
@@ -387,7 +408,7 @@ def build_encoding_prompt(
         {"type": "text", "text": core_prose, "cache_control": {"type": "ephemeral"}},
     ]
     context_block = _context_block(
-        context_prose, agent.cycle_position, agent.category
+        context_prose, agent.cycle_position, market_name
     )
     copy_block = _creative_copy_block(config.creative_inputs)
     user_content = [
@@ -422,7 +443,7 @@ def run_agent(
     )
 
     system, encoding_user_content = build_encoding_prompt(
-        agent, config, core_prose, context_prose
+        agent, config, core_prose, context_prose, market_name=pack.market_name
     )
 
     # Call A — Encoding (R1-R3). Idempotent: skip if artifact exists.
