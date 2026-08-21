@@ -166,6 +166,14 @@ def action_by_disposition(
 # cold prospects as if they were existing customers.
 _EXISTING_CUSTOMER_STANCES = frozenset({"loyalist", "lapsed", "subscriber", "winback"})
 
+# ⚠⚠ EVERY coherence guard that must stop a SCALE. Adding a guard means adding
+# its flag HERE — the SCALE branch reads this set, not individual names. F2
+# survived because a guard could set a flag that no branch consumed.
+_SCALE_BLOCKING_FLAGS = frozenset({
+    "intent_action_incoherent",      # direct-sell: buy_now with no hand-raise
+    "reorder_without_engagement",    # retain: reorders with no ad engagement
+})
+
 
 def _is_existing_customer(disposition_label: str) -> bool:
     return disposition_label.split("_", 1)[0] in _EXISTING_CUSTOMER_STANCES
@@ -385,11 +393,30 @@ def _best_champion(
 ) -> tuple[str, float] | None:
     """The non-within disposition with the highest action rate (the audience the
     ad may actually be FOR). None when there is no outside/ambiguous disposition
-    with a parsed signal."""
+    with a parsed signal.
+
+    ⚠⚠ `exclude_existing_customers` IS THE COUNTERFACTUAL GUARD (F1, 2026-08-22).
+    A loyalist of the advertised brand restocks on their own cadence — a
+    `buy_at_restock` from them is the NULL HYPOTHESIS, not an ad effect. Without
+    this filter such a persona out-rates cold prospects by construction, clears
+    `_RETARGET_GAP` and `_RETARGET_FLOOR`, and RETARGET ("Right ad, wrong
+    person") replaces the true ITERATE or SCALE. Measured on a real run: an
+    upgrader whose own anchor named the advertised brand and price reached
+    `buy_at_restock` in 7 of 8 agents — two of whom were `just_bought`.
+
+    ⭐ UNCONDITIONAL, and it needs no per-purpose opt-out — which was worth
+    proving rather than assuming. `retain_winback` recasts the classification map
+    so existing customers ARE "within", so they are already excluded by the
+    `!= "within"` test above and this filter removes nothing extra there. A
+    first draft carried an `exclude_existing_customers` flag for retain; a
+    mutation test showed flipping it changed no outcome, so the knob was deleted
+    rather than left as configuration that cannot do anything."""
     candidates = [
         (label, rate)
         for label, (rate, _num, denom) in action_by_disp.items()
-        if denom > 0 and classification_map.get(label) != "within"
+        if denom > 0
+        and classification_map.get(label) != "within"
+        and not _is_existing_customer(label)
     ]
     if not candidates:
         return None
@@ -485,8 +512,13 @@ def resolve_decision(
     #    Conditions, ALL required (docs/v3_protocol.md §7):
     #      (a) the within target acts at/above the provisional floor;
     #      (b) trust is HIGH (>=2 within dispositions, no thin-evidence flag);
-    #      (c) the A7 coherence guard did NOT fire — buy-intent-without-any-
-    #          hand-raise sets "intent_action_incoherent", which blocks SCALE.
+    #      (c) NO coherence guard fired. Two exist and BOTH block SCALE:
+    #          "intent_action_incoherent" (direct-sell: buy_now with no
+    #          hand-raise) and "reorder_without_engagement" (retain: everyone
+    #          would rebuy and nobody engaged — a subscription cadence, not an
+    #          ad effect). ⚠ Gate on the SET, never on one name: adding a guard
+    #          flag without adding it here sets a field nothing reads, which is
+    #          how F2 survived in the first place.
     #    v3/A5: an EXECUTION within pain MAY coexist with SCALE ("scale while
     #    iterating") — step 4 already routed any STRUCTURAL within pain to REBUILD,
     #    so we no longer require zero within pains here (that made SCALE nearly
@@ -499,7 +531,7 @@ def resolve_decision(
         a_within is not None
         and a_within >= scale_floor
         and trust == "HIGH"
-        and "intent_action_incoherent" not in methodology_flags
+        and not (_SCALE_BLOCKING_FLAGS & set(methodology_flags))
     ):
         iterating = (
             "" if load_bearing_pain is None
@@ -582,6 +614,40 @@ def _intent_action_incoherent(
             if bs.action != "scroll_past":
                 engaged_buy_now += 1
     return buy_now > 0 and engaged_buy_now == 0
+
+
+def _reorder_without_engagement(
+    frame: list[AgentTranscript], preset: PurposePreset
+) -> bool:
+    """The retain twin of `_intent_action_incoherent` (F2, 2026-08-22).
+
+    ⚠⚠ WHY THE EXISTING GUARD CANNOT COVER THIS. `_intent_action_incoherent`
+    keys on `buy_now` and its own docstring says it "cannot fire on the A4
+    reorder pattern (buy_at_restock + scroll_past)" — correct for direct-sell,
+    where the reorder is not the headline. For `retain_winback` that pattern IS
+    the headline: a win is buy-intent, which includes `buy_at_restock`. So the
+    one job whose number is made of reorders was the one job with no reorder
+    guard, and its exemption was documented rather than fixed — the docstring
+    states retain "legitimately reorders without engaging THIS ad" and then
+    declines to compensate for it.
+
+    ⭐ Fires when there IS buy-intent but NOT ONE claimer engaged with the ad in
+    feed — everybody scrolled past and would have rebought anyway. That is a
+    measurement of an existing subscription cadence, not of a creative. As with
+    the direct-sell guard, ANY non-scroll action counts as engagement, so
+    "lingered, then would reorder" is coherent and does not fire."""
+    if preset.name != RETAIN_WINBACK:
+        return False
+    intent = engaged_intent = 0
+    for t in frame:
+        bs = t.behavioral_signal
+        if bs is None:
+            continue
+        if bs.next_step in _BUY_INTENT_NEXT_STEPS:
+            intent += 1
+            if bs.action != "scroll_past":
+                engaged_intent += 1
+    return intent > 0 and engaged_intent == 0
 
 
 def build_decision(
@@ -669,10 +735,15 @@ def build_decision(
     frame = _frame_subset(transcripts, target_classification, preset)
     research_rate, research_num, research_denom = _research_over_frame(frame)
     incoherent = _intent_action_incoherent(frame, preset)
-    flags = (
-        list(methodology_flags) + ["intent_action_incoherent"]
-        if incoherent else methodology_flags
-    )
+    # F2: the retain-side twin. Kept as its OWN flag so the rationale names the
+    # real problem ("nobody engaged, they just reorder") rather than borrowing
+    # direct-sell's wording, but it gates SCALE through the same path.
+    reorder_hollow = _reorder_without_engagement(frame, preset)
+    flags = list(methodology_flags)
+    if incoherent:
+        flags = flags + ["intent_action_incoherent"]
+    if reorder_hollow:
+        flags = flags + ["reorder_without_engagement"]
 
     # Broad-reach jobs earn trust by breadth of registration, not within-count.
     trust_override = (
@@ -701,7 +772,7 @@ def build_decision(
     decision.research_rate = research_rate
     decision.research_num = research_num
     decision.research_denom = research_denom
-    decision.coherence_incoherent = incoherent
+    decision.coherence_incoherent = incoherent or reorder_hollow
     # A4: buy-intent broken down by purchase-cycle position — the mix-independent
     # read. Only for the buy-frame jobs (direct-sell / retain), where the headline
     # IS buy-intent; a stop/breadth job's cycle split would not be meaningful.

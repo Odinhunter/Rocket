@@ -734,30 +734,20 @@ def render_context(
     return prose
 
 
-def compose_persona_prompt(core_prose: str, context_prose: str) -> str:
-    """Assemble a rendered persona core + rendered context into one prompt.
-
-    NOTE: runtime.run_agent does NOT use this. It puts the core alone in the
-    system block (cache-marked) and the context in the user message, so agents
-    that share a core share the cached prefix even when their contexts differ.
-    This helper is retained for tests and for callers composing both into a
-    single prompt; the ordering rationale below holds wherever that is done.
-
-    Context comes last — it is the freshest priming and gates attention
-    before disposition shapes the specific reaction."""
-    return (
-        "WHO THIS PERSON IS\n\n"
-        f"{core_prose.strip()}\n\n"
-        "THE EXACT MOMENT THIS AD APPEARS IN THEIR FEED\n\n"
-        f"{context_prose.strip()}\n\n"
-        "Attention gates everything that follows. If this context implies "
-        "low attention, the ad probably gets a sub-second thumb-flick "
-        "regardless of whether they would be interested in a more "
-        "alert moment. If the context implies receptivity, allow the "
-        "disposition and the ad's signal to determine the reaction."
-    )
-
-
+# ⚠⚠ `compose_persona_prompt` WAS DELETED 2026-08-22 AND MUST NOT COME BACK.
+# It assembled a core + context into one prompt, had ZERO production callers
+# (its own docstring said so: "runtime.run_agent does NOT use this"), and was
+# kept alive only by `tests/test_render_cache.py::test_compose_persona_prompt`,
+# which asserted its block ordering and passed for months.
+# ⭐ The header it built — "WHO THIS PERSON IS" — occurred nowhere else in
+# `agent/`, so no persona ever saw it. And it was written in the THIRD person
+# ("their feed", "they would be interested") while the shipped path is second
+# person, a rule `tests/test_second_person_address.py` enforces — dead code
+# that would have violated an enforced law the moment anyone wired it up.
+# ⭐⭐ The real assembly is `runtime.build_encoding_prompt`: core alone in the
+# cache-marked system block, context in the user message, so agents sharing a
+# core share the cached prefix. A test that guards code nothing runs is a lie
+# the next session will believe.
 # ---- Artifact-integrity check ----
 
 # TitleCase tokens that are common English / place words, not brands — kept
@@ -777,6 +767,7 @@ _TITLECASE_RE = re.compile(r"[A-Z][a-zA-Z0-9&\-]+")
 # Characters that, when they are the last non-space char before a TitleCase
 # token, mean the token is sentence-initial (capitalized by grammar).
 _SENTENCE_BOUNDARY = set('.!?:"()\n')
+
 
 
 def _vocab_tokens(pack: CategoryArtifactPack) -> set[str]:

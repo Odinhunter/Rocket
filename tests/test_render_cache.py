@@ -1,5 +1,5 @@
 """Phase 1 offline test: the render cache key is stable and sensitive, the
-cache store/load round-trips, compose_persona_prompt assembles correctly,
+cache store/load round-trips,
 and the artifact-integrity check flags an invented brand.
 
 No API calls — exercises only the pure helpers in agent/render.py.
@@ -23,7 +23,6 @@ from agent.render import (
     _CONTEXT_SYSTEM,
     _PERSONA_SYSTEM,
     _validate_no_invented_artifacts,
-    compose_persona_prompt,
     context_render_hash,
     count_pack_artifacts_used,
     persona_core_hash,
@@ -300,16 +299,6 @@ def test_cache_roundtrip() -> None:
             shutil.rmtree(_TMP)
 
 
-def test_compose_persona_prompt() -> None:
-    prompt = compose_persona_prompt("CORE PROSE", "CONTEXT PROSE")
-    assert "CORE PROSE" in prompt and "CONTEXT PROSE" in prompt
-    assert prompt.index("CORE PROSE") < prompt.index("CONTEXT PROSE"), (
-        "context must come after the persona core"
-    )
-    assert "Attention gates everything" in prompt
-    print("  OK  compose_persona_prompt assembles core + context in order")
-
-
 def test_validate_no_invented_artifacts() -> None:
     pack = load_pack("coffee")
     # Clean prose: uses only pack brands.
@@ -347,7 +336,6 @@ def main() -> None:
     test_context_system_de_literarised()
     test_context_render_hash_sensitive()
     test_cache_roundtrip()
-    test_compose_persona_prompt()
     test_validate_no_invented_artifacts()
     test_count_pack_artifacts_used()
     print("PASS — render cache key, store/load, compose, and integrity check.")

@@ -22,7 +22,6 @@ load_dotenv()
 
 from agent.artifact_pack import load_pack
 from agent.render import (
-    compose_persona_prompt,
     count_pack_artifacts_used,
     persona_core_hash,
     render_context,
@@ -116,10 +115,19 @@ def main() -> None:
         print("  --- context ---")
         print("  " + context_prose.replace("\n", "\n  "))
 
-        prompt = compose_persona_prompt(core, context_prose)
-        assert core in prompt and context_prose in prompt
-        print(f"  OK  compose_persona_prompt assembled ({len(prompt)} chars)")
+        # ⚠ This used to assert `compose_persona_prompt`, a helper with zero
+        # production callers — so the smoke test spent real money verifying an
+        # assembly no persona ever received. It was deleted 2026-08-22; the
+        # shipped assembly is `runtime.build_encoding_prompt`, covered offline
+        # by tests/test_marketer_notes_never_reach_the_agent.py.
+        # ⭐⭐ WHAT THIS SCRIPT IS ACTUALLY FOR, AND WHY IT MUST BE RUN:
+        # it prints the real rendered prose. Reading that output for one cent
+        # is the check that would have caught `fnb_world` being described to
+        # every persona as "international food and drink" BEFORE $3.85 was
+        # spent on a run built from it. Run it after ANY change to a pack, a
+        # grid, or a render prompt.
         print("PASS — render engine produces vivid, artifact-grounded prose.")
+        print("  ⚠ READ THE PROSE ABOVE. That is the point of this script.")
     finally:
         if _CACHE.exists():
             shutil.rmtree(_CACHE)
