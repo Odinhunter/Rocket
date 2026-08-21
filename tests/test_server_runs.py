@@ -383,7 +383,14 @@ def test_the_review_screen_keeps_what_the_operator_can_act_on(world) -> None:
         ("29", "persona cores rendered"),
         ("Macro-counting lifters", "inferred target"),
         ("Spec-forward pack shot", "target reasoning"),
-        ("enthusiast_macros_lifter", "disposition classification"),
+        # ⚠⚠ WAS ("enthusiast_macros_lifter", ...) — THE THIRD TEST FOUND
+        # RATIFYING THIS DEFECT, after test_dashboard_html.py:1204 and
+        # test_cycle_position.py::test_cycle_line_prose. It REQUIRED the raw
+        # underscore label on the page a customer reads before spending a
+        # credit, so fixing the bug broke the suite and the fix looked like
+        # the regression. The FACT still belongs here — an operator must see
+        # which buyer types were classified — so it asserts the readable form.
+        ("enthusiast · macros lifter", "disposition classification"),
         ("impulsive 50%", "chaos mix"),
         ("9baaf54d7841", "panel version"),
     ):
@@ -397,6 +404,17 @@ def test_the_review_screen_keeps_what_the_operator_can_act_on(world) -> None:
     ):
         assert escape(fragment, quote=True) not in page, \
             f"an instrument limit is back on the money screen: {what}"
+
+    # ⭐⭐ THE CLASS, NOT THE INSTANCE. Asserting the readable form is present
+    # would still pass if BOTH forms rendered. This bans the machine identifier
+    # outright on the last screen before a credit is spent — the surface the
+    # review doc named and the one still leaking after #81 fixed the report.
+    for raw in ("enthusiast_macros_lifter", "enthusiast macros lifter"):
+        assert raw not in page, (
+            f"the raw disposition label {raw!r} is back on the pre-commit "
+            f"screen — engine vocabulary wearing the grammar of English, on "
+            f"the page where a customer decides whether to spend"
+        )
     print("  the review screen keeps what they can act on, drops the rest ✓")
 
 

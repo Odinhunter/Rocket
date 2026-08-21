@@ -9,7 +9,7 @@ Report carries a bet_ranking headline + the L3.5 funnel projection.
 Cost: a 6-agent panel (~12 L1 calls) + target_id + 2x L2 + L3 + L4,
 roughly $0.80-1.10.
 
-Run: python tests/test_run_service_minimal.py
+Run: pytest tests/test_run_service_minimal.py --paid   (or: python tests/test_run_service_minimal.py)
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -217,6 +218,16 @@ def main() -> None:
         print("PASS — run goes prepare -> confirm -> commit; credit debited once.")
     finally:
         _cleanup()
+
+
+@pytest.mark.paid
+def test_full_creative_read_end_to_end() -> None:
+    """Costs ~$0.80-1.10 of real API calls. Skipped unless --paid is passed.
+
+    ⚠ Until 2026-08-22 this file had no `test_` function at all: pytest
+    collected zero from it while it sat in tests/ named test_*.py. It was
+    run by hand, which means in practice it was not run."""
+    main()
 
 
 if __name__ == "__main__":

@@ -73,5 +73,16 @@ def main() -> None:
     print("PASS: all suppression cases")
 
 
+def test_homogenization_high_is_stripped_from_the_report() -> None:
+    """⭐ FREE AND OFFLINE, and it never ran until 2026-08-22 — same shape as
+    test_panel_resilience: a `main()` with real asserts that pytest could not see.
+
+    ⚠ The body stays in main() unchanged rather than being split into
+    granular tests — the conversion is about COLLECTION, and rewriting
+    working assertions at the same time is how a green suite starts
+    asserting something slightly different without anyone noticing."""
+    main()
+
+
 if __name__ == "__main__":
     main()

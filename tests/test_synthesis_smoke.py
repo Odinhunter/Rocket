@@ -9,7 +9,7 @@ bet_ranking and the funnel_projection attached.
 
 Cost: ~3 Sonnet calls (2x L2, 1x L3) + 1 Opus call (L4), ~$0.35.
 
-Run: python tests/test_synthesis_smoke.py
+Run: pytest tests/test_synthesis_smoke.py --paid   (or: python tests/test_synthesis_smoke.py)
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -233,6 +234,16 @@ def main() -> None:
     for bet in report.bet_ranking:
         print(f"        - {bet}")
     print("PASS — synthesis chain produces a validated Report with funnel + bets.")
+
+
+@pytest.mark.paid
+def test_synthesis_chain_l2_to_l4() -> None:
+    """Costs ~$0.35 of real API calls. Skipped unless --paid is passed.
+
+    ⚠ Until 2026-08-22 this file had no `test_` function at all: pytest
+    collected zero from it while it sat in tests/ named test_*.py. It was
+    run by hand, which means in practice it was not run."""
+    main()
 
 
 if __name__ == "__main__":

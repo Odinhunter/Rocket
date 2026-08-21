@@ -101,5 +101,18 @@ def main() -> None:
     print("PASS — L1 panel resilience: tolerates stray drops, aborts on a gutted panel.")
 
 
+def test_l1_reconciliation_tolerates_drops_but_aborts_on_a_gutted_panel() -> None:
+    """⭐ FREE AND OFFLINE, and it never ran until 2026-08-22 — the file had no
+    `test_` function, so pytest collected nothing from it while it sat in
+    tests/ looking covered. It guards the case where a correlated 529 burst
+    guts a segment and the run synthesizes a confident verdict on what is left.
+
+    ⚠ The body stays in main() unchanged rather than being split into
+    granular tests — the conversion is about COLLECTION, and rewriting
+    working assertions at the same time is how a green suite starts
+    asserting something slightly different without anyone noticing."""
+    main()
+
+
 if __name__ == "__main__":
     main()

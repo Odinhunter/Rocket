@@ -5,7 +5,7 @@ the second call.
 
 Cost: ~3 Sonnet calls, ~$0.01.
 
-Run: python tests/test_render_smoke.py
+Run: pytest tests/test_render_smoke.py --paid   (or: python tests/test_render_smoke.py)
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -131,6 +132,16 @@ def main() -> None:
     finally:
         if _CACHE.exists():
             shutil.rmtree(_CACHE)
+
+
+@pytest.mark.paid
+def test_render_engine_end_to_end() -> None:
+    """Costs ~$0.01 of real API calls. Skipped unless --paid is passed.
+
+    ⚠ Until 2026-08-22 this file had no `test_` function at all: pytest
+    collected zero from it while it sat in tests/ named test_*.py. It was
+    run by hand, which means in practice it was not run."""
+    main()
 
 
 if __name__ == "__main__":

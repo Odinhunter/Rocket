@@ -27,7 +27,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts
 
 from agent.decision import _is_existing_customer                  # noqa: E402
 from agent.vectors import (                                      # noqa: E402
-    ACQUISITION_STANCES, KNOWN_STANCES, stance_of, unknown_stance_labels,
+    ACQUISITION_STANCES, KNOWN_CONVENTION_VIOLATIONS, KNOWN_STANCES,
+    stance_of, unknown_stance_labels,
 )
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -97,15 +98,9 @@ def test_each_known_stance_round_trips(stance: str) -> None:
 # The gap this file originally had
 # --------------------------------------------------------------------------
 
-# ⚠⚠ ONE REAL VIOLATION, INSTALLED AND ACCEPTED. `doctor_triggered_vitamin`
-# (health_wellness_demo) puts a TRIGGER in the stance slot. It is listed here
-# rather than renamed because renaming a label in an installed library moves the
-# panel version and breaks any saved audience naming it — a bigger risk than the
-# violation. It parses to no stance, so it is simply never treated as an existing
-# customer, which happens to be correct for it.
-# ⭐ The point of naming it: a NEW violation must fail, and this one must not
-# quietly license others.
-KNOWN_CONVENTION_VIOLATIONS = {"doctor_triggered_vitamin"}
+# ⭐ The grandfathered violation is imported from agent/vectors.py, NOT declared
+# here — the preflight honours the same set, and a second copy is the drift that
+# unparsed `enthusiast` in the first place.
 
 
 def _installed_library_labels() -> dict[str, list[str]]:

@@ -18,7 +18,7 @@ Baseline (5 prior session runs at SDK default, no effort config):
 
 Cost: ~$0.74 total (5 calls × $0.15 each at effort=low).
 
-Run: python tests/test_target_id_effort.py
+Run: pytest tests/test_target_id_effort.py --paid   (or: python tests/test_target_id_effort.py)
 """
 
 from __future__ import annotations
@@ -33,6 +33,7 @@ from collections import Counter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import pytest
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -230,6 +231,16 @@ def main() -> None:
     cost = total_input / 1_000_000 * 15 + total_output / 1_000_000 * 75
     print(f"\nCost: ~${cost:.3f} for {len(all_classifications)} successful runs")
     print(f"Latency p50: {sorted(all_elapsed)[len(all_elapsed)//2]:.1f}s  (range {min(all_elapsed):.1f}-{max(all_elapsed):.1f}s)")
+
+
+@pytest.mark.paid
+def test_target_id_at_low_effort() -> None:
+    """Costs ~$0.74 of real API calls. Skipped unless --paid is passed.
+
+    ⚠ Until 2026-08-22 this file had no `test_` function at all: pytest
+    collected zero from it while it sat in tests/ named test_*.py. It was
+    run by hand, which means in practice it was not run."""
+    main()
 
 
 if __name__ == "__main__":

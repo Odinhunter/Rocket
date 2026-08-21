@@ -47,6 +47,7 @@ from pathlib import Path
 
 from agent import calibration_log, credits, population
 from agent.artifact_pack import load_pack
+from agent.preflight import preflight_or_raise
 from agent.config import RunConfig
 from agent.entities import DispositionLibrary
 from agent.panel import PanelAgent, build_panel, compute_panel_version
@@ -498,6 +499,23 @@ class RunService:
             config.account_id, config.brand_profile_id
         )
         dispositions = library.resolve(spec.disposition_labels)
+
+        # ⭐⭐ CONTENT PREFLIGHT — the last free moment before anything is spent.
+        # Deterministic, no model call, and it BLOCKS rather than warns: the six
+        # advisories below are marketer judgement calls (an off-demographic
+        # creative can be deliberate, so they warn and --acknowledge proceeds),
+        # but a machine identifier inside a prompt is a mechanical defect that
+        # nobody has ever wanted. There is deliberately no override flag.
+        #
+        # ⚠ IT RUNS HERE, NOT WITH THE OTHERS. Every advisory below is computed
+        # AFTER identify_target — one model call in, with the render prompts
+        # already being assembled from the bad string. The $3.85 run that told
+        # every persona the market was "international food and drink" would have
+        # been stopped at this line for nothing. See agent/preflight.py.
+        preflight_or_raise(
+            pack, [d.label for d in dispositions],
+            source=f"library {config.account_id}/{config.brand_profile_id}",
+        )
         # ⚠ NARROWED TO THE PEOPLE THIS BUY REACHES, and it has to happen HERE
         # rather than only in the form. `resolve` returns each buyer type with
         # its FULL set of people, so a tier-scoped buy that the form correctly

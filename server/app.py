@@ -24,6 +24,7 @@ from fastapi.responses import (
 )
 from fastapi.staticfiles import StaticFiles
 
+from agent.vectors import disposition_display
 from agent.artifact_pack import market_name_for
 from agent.config import (
     SUPPORTED_IMAGE_SUFFIXES, build_run_config, default_asset_label)
@@ -568,6 +569,10 @@ def create_app(
         chaos = ", ".join(f"{c['profile']} {c['weight'] * 100:.0f}%"
                           for c in a["chaos_distribution"])
         preset = resolve_purpose(prep.config.creative_inputs.purpose)
+        _authored = {
+            a.disposition.label: getattr(a.disposition, "display_name", "")
+            for a in prep.panel
+        }
         return _html(app_html.review_page(
             account=DEMO_ACCOUNT, run_id=prep.run_id,
             label=prep.config.asset.label,
@@ -578,7 +583,19 @@ def create_app(
             # the reasoning is what lets an operator catch a
             # misclassification while it is still free to catch.
             reasoning=tc.target_reasoning,
-            dispositions=[(d.disposition_label, d.classification == "within")
+            # ⚠⚠ THE PRE-COMMIT SCREEN WAS THE LAST SURFACE STILL SHOWING RAW
+            # LABELS — `gifter_office_round_afternoon`, underscores intact, on
+            # the page where a customer decides whether to spend a credit. It
+            # was named in docs/why_we_keep_making_the_same_mistake.md and was
+            # STILL LIVE after the read-model half of the class was fixed in
+            # #81: I fixed the surfaces I had a failing test for and missed the
+            # one I did not. Exactly the failure that document is about.
+            #
+            # ⭐ The authored name needs no new plumbing: PanelAgent carries the
+            # whole NamedDisposition, so prep.panel already has it.
+            dispositions=[(disposition_display(d.disposition_label,
+                                               _authored.get(d.disposition_label, "")),
+                           d.classification == "within")
                           for d in tc.disposition_classifications],
             panel_lines=[
                 f"{a['panel_size']} agents across "

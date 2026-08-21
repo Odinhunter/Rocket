@@ -19,6 +19,48 @@ import pytest
 
 from agent import run_service
 
+# --------------------------------------------------------------------------
+# The paid tier
+# --------------------------------------------------------------------------
+#
+# ⚠⚠ WHY THIS EXISTS. Seven files in tests/ were named `test_*.py`, lived in
+# this directory, and pytest collected ZERO functions from any of them — they
+# were `main()` scripts run by hand and, in practice, never run. `pytest tests/`
+# reported success over a suite that silently excluded them.
+#
+#   FIVE ARE PAID (they call the real API): render, runtime, synthesis,
+#   run_service_minimal, target_id_effort — ~$1.93 the lot.
+#   TWO WERE FREE AND SIMPLY NEVER RAN: test_panel_resilience.py (guards against
+#   synthesizing a verdict on a gutted panel) and test_l4_homog_guard.py. Both
+#   say "Offline" in their own docstrings. Those are now plain collected tests.
+#
+# ⭐ THE PAID FIVE ARE SKIPPED, NOT DESELECTED. `addopts = -m "not paid"` would
+# hide them from the summary line, which recreates "looks covered, isn't" in a
+# new form — the exact defect this is fixing. A visible `5 skipped` on every run
+# is the point.
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--paid", action="store_true", default=False,
+        help="run the tests that call the real API and cost real money (~$1.93)",
+    )
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers", "paid: calls the real API and spends real money; needs --paid",
+    )
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list) -> None:
+    if config.getoption("--paid"):
+        return
+    skip = pytest.mark.skip(reason="paid: pass --paid to run, costs real money")
+    for item in items:
+        if "paid" in item.keywords:
+            item.add_marker(skip)
+
 
 class PaidEngineReached(AssertionError):
     """A test called the thing that spends ~$4."""
@@ -31,7 +73,7 @@ _REACHED: list[str] = []
 
 
 @pytest.fixture(autouse=True)
-def never_reach_the_paid_engine(monkeypatch: pytest.MonkeyPatch):
+def never_reach_the_paid_engine(monkeypatch: pytest.MonkeyPatch, request):
     """Replace `RunService.commit` for every test in the suite, and FAIL if a
     test reaches it.
 
@@ -49,6 +91,20 @@ def never_reach_the_paid_engine(monkeypatch: pytest.MonkeyPatch):
     A test that genuinely needs commit's machinery should override
     `Launcher._run_engine`, which is the seam that exists for exactly that.
     """
+    # ⚠⚠ THE ONE EXEMPTION, AND IT IS DELIBERATELY NARROW. `test_run_service_
+    # minimal.py` IS the end-to-end paid smoke: reaching prepare() and commit()
+    # is the whole thing it tests, so under this guard it could never pass even
+    # with --paid. It is exempt only when BOTH conditions hold — the test carries
+    # @pytest.mark.paid AND the operator passed --paid. Either alone keeps the
+    # guard on, so a stray marker cannot open the door by itself.
+    #
+    # ⭐ For every other test the guard stays exactly as unconditional as it was:
+    # autouse, no opt-in, because an opt-in guard protects the tests that
+    # remembered to ask for it, which are not the ones that need it.
+    if "paid" in request.keywords and request.config.getoption("--paid"):
+        yield
+        return
+
     def _refuse(prep):  # noqa: ANN001 — signature mirrors the real one
         _REACHED.append(getattr(prep, "run_id", "<unknown run>"))
         raise PaidEngineReached(

@@ -161,18 +161,86 @@ pin F2. Its agents use `tap_cta`, so they genuinely engaged; the test never
 *covered* the defect rather than ratifying it. Only `test_dashboard_html.py:1204`
 ratifies a defect, and it is still open below.
 
+# ✅ CLOSED — `#81`, `#82`. **780 passed, 5 skipped.**
+
+Items 1, 2, 3, 4, 6, 7 and 8 of the table below are done. What is worth keeping
+from doing them is not the fixes — it is that **the review under-counted the
+problem in four separate places**, and every one of those was found by trying to
+close an item rather than by reading the code again.
+
+| the review said | what was actually true |
+|---|---|
+| one test ratifies a defect (`test_dashboard_html.py:1204`) | **three** did. `test_cycle_position.py::test_cycle_line_prose` pinned the `$3.85` prose, and `test_server_runs.py:386` REQUIRED the raw underscore label on the pre-commit screen — so fixing the bug broke the suite and the fix looked like the regression |
+| the smoke tier is 5 paid files nothing runs | **7** files collected zero. Two of them — `test_panel_resilience.py`, `test_l4_homog_guard.py` — say *"Offline"* in their own docstrings. They cost nothing, and they had never run. `test_panel_resilience` guards against synthesizing a confident verdict on a panel a 529 burst has gutted |
+| item 7: customer screens need `display_name` | the read model was fixed in `#81`; **`server/app.py:581` was still passing the raw label** to the last screen before a credit is spent. I fixed the surfaces I had a failing test for and missed the one I did not — which is the exact behaviour this document is about, committed while writing the document about it |
+| the fix is to stop the slug reaching a reader | a **live, shipped instance was still in the tree**: `packs/health_wellness_nutrition.py` opened its `behavioral_priors` with *"health_wellness_nutrition is identity-loaded and trust-fractured."* — the raw slug as the subject of a sentence every persona writer reads, in the pack behind the 50-label `hw_generated_v1` library. Found by the new preflight on its first run |
+
+## The preflight, and why it is not a seventh advisory
+
+`agent/preflight.py` runs at the TOP of `prepare()`, before `identify_target`
+and `warm_render_cache` — the two calls in that function that cost money.
+
+`RunPreparation` already carries six advisories, and **all six are computed
+after the first model call**. A check that fires there cannot save the money it
+exists to save. It also **blocks instead of warning**, which none of the six do:
+those are marketer judgement calls (an off-demographic creative can be
+deliberate, so `--acknowledge-...` proceeds), while a machine identifier in a
+prompt is a mechanical defect nobody has ever wanted. There is no override flag.
+
+⚠⚠ **Its precision cost three drafts, and that is the part to remember.** The
+first flagged the `coffee` pack eleven times — for a single-token category the
+identifier and the English word are the same string, so no defect is possible.
+The second flagged `personal_audio`, whose `market_name` *is* "Indian personal
+audio". The rule now uses **the pack's own authored `market_name` as the
+oracle**: the underscore form is never English and is always caught; the
+humanised form is caught only when it is absent from the market name.
+Verified against the real matrix — **8 packs × 7 installed libraries, nothing
+legitimate blocked.** A guard that cries wolf gets bypassed, and then it is not
+there for the real one.
+
+## The paid tier is skipped, never deselected
+
+`pytest tests/` now reports **`780 passed, 5 skipped`**. `addopts = -m "not
+paid"` would have hidden the five from the summary, which recreates
+"looks covered, isn't" in a new form — the defect this whole review exists to
+remove. The skip reason names the flag: `paid: pass --paid to run, costs real
+money`.
+
+    pytest tests/ --paid        # all five, ~$1.93
+
+`tests/conftest.py`'s paid-engine guard is lifted for those five and **only**
+when the test carries `@pytest.mark.paid` AND `--paid` was passed — either alone
+keeps the guard on, so a stray marker cannot open the door by itself.
+`test_run_service_minimal.py` reaches `prepare()` and `commit()` by design; under
+the unmodified guard it could never have passed even with `--paid`.
+
+## Mutation results
+
+Thirteen mutations across the two commits. **Three found vacuous tests of mine
+before they were committed**, which is the only reason to run them:
+
+| | mutation | result |
+|---|---|---|
+| M3 | run header reverts to the slug | **8 passed ❌** — the parametrised list held two categories, neither of which was the fixture's. Now reads the category off the model |
+| P1 | preflight moved below `identify_target` | ordering test pinned `render_persona_core` and `_warm_render`, **neither of which exists in `prepare()`**; `if at != -1` skipped both silently. Now asserts each name is PRESENT before asserting it is ordered |
+| — | `load_pack` mutation leaked between tests | `load_pack(x) is load_pack(x)` — it returns a shared cached object. A test mutated it in place and the next test failed for an unrelated reason |
+
+The other ten caught what they were aimed at: humanise reverts, an authored name
+ignored, the `enthusiast` omission, the grandfathered-violation amnesty, the
+`coffee`/`personal_audio` cry-wolf regressions, the slug-in-prose defect
+restored, a renamed paid call, and the raw label back on the pre-commit screen.
+
+---
+
 # WHAT IS LEFT, IN ORDER
+
+Items 1, 2, 3, 4, 6, 7, 8 are ✅ closed (`#81`, `#82`). What remains:
 
 | # | change | why now |
 |---|---|---|
-| 1 | ⚠ **`test_dashboard_html.py:1204`** asserts `"switcher results chaser"` — a humanised slug — as correct customer-facing output | It is the last test still ratifying a defect, and it blocks item 2 |
-| 2 | **Disposition `display_name`.** The customer still reads `gifter_office_round_afternoon` on the pre-commit screen (`app_html.py:1109`, underscores intact) and *"the gifter office round afternoon acts at 34%"* in the read | Same class as `#78`, customer-facing half — the half a paying customer actually sees |
-| 3 | **Content preflight.** We already refuse to spend without `preflight_cost.py`. Add the twin: render one persona + one context against the real pack, print, confirm. `$0.01` | Would have caught this week's live bug before `$3.85` |
-| 4 | **Collect the smoke tier.** Give the five paid smokes pytest functions behind a `paid` marker → `pytest -m paid`, ~`$1.13`, one command | The tier exists and nothing runs it |
-| 5 | **Seam tests for L2, L4, assess** | The three prompts that write the customer's report have zero |
-| 6 | **Delete `compose_persona_prompt`** and its test, or wire it | Dead code with a green test is a lie the next session will believe |
-| 7 | **Finish the class**: disposition labels on customer screens (`app_html.py:1109`, `read_model.py:1230`, `dashboard_html.py:1315`) need a `display_name` the same way | Same class, customer-facing half |
-| 8 | `decision.py:170` parses `label.split("_")[0]` for stance — **the naming convention is load-bearing runtime logic** and fails closed, silently. The generated JSON already carries `stance` as a field | Same class, inverted |
+| 5 | **Seam tests for L2, L4, assess** | The three prompts that WRITE the customer's report have zero test references. Every defect this week was invisible to piece-level tests and obvious in assembled output — and these three surfaces have neither |
+| — | **F3: the funnel projection does not split in/out of target** | Named in the review as the third counterfactual gap; `#80` closed F1 and F2. Memory `out_of_target_response_bimodal` says any panel-wide aggregate MUST split, and this one still does not |
+| — | **`display_name` is required of the generator but absent from all 7 installed libraries** | They fall back to `stance · anchor`, which is correct and readable, so this is not urgent — but the authored name is the better surface and only new libraries will have it |
 
 **And two process rules, free:**
 

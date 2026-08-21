@@ -298,6 +298,19 @@ ACQUISITION_STANCES = frozenset({
 EXISTING_CUSTOMER_STANCES = frozenset({"loyalist", "lapsed", "subscriber", "winback"})
 KNOWN_STANCES = ACQUISITION_STANCES | EXISTING_CUSTOMER_STANCES
 
+# ⚠⚠ ONE REAL VIOLATION, INSTALLED AND ACCEPTED. `doctor_triggered_vitamin`
+# (health_wellness_demo) puts a TRIGGER in the stance slot. It is grandfathered
+# rather than renamed because renaming a label in an installed library moves the
+# panel version and invalidates every saved audience naming it — a bigger risk
+# than the violation itself, which is benign: it parses to no stance, so it is
+# never treated as an existing customer, which happens to be correct for it.
+#
+# ⭐ THIS LIVES HERE, NOT IN THE TEST FILE THAT FIRST NEEDED IT. The preflight
+# must honour the same exception or `health_wellness_demo` becomes unrunnable,
+# and a second copy of the list is exactly the drift that unparsed `enthusiast`.
+# One list, two consumers — the test imports it from here too.
+KNOWN_CONVENTION_VIOLATIONS = frozenset({"doctor_triggered_vitamin"})
+
 
 def stance_of(disposition_label: str) -> str:
     """The stance a label encodes, or "" when it encodes none we know.

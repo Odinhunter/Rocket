@@ -45,6 +45,7 @@ from agent.read_model import (
     purpose_scope_note as _purpose_scope_note,
     trust_line as _trust_line,
 )
+from agent.preflight import PreflightError
 from agent.run_service import RunPreparation, RunService
 from agent.schema import Report
 from agent.telemetry import run_dir, telemetry_summary
@@ -500,7 +501,17 @@ def main() -> None:
     print(f"# account / brand_profile: {config.account_id} / {config.brand_profile_id}")
     print(f"# audience spec: {args.audience_spec}")
 
-    prep = RunService.prepare(config)
+    # ⭐ The content preflight raises rather than warns (agent/preflight.py).
+    # Caught here so a mechanical defect reads as a plain message with the fix
+    # in it, not as a traceback the operator has to interpret.
+    try:
+        prep = RunService.prepare(config)
+    except PreflightError as exc:
+        print(f"\nABORT — {exc}")
+        print("\nNo credit debited and no model was called. This is a "
+              "mechanical defect in the pack or library, not a judgement call, "
+              "so there is no --acknowledge flag: fix it and re-run.")
+        return
     _print_preparation(prep)
 
     # A gross demographic mismatch overrides --yes: never silently auto-commit

@@ -262,7 +262,13 @@ PACK = CategoryArtifactPack(
         "ghee dal rice did the job for generations, this is just marketing to make you anxious, eat real food",
     ],
     behavioral_priors=(
-        "health_wellness_nutrition is identity-loaded and trust-fractured. The "
+        # ⚠ Was "health_wellness_nutrition is identity-loaded..." — the raw slug as
+        # the subject of a sentence every persona writer reads. Found by the
+        # content preflight on 2026-08-22, live and unnoticed. Says "This
+        # market" rather than the market name because _pack_brief prints
+        # `CATEGORY: <market_name>` immediately above: no interpolation, so
+        # the coupling is gone rather than given a better value.
+        "This market is identity-loaded and trust-fractured. The "
         "shared backdrop: a loud 'protein gap' narrative (60% of urban India "
         "protein-deficient) pushing a vague 'I should take something' anxiety, "
         "set against a loud counter-narrative (the Liver Doc's finding that most "
