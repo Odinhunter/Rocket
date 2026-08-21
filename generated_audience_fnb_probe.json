@@ -1,0 +1,1203 @@
+{
+  "market": "fnb",
+  "category": "fnb_world",
+  "grid": {
+    "market": "Indian urban food and beverage",
+    "occasions": [
+      {
+        "key": "first_cup",
+        "band": "clock",
+        "question": "Is this the first thing consumed today, before any food?",
+        "moment": "the first thing of the day, before any food",
+        "competes_with": "chai, filter coffee, instant coffee, green tea, hot water and lemon, or nothing until breakfast",
+        "decided_by": "habit, who else is awake, what is already in the house",
+        "channel": "the kitchen at home, the tea stall on the way out"
+      },
+      {
+        "key": "breakfast_sat_down",
+        "band": "clock",
+        "question": "Is a morning meal being eaten at a table?",
+        "moment": "a morning meal eaten sitting down",
+        "competes_with": "poha, upma, idli, paratha, cereal, oats, bread and egg, last night's leftovers",
+        "decided_by": "what the household eats, who cooked, how much time there is",
+        "channel": "the home kitchen, the monthly grocery order"
+      },
+      {
+        "key": "breakfast_in_motion",
+        "band": "clock",
+        "question": "Is morning food being eaten standing, travelling, or at a desk?",
+        "moment": "morning food taken standing, on the way, or at a desk",
+        "competes_with": "a banana, biscuit and chai at the stall, a packaged bar, a bought sandwich, an aloo patty, skipping it",
+        "decided_by": "one hand, no crumbs, whether it lasts until lunch",
+        "channel": "the stall outside, a station kiosk, the desk drawer"
+      },
+      {
+        "key": "mid_morning_break",
+        "band": "clock",
+        "question": "Is this the pause at work or college before lunch?",
+        "moment": "the pause at work or college between breakfast and lunch",
+        "competes_with": "canteen chai and biscuit, a vending machine, something brought from home, black coffee alone, nothing at all",
+        "decided_by": "whether the break exists, who is going, what is nearby",
+        "channel": "the office pantry, the college canteen, the cart outside"
+      },
+      {
+        "key": "midday_meal",
+        "band": "clock",
+        "question": "Is this lunch, wherever it came from?",
+        "moment": "lunch, from any source",
+        "competes_with": "tiffin from home, a canteen thali, ordered in, a food court, a colleague's box, a meal the employer provides",
+        "decided_by": "what was packed or provided, price, how long the break is",
+        "channel": "home tiffin, the canteen, a delivery app, the bhojanalay"
+      },
+      {
+        "key": "afternoon_dip",
+        "band": "clock",
+        "question": "Is this the 3-6pm energy trough, away from home?",
+        "moment": "the mid-afternoon trough, somewhere that is not home",
+        "competes_with": "chai and biscuit, coffee, namkeen, chocolate, fruit, a samosa or vada pav, fafda, a protein bar, nothing",
+        "decided_by": "speed, what the stall or canteen sells, who else is going",
+        "channel": "the canteen, the tea stall outside, the office pantry, a cafe"
+      },
+      {
+        "key": "at_home_tea_or_snack",
+        "band": "clock",
+        "question": "Is this an at-home tea or snack between lunch and dinner?",
+        "moment": "tea or something to eat at home in the afternoon, alone or with whoever is in",
+        "competes_with": "chai with biscuits or khaari, pakora and fried things, rusk, namkeen, bread and jam, instant noodles, leftover mithai, fruit",
+        "decided_by": "what is in the house, whether anyone else is home, habit",
+        "channel": "the kitchen, the biscuit tin, a ten-minute delivery app"
+      },
+      {
+        "key": "after_school_feed",
+        "band": "clock",
+        "question": "Is an adult deciding what a child eats on getting home?",
+        "moment": "feeding a child as they come in from school",
+        "competes_with": "something home-made, biscuits, malted milk, fruit, a packaged snack the child asked for",
+        "decided_by": "what the child will actually eat, whether it counts as food",
+        "channel": "the kitchen, the household stock-up, the shop downstairs"
+      },
+      {
+        "key": "evening_out_of_home",
+        "band": "clock",
+        "question": "Is this being bought and eaten outside, before dinner?",
+        "moment": "something bought and eaten outside in the evening",
+        "competes_with": "chaat, vada pav, momos, fresh juice, ice cream, cinema popcorn, a cafe order",
+        "decided_by": "who is there, what the street is selling, the mood",
+        "channel": "the street cart, the market, a cafe, the cinema counter"
+      },
+      {
+        "key": "evening_meal",
+        "band": "clock",
+        "question": "Is this the main evening meal, however it arrived?",
+        "moment": "the main meal of the evening — cooked at home, ordered in, or eaten out, by choice or because there is no kitchen",
+        "competes_with": "roti-sabzi, rice-dal, khichdi, whatever was cooked, Swiggy or Zomato, the restaurant downstairs, a bhojanalay or mess, takeaway on the way home, a friend's house",
+        "decided_by": "who cooks, cost, what is open, who is paying, whether there is a kitchen at all",
+        "channel": "the home kitchen, a delivery app, the eatery on the corner, a friend's kitchen"
+      },
+      {
+        "key": "late_night",
+        "band": "clock",
+        "question": "Is this after 10pm, unplanned, and usually alone?",
+        "moment": "after 10pm, unplanned, usually on your own",
+        "competes_with": "instant noodles, chips, ice cream, chocolate, leftover mithai, an app order, nothing",
+        "decided_by": "what is in the cupboard, what will arrive in ten minutes",
+        "channel": "quick commerce, the kitchen cupboard, a late delivery app"
+      },
+      {
+        "key": "bedtime_cup",
+        "band": "clock",
+        "question": "Is a drink being had to end the day or help someone sleep?",
+        "moment": "a drink that ends the day, for yourself or for someone else",
+        "competes_with": "malted milk, plain or haldi doodh, herbal tea, nothing",
+        "decided_by": "routine, whether it is for a child, whether it helps sleep",
+        "channel": "the kitchen, the monthly grocery order"
+      },
+      {
+        "key": "journey",
+        "band": "event",
+        "question": "Is a journey the reason this is being bought or packed?",
+        "moment": "a journey — packed for it, or bought because of it",
+        "competes_with": "theplas packed from home, station snacks, the airport counter, a highway dhaba, biscuits and namkeen for the bag",
+        "decided_by": "portability, shelf life, what the counter has, captive pricing",
+        "channel": "packed at home, the station, the airport store, a highway stop"
+      },
+      {
+        "key": "hosting",
+        "band": "event",
+        "question": "Is food being put out because someone else is in the house?",
+        "moment": "putting food out because someone has come over",
+        "competes_with": "namkeen, mithai, a chocolate box, cold drinks, tea service, something ordered in for everyone",
+        "decided_by": "what looks right in front of a guest, what is in the tin",
+        "channel": "the household stock-up, the sweet shop, a delivery app"
+      },
+      {
+        "key": "festival_and_gifting",
+        "band": "event",
+        "question": "Is this bought for someone else, because of an occasion?",
+        "moment": "buying for someone else because the calendar says so",
+        "competes_with": "mithai boxes, dry fruit, chocolate hampers, corporate gift packs",
+        "decided_by": "what it says about the giver, price bracket, presentation",
+        "channel": "the sweet shop, a supermarket gifting aisle, online hampers"
+      },
+      {
+        "key": "celebration",
+        "band": "event",
+        "question": "Is there a reason to treat — a result, a promotion, a match?",
+        "moment": "a reason to treat, alone or as a group",
+        "competes_with": "cake, chocolate, ice cream, eating out, a round for the office, a spread arranged by an employer",
+        "decided_by": "the size of the occasion, who is paying, what is shared",
+        "channel": "a bakery, a restaurant, a delivery app, the office pantry"
+      },
+      {
+        "key": "recovery_and_care",
+        "band": "event",
+        "question": "Is someone unwell, pregnant, elderly or convalescing?",
+        "moment": "food for someone who is unwell, pregnant, elderly or recovering",
+        "competes_with": "khichdi, ORS, prescribed nutrition, home remedies, what the doctor said, plain food",
+        "decided_by": "what the doctor said, what will stay down, what is gentle",
+        "channel": "the kitchen, the pharmacy, a prescription"
+      },
+      {
+        "key": "fitness_session",
+        "band": "event",
+        "question": "Is this immediately before or after exercise?",
+        "moment": "the window either side of exercise",
+        "competes_with": "a whey shake, eggs, a banana, an electrolyte, dal-chawal at home, nothing",
+        "decided_by": "protein per serving, timing, what the trainer said",
+        "channel": "the gym counter, specialist online, the gym bag"
+      },
+      {
+        "key": "daily_regimen",
+        "band": "habit",
+        "question": "Is this taken on a schedule, whether or not anyone is hungry?",
+        "moment": "something taken on a schedule — chosen by them or prescribed",
+        "competes_with": "a powder, gummies, a multivitamin, a prescribed tablet, a high-protein drink, \"I'd rather just eat properly\"",
+        "decided_by": "routine, whether it seems to work, cost per day, whether a doctor said so",
+        "channel": "a subscription, specialist online, the pharmacy, the kitchen"
+      },
+      {
+        "key": "hydration",
+        "band": "habit",
+        "question": "Is this drunk for thirst rather than as part of a moment?",
+        "moment": "drinking for thirst, not as part of anything else",
+        "competes_with": "water, buttermilk, coconut water, a cold drink, juice, an electrolyte, nimbu pani",
+        "decided_by": "heat, what is cold and nearby, price",
+        "channel": "the fridge, a shop counter, a street cart, the water bottle"
+      },
+      {
+        "key": "household_stock_up",
+        "band": "habit",
+        "question": "Is this a purchase for later, by and for several people?",
+        "moment": "the weekly or monthly shop — buying for other people too",
+        "competes_with": "biscuit packs, namkeen, cereal, staples, whatever the children will actually eat",
+        "decided_by": "price per unit, family acceptance, what keeps",
+        "channel": "the supermarket, online grocery, the local kirana, quick commerce"
+      }
+    ],
+    "alternatives_heading": "WHAT USUALLY WINS THESE MOMENTS — nameable, real, and often not bought by the person who eats it:",
+    "everyday_alternatives": [
+      "chai — made at home, or ₹10-₹20 at a stall; the single most common thing in an Indian day and the default in at least four of these moments",
+      "Parle-G / Britannia Marie, Good Day, 50-50 — ₹5-₹40 biscuit packs",
+      "khaari, rusk, fafda, khakra, dhokla, pakoda, thepla, chakli, murukku — ₹10-₹50, regional and everyday, usually bought loose by weight from a farsan shop or a bakery with no brand and no date on it",
+      "jalebi, mithai and the local halwai's sweets — bought by weight, and the thing a wife packs into a lunch tiffin without anybody calling it a treat",
+      "canteen samosa, vada pav, aloo patty, momos — ₹10-₹40, hot and immediate",
+      "Cadbury Dairy Milk, KitKat, Snickers — ₹10-₹100 impulse chocolate",
+      "Lay's / Kurkure / Bingo — ₹20 chips",
+      "Maggi and other instant noodles — ₹15-₹30, and the 2am default",
+      "Amul buttermilk, Frooti, Sprite, Coke, fresh lime — ₹10-₹40 cold drinks",
+      "filter coffee, instant coffee, a ₹250 cafe frappe at the other end",
+      "Amul / Kwality Walls ice cream — ₹40-₹80",
+      "a banana or an apple from the fruit cart — ₹10-₹20",
+      "home food someone else cooked or packed — a tiffin, a thali, a spread the employer laid on; costs the eater nothing and still wins the moment",
+      "nothing at all — waiting it out until the next meal"
+    ],
+    "stances": [
+      "loyalist",
+      "switcher",
+      "upgrader",
+      "aspirant",
+      "skeptic",
+      "purist",
+      "pragmatist",
+      "gifter"
+    ]
+  },
+  "occasion": "afternoon_dip",
+  "region": {
+    "gender": "any",
+    "age_min": 25,
+    "age_max": 40,
+    "income_min": 0.0,
+    "income_max": 100.0,
+    "tier": "tier-1"
+  },
+  "raw": [
+    {
+      "label": "loyalist_tapri_chai_break",
+      "occasion": "afternoon_dip",
+      "stance": "loyalist",
+      "category_relationship": "regular",
+      "brand_stance": "neutral",
+      "price_orientation": "price_first",
+      "decision_driver": "habit",
+      "category_involvement": "low",
+      "prior_experience_valence": "neutral",
+      "channel_behavior": "offline_first",
+      "life_stage": "family",
+      "l1_context": "The 4pm walk to the stall outside started as a smoke break with two others and stayed after the smoking stopped; it is the break, not the drink.",
+      "l2_category": "Cutting chai at the same stall six days a week, ₹12-₹15, sometimes a Parle-G or a samosa with it; pays weekly on a running tab.",
+      "l3_knowledge": "Knows which stall boils the milk properly and what a samosa should cost. Does NOT know what a protein bar contains or costs. Does NOT know Blinkit sells anything at this hour.",
+      "l4_stance": "Wants five minutes standing outside with the same two people. Rejects anything that turns the break into a purchase decision or a solo desk snack.",
+      "l5_behavior": "Refused a colleague's offered Yogabar bar last Tuesday and walked down for chai and a samosa at the usual stall instead.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 34,
+          "income_lpa": 3.6,
+          "geography": "Kanpur / tier-1",
+          "occupation_hint": "loads and tallies sacks at a wholesale grain arhat in the mandi lane",
+          "household_hint": "wife and three children in two rooms; his younger brother sleeps in the same room between contract jobs",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 29,
+          "income_lpa": 2.4,
+          "geography": "Surat / tier-1",
+          "occupation_hint": "runs an embroidery machine on the night-into-afternoon shift at a textile unit",
+          "household_hint": "came alone from a village in Gujarat; shares a room with four other men and has never married",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 38,
+          "income_lpa": 4.2,
+          "geography": "Chennai / tier-1",
+          "occupation_hint": "packs and labels pickle jars at a small food unit on piece rate",
+          "household_hint": "husband drives a lorry and is away most of the week; her mother-in-law minds the two daughters",
+          "weight": 0.9
+        },
+        {
+          "gender": "male",
+          "age": 26,
+          "income_lpa": 6.5,
+          "geography": "Pune / tier-1",
+          "occupation_hint": "stands the counter at a mobile-accessories shop in a market lane",
+          "household_hint": "lives with parents and an unmarried older sister; no talk of his own marriage yet",
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "switcher_whatever_is_cold",
+      "occasion": "afternoon_dip",
+      "stance": "switcher",
+      "category_relationship": "regular",
+      "brand_stance": "neutral",
+      "price_orientation": "price_first",
+      "decision_driver": "function",
+      "category_involvement": "low",
+      "prior_experience_valence": "mixed",
+      "channel_behavior": "offline_first",
+      "life_stage": "family",
+      "l1_context": "The three o'clock slump on a shift; whatever the shop near the gate has cold that day gets bought, and it changes month to month.",
+      "l2_category": "Buys most afternoons at a kirana or handcart, ₹10-₹20, never plans it; a ₹20 Sting one week, chips the next.",
+      "l3_knowledge": "Knows Sting and Charged sit at the same coin and that Red Bull is for other people. Does NOT know what taurine or caffeine content means, and does NOT know protein bars are sold in single units anywhere nearby.",
+      "l4_stance": "Wants cold, quick and under twenty rupees. Rejects anything that has to be ordered on an app or waited for — the break is ten minutes.",
+      "l5_behavior": "Switched from the usual Sting to Charged by Thums Up last month purely because the shop's fridge had it in front.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 29,
+          "income_lpa": 2.4,
+          "geography": "Kanpur / tier-1",
+          "occupation_hint": "loads and stacks in a leather goods godown near the Jajmau road, six days a week",
+          "household_hint": "wife and two small children live with his parents in the village; he shares a room with three other men",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 33,
+          "income_lpa": 3.1,
+          "geography": "Surat / tier-1",
+          "occupation_hint": "sits at a diamond-polishing unit's sorting table on a piece-rate count",
+          "household_hint": "married at 18, her eldest is already in class nine and gets herself home",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 26,
+          "income_lpa": 4.2,
+          "geography": "Ahmedabad / tier-1",
+          "occupation_hint": "rides delivery for a grocery app across the Maninagar side, mostly afternoons and nights",
+          "household_hint": "not married; lives with an elder brother who has been out of work since the shop shut",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 38,
+          "income_lpa": 1.9,
+          "geography": "Patna / tier-1",
+          "occupation_hint": "cooks and cleans in two flats in a Boring Road building, back home by four",
+          "household_hint": "husband left for Delhi work three years ago and comes twice a year; four children at home",
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "upgrader_desk_afternoon_protein",
+      "occasion": "afternoon_dip",
+      "stance": "upgrader",
+      "category_relationship": "occasional",
+      "brand_stance": "favorable",
+      "price_orientation": "quality_first",
+      "decision_driver": "function",
+      "category_involvement": "medium",
+      "prior_experience_valence": "positive",
+      "channel_behavior": "quick_commerce",
+      "life_stage": "early_career",
+      "l1_context": "A blood report last year and a habit of eating nothing between lunch and nine; started keeping something in the desk drawer that is not biscuits.",
+      "l2_category": "Orders a box of bars on quick commerce every few weeks, ₹100-a-bar range; eats one around four, never buys singles.",
+      "l3_knowledge": "Knows dates-sweetened bars taste different from wafer ones and that the pantry biscuits are endless. Does NOT know how much protein a day is actually needed, and does NOT know the lab-testing reports on mislabelled packs.",
+      "l4_stance": "Wants something that stops the 6pm samosa without being a meal. Rejects the office pantry Good Day and rejects powders — will not carry a shaker to a desk.",
+      "l5_behavior": "Replaced the drawer's Marie Gold with a box of The Whole Truth bars on Zepto after finishing the last one too fast.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 30,
+          "income_lpa": 14.0,
+          "geography": "Pune / tier-1",
+          "occupation_hint": "clinical data associate at a contract research firm in Hinjewadi, mostly screen work",
+          "household_hint": "married two years, no children yet; her husband is posted in Nashik on weekdays",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 34,
+          "income_lpa": 9.5,
+          "geography": "Hyderabad / tier-1",
+          "occupation_hint": "runs the counter and the billing at a mid-size pharmacy in Kukatpally, twelve-hour days",
+          "household_hint": "two daughters, six and three; his mother lives with them and manages them till he gets back",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 27,
+          "income_lpa": 6.8,
+          "geography": "Chennai / tier-1",
+          "occupation_hint": "quality-line supervisor on a garment unit floor in Ambattur, on her feet most of the shift",
+          "household_hint": "never married; sends money to her father in Villupuram and shares a room with two cousins",
+          "weight": 0.9
+        }
+      ]
+    },
+    {
+      "label": "aspirant_cafe_chair_afternoon",
+      "occasion": "afternoon_dip",
+      "stance": "aspirant",
+      "category_relationship": "occasional",
+      "brand_stance": "favorable",
+      "price_orientation": "value_calculator",
+      "decision_driver": "identity",
+      "category_involvement": "medium",
+      "prior_experience_valence": "mixed",
+      "channel_behavior": "offline_first",
+      "life_stage": "early_career",
+      "l1_context": "Started going to cafés because that is where people meet now; the drink is secondary to being somewhere with air-conditioning and a chair nobody hurries you out of.",
+      "l2_category": "Twice a month, a sit-down coffee in the ₹150-₹250 band; the rest of the week it is canteen chai and nothing bought.",
+      "l3_knowledge": "Knows Third Wave is cheaper than Starbucks and that CCD is nearly empty now. Does NOT know what single-estate or roast date means, and does NOT know a home brewer costs less over a year.",
+      "l4_stance": "Wants the place, not the beverage — somewhere presentable to sit for an hour. Rejects paying Starbucks money for a takeaway cup with nowhere to sit.",
+      "l5_behavior": "Met a friend at Third Wave on a Saturday afternoon, ordered one cold coffee and stayed nearly two hours.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 25,
+          "income_lpa": 5.5,
+          "geography": "Bengaluru / tier-1",
+          "occupation_hint": "sells and fits mobile phone plans at a carrier's showroom counter in Jayanagar",
+          "household_hint": "not married; shares a two-room place with three others from his hometown",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 28,
+          "income_lpa": 11.0,
+          "geography": "Gurugram / tier-1",
+          "occupation_hint": "processes claims documents at an insurance back office in Udyog Vihar",
+          "household_hint": "married at 21, one son in nursery; her mother-in-law does the school pickup",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 31,
+          "income_lpa": 3.6,
+          "geography": "Jaipur / tier-1",
+          "occupation_hint": "does hair and threading at a small salon in Malviya Nagar, busiest from four onwards",
+          "household_hint": "divorced four years ago, lives with her daughter and her own parents",
+          "weight": 0.9
+        },
+        {
+          "gender": "male",
+          "age": 36,
+          "income_lpa": 7.2,
+          "geography": "Lucknow / tier-1",
+          "occupation_hint": "runs a two-man printing and lamination shop off Aminabad, opens after eleven",
+          "household_hint": "three children, the eldest thirteen; his wife runs the house and helps at the shop counter unpaid",
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "skeptic_protein_on_everything",
+      "occasion": "afternoon_dip",
+      "stance": "skeptic",
+      "category_relationship": "lapsed",
+      "brand_stance": "hostile",
+      "price_orientation": "value_calculator",
+      "decision_driver": "habit",
+      "category_involvement": "low",
+      "prior_experience_valence": "burned",
+      "channel_behavior": "marketplace",
+      "life_stage": "family",
+      "l1_context": "Bought into the healthy-snack pitch once during a fitness phase, ate two bars, found the rest still in the cupboard months later past date.",
+      "l2_category": "Now buys almost nothing in the afternoon; if anything, namkeen by weight from the farsan shop or whatever is in the tin at home.",
+      "l3_knowledge": "Knows the word protein is now on chips, biscuits and water. Does NOT know whether the number on any pack is verified, and does NOT know what these bars are actually made of beyond 'dates and something'.",
+      "l4_stance": "Wants food that is food. Rejects paying near a hundred rupees for a wrapped bar when the same money is a proper plate at the stall downstairs.",
+      "l5_behavior": "Threw out an unopened half-box of Yogabar bars bought on Amazon during a January gym phase; went back to bhujia with the afternoon chai.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 39,
+          "income_lpa": 6.0,
+          "geography": "Indore / tier-1",
+          "occupation_hint": "operates a CNC lathe on the second shift at an auto-parts unit in Pithampur",
+          "household_hint": "married at 23, four children; his wife's parents live in the same house",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 35,
+          "income_lpa": 4.4,
+          "geography": "Nagpur / tier-1",
+          "occupation_hint": "runs the house — cooking, the bank errands, her father-in-law's dialysis trips twice a week",
+          "household_hint": "two sons in school; her husband drives a school van and is out from six to five",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 32,
+          "income_lpa": 18.0,
+          "geography": "Mumbai / tier-1",
+          "occupation_hint": "site engineer on a residential tower project in Wadala, mostly out on the deck",
+          "household_hint": "not married; lives with his widowed mother in Kurla and eats what she cooks",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 40,
+          "income_lpa": 2.2,
+          "geography": "Kolkata / tier-1",
+          "occupation_hint": "works the vegetable patch her family leases on the Rajarhat fringe and sells the surplus herself",
+          "household_hint": "first child at 17, now married and gone; a younger son still at home doing nothing much",
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "purist_home_food_only_afternoon",
+      "occasion": "afternoon_dip",
+      "stance": "purist",
+      "category_relationship": "never",
+      "brand_stance": "hostile",
+      "price_orientation": "unspecified",
+      "decision_driver": "identity",
+      "category_involvement": "low",
+      "prior_experience_valence": "burned",
+      "channel_behavior": "offline_first",
+      "life_stage": "family",
+      "l1_context": "Grew up on food cooked at home twice a day; a stomach infection after eating outside once turned a preference into a rule that nothing packaged enters the afternoon.",
+      "l2_category": "Buys almost nothing in the afternoon; carries roasted chana or last night's thepla, and drinks chai made at home before leaving.",
+      "l3_knowledge": "Knows biscuits and namkeen by sight and price at the kirana. Does NOT know what a protein bar contains or costs. Does NOT know Blinkit or Zepto sell food at all.",
+      "l4_stance": "Wants food that was cooked by a person, not sealed in a factory. Rejects anything with a shelf life longer than a week, however healthy the pack claims.",
+      "l5_behavior": "Turned down a colleague's Yogabar at the counter last week and ate the guava brought from the fruit cart instead.",
+      "bundles": [
+        {
+          "gender": "female",
+          "age": 33,
+          "income_lpa": 2.1,
+          "geography": "Kanpur / tier-1",
+          "occupation_hint": "Packs and seals detergent pouches on piece-rate at a small unit near Panki, six days a week",
+          "household_hint": "Four children, the eldest thirteen; her husband loads trucks and is gone before she wakes",
+          "weight": 1.0
+        },
+        {
+          "gender": "male",
+          "age": 38,
+          "income_lpa": 3.4,
+          "geography": "Jaipur / tier-1",
+          "occupation_hint": "Bar-bender on building sites in Mansarovar, moves between contractors every few months",
+          "household_hint": "Wife and three children live in the village; he shares a room with two other men from the same block",
+          "weight": 0.9
+        },
+        {
+          "gender": "female",
+          "age": 29,
+          "income_lpa": 1.6,
+          "geography": "Patna / tier-1",
+          "occupation_hint": "Works the family's vegetable patch on the edge of Danapur and helps at the cart, takes nothing for it and would not call it a job",
+          "household_hint": "Married at eighteen, two sons in the government school; her mother-in-law cannot walk to the toilet alone",
+          "weight": 0.8
+        },
+        {
+          "gender": "male",
+          "age": 27,
+          "income_lpa": 4.2,
+          "geography": "Coimbatore / tier-1",
+          "occupation_hint": "Runs a lathe on the second shift at a pump components workshop in Peelamedu",
+          "household_hint": "Never married; lives with his parents and a younger sister who is finishing her nursing course",
+          "weight": 0.7
+        }
+      ]
+    },
+    {
+      "label": "pragmatist_whatever_fills_till_dinner",
+      "occasion": "afternoon_dip",
+      "stance": "pragmatist",
+      "category_relationship": "regular",
+      "brand_stance": "neutral",
+      "price_orientation": "value_calculator",
+      "decision_driver": "function",
+      "category_involvement": "low",
+      "prior_experience_valence": "mixed",
+      "channel_behavior": "offline_first",
+      "life_stage": "family",
+      "l1_context": "Dinner is at ten and lunch was at one; the afternoon gap is a hunger problem, not a health project, and it gets solved with whatever is at the counter.",
+      "l2_category": "Buys most working days at the shop by the gate, ten to twenty rupees, chosen on what actually stops the hunger till dinner.",
+      "l3_knowledge": "Knows exactly which packs feel filling and which vanish in three bites. Does NOT know what 'whey' is. Does NOT read anything on the back of a pack.",
+      "l4_stance": "Wants to not be hungry at six. Rejects small expensive packs that leave the stomach the same — the price is fine only if it ends the hunger.",
+      "l5_behavior": "Bought a ₹18 Dairy Milk on Tuesday, was hungry again by five, went back for a vada pav from the cart.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 31,
+          "income_lpa": 3.8,
+          "geography": "Surat / tier-1",
+          "occupation_hint": "Feeds cloth into an embroidery machine at a mill unit in Katargam, twelve-hour shifts",
+          "household_hint": "Wife and two small children; his younger brother sleeps in the same room and has not found work since February",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 26,
+          "income_lpa": 2.4,
+          "geography": "Nagpur / tier-1",
+          "occupation_hint": "Cleans and cooks in three flats in Dharampeth, moving between them through the day",
+          "household_hint": "Had her first daughter at nineteen and a son two years later; her husband drives an auto on the night shift",
+          "weight": 0.9
+        },
+        {
+          "gender": "male",
+          "age": 36,
+          "income_lpa": 9.5,
+          "geography": "Hyderabad / tier-1",
+          "occupation_hint": "Handles the counter and billing at a tyre and battery shop in Kukatpally",
+          "household_hint": "Three children in a Telugu-medium school; his wife's parents live in the same two-room house",
+          "weight": 0.9
+        },
+        {
+          "gender": "female",
+          "age": 39,
+          "income_lpa": 14.0,
+          "geography": "Pune / tier-1",
+          "occupation_hint": "Back-office reconciliation team lead at a bank branch in Kothrud",
+          "household_hint": "Never married; her widowed father lives with her and is alone in the flat all day",
+          "weight": 0.7
+        }
+      ]
+    },
+    {
+      "label": "gifter_office_round_afternoon",
+      "occasion": "afternoon_dip",
+      "stance": "gifter",
+      "category_relationship": "occasional",
+      "brand_stance": "favorable",
+      "price_orientation": "quality_first",
+      "decision_driver": "social_proof",
+      "category_involvement": "medium",
+      "prior_experience_valence": "positive",
+      "channel_behavior": "quick_commerce",
+      "life_stage": "early_career",
+      "l1_context": "Being the one who feeds the group in the dead part of the afternoon bought a place in it; the buying is the point and the eating barely registers.",
+      "l2_category": "Orders for six or seven people two or three times a month, hundred to four hundred rupees, always a shareable format nobody has to explain.",
+      "l3_knowledge": "Knows which flavours the team will fight over and what arrives fastest. Does NOT know what any of it costs per gram. Does NOT know which brands are considered healthy.",
+      "l4_stance": "Wants something that opens on a desk and gets passed around. Rejects single-serve health bars — one bar for one person makes it a private thing, not a round.",
+      "l5_behavior": "Got a KitKat multipack and a big Lay's on Instamart at four when a colleague's result came through, opened both on the shared table.",
+      "bundles": [
+        {
+          "gender": "male",
+          "age": 28,
+          "income_lpa": 11.0,
+          "geography": "Bengaluru / tier-1",
+          "occupation_hint": "Field sales for a paint company, covers dealer counters across Rajajinagar on a two-wheeler",
+          "household_hint": "Never married; shares a flat with two colleagues and sends money to his mother in Davangere",
+          "weight": 1.0
+        },
+        {
+          "gender": "female",
+          "age": 34,
+          "income_lpa": 7.2,
+          "geography": "Ahmedabad / tier-1",
+          "occupation_hint": "Supervises the packing line at a snack unit in Naroda and signs off the shift register",
+          "household_hint": "Two daughters, the elder in class nine; her husband works in Muscat and comes home once a year",
+          "weight": 0.9
+        },
+        {
+          "gender": "male",
+          "age": 25,
+          "income_lpa": 4.8,
+          "geography": "Lucknow / tier-1",
+          "occupation_hint": "Cuts and colours at a men's salon in Gomti Nagar, busiest from four onward",
+          "household_hint": "Recently married, no children; lives above the shop with his wife and his father who has stopped working",
+          "weight": 0.8
+        }
+      ]
+    }
+  ],
+  "refusals": [],
+  "dispositions": [
+    {
+      "label": "loyalist_tapri_chai_break",
+      "vector": {
+        "category_relationship": "regular",
+        "brand_stance": "neutral",
+        "price_orientation": "price_first",
+        "decision_driver": "habit",
+        "category_involvement": "low",
+        "prior_experience_valence": "neutral",
+        "channel_behavior": "offline_first",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=afternoon_dip stance=loyalist region=a25-40_0-100_t1",
+      "anchor": "The 4pm walk to the stall outside started as a smoke break with two others and stayed after the smoking stopped; it is the break, not the drink.\n\nCutting chai at the same stall six days a week, ₹12-₹15, sometimes a Parle-G or a samosa with it; pays weekly on a running tab.\n\nKnows which stall boils the milk properly and what a samosa should cost. Does NOT know what a protein bar contains or costs. Does NOT know Blinkit sells anything at this hour.\n\nWants five minutes standing outside with the same two people. Rejects anything that turns the break into a purchase decision or a solo desk snack.\n\nRefused a colleague's offered Yogabar bar last Tuesday and walked down for chai and a samosa at the usual stall instead.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 34,
+            "age_max": 34,
+            "income_lpa_min": 3.6,
+            "income_lpa_max": 3.6,
+            "geography": "Kanpur / tier-1",
+            "occupation_hint": "loads and tallies sacks at a wholesale grain arhat in the mandi lane",
+            "household_hint": "wife and three children in two rooms; his younger brother sleeps in the same room between contract jobs"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 29,
+            "age_max": 29,
+            "income_lpa_min": 2.4,
+            "income_lpa_max": 2.4,
+            "geography": "Surat / tier-1",
+            "occupation_hint": "runs an embroidery machine on the night-into-afternoon shift at a textile unit",
+            "household_hint": "came alone from a village in Gujarat; shares a room with four other men and has never married"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 38,
+            "age_max": 38,
+            "income_lpa_min": 4.2,
+            "income_lpa_max": 4.2,
+            "geography": "Chennai / tier-1",
+            "occupation_hint": "packs and labels pickle jars at a small food unit on piece rate",
+            "household_hint": "husband drives a lorry and is away most of the week; her mother-in-law minds the two daughters"
+          },
+          "weight": 0.9
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 26,
+            "age_max": 26,
+            "income_lpa_min": 6.5,
+            "income_lpa_max": 6.5,
+            "geography": "Pune / tier-1",
+            "occupation_hint": "stands the counter at a mobile-accessories shop in a market lane",
+            "household_hint": "lives with parents and an unmarried older sister; no talk of his own marriage yet"
+          },
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "switcher_whatever_is_cold",
+      "vector": {
+        "category_relationship": "regular",
+        "brand_stance": "neutral",
+        "price_orientation": "price_first",
+        "decision_driver": "function",
+        "category_involvement": "low",
+        "prior_experience_valence": "mixed",
+        "channel_behavior": "offline_first",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=afternoon_dip stance=switcher region=a25-40_0-100_t1",
+      "anchor": "The three o'clock slump on a shift; whatever the shop near the gate has cold that day gets bought, and it changes month to month.\n\nBuys most afternoons at a kirana or handcart, ₹10-₹20, never plans it; a ₹20 Sting one week, chips the next.\n\nKnows Sting and Charged sit at the same coin and that Red Bull is for other people. Does NOT know what taurine or caffeine content means, and does NOT know protein bars are sold in single units anywhere nearby.\n\nWants cold, quick and under twenty rupees. Rejects anything that has to be ordered on an app or waited for — the break is ten minutes.\n\nSwitched from the usual Sting to Charged by Thums Up last month purely because the shop's fridge had it in front.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 29,
+            "age_max": 29,
+            "income_lpa_min": 2.4,
+            "income_lpa_max": 2.4,
+            "geography": "Kanpur / tier-1",
+            "occupation_hint": "loads and stacks in a leather goods godown near the Jajmau road, six days a week",
+            "household_hint": "wife and two small children live with his parents in the village; he shares a room with three other men"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 33,
+            "age_max": 33,
+            "income_lpa_min": 3.1,
+            "income_lpa_max": 3.1,
+            "geography": "Surat / tier-1",
+            "occupation_hint": "sits at a diamond-polishing unit's sorting table on a piece-rate count",
+            "household_hint": "married at 18, her eldest is already in class nine and gets herself home"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 26,
+            "age_max": 26,
+            "income_lpa_min": 4.2,
+            "income_lpa_max": 4.2,
+            "geography": "Ahmedabad / tier-1",
+            "occupation_hint": "rides delivery for a grocery app across the Maninagar side, mostly afternoons and nights",
+            "household_hint": "not married; lives with an elder brother who has been out of work since the shop shut"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 38,
+            "age_max": 38,
+            "income_lpa_min": 1.9,
+            "income_lpa_max": 1.9,
+            "geography": "Patna / tier-1",
+            "occupation_hint": "cooks and cleans in two flats in a Boring Road building, back home by four",
+            "household_hint": "husband left for Delhi work three years ago and comes twice a year; four children at home"
+          },
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "upgrader_desk_afternoon_protein",
+      "vector": {
+        "category_relationship": "occasional",
+        "brand_stance": "favorable",
+        "price_orientation": "quality_first",
+        "decision_driver": "function",
+        "category_involvement": "medium",
+        "prior_experience_valence": "positive",
+        "channel_behavior": "quick_commerce",
+        "life_stage": "early_career"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=afternoon_dip stance=upgrader region=a25-40_0-100_t1",
+      "anchor": "A blood report last year and a habit of eating nothing between lunch and nine; started keeping something in the desk drawer that is not biscuits.\n\nOrders a box of bars on quick commerce every few weeks, ₹100-a-bar range; eats one around four, never buys singles.\n\nKnows dates-sweetened bars taste different from wafer ones and that the pantry biscuits are endless. Does NOT know how much protein a day is actually needed, and does NOT know the lab-testing reports on mislabelled packs.\n\nWants something that stops the 6pm samosa without being a meal. Rejects the office pantry Good Day and rejects powders — will not carry a shaker to a desk.\n\nReplaced the drawer's Marie Gold with a box of The Whole Truth bars on Zepto after finishing the last one too fast.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 30,
+            "age_max": 30,
+            "income_lpa_min": 14.0,
+            "income_lpa_max": 14.0,
+            "geography": "Pune / tier-1",
+            "occupation_hint": "clinical data associate at a contract research firm in Hinjewadi, mostly screen work",
+            "household_hint": "married two years, no children yet; her husband is posted in Nashik on weekdays"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 34,
+            "age_max": 34,
+            "income_lpa_min": 9.5,
+            "income_lpa_max": 9.5,
+            "geography": "Hyderabad / tier-1",
+            "occupation_hint": "runs the counter and the billing at a mid-size pharmacy in Kukatpally, twelve-hour days",
+            "household_hint": "two daughters, six and three; his mother lives with them and manages them till he gets back"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 27,
+            "age_max": 27,
+            "income_lpa_min": 6.8,
+            "income_lpa_max": 6.8,
+            "geography": "Chennai / tier-1",
+            "occupation_hint": "quality-line supervisor on a garment unit floor in Ambattur, on her feet most of the shift",
+            "household_hint": "never married; sends money to her father in Villupuram and shares a room with two cousins"
+          },
+          "weight": 0.9
+        }
+      ]
+    },
+    {
+      "label": "aspirant_cafe_chair_afternoon",
+      "vector": {
+        "category_relationship": "occasional",
+        "brand_stance": "favorable",
+        "price_orientation": "value_calculator",
+        "decision_driver": "identity",
+        "category_involvement": "medium",
+        "prior_experience_valence": "mixed",
+        "channel_behavior": "offline_first",
+        "life_stage": "early_career"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=afternoon_dip stance=aspirant region=a25-40_0-100_t1",
+      "anchor": "Started going to cafés because that is where people meet now; the drink is secondary to being somewhere with air-conditioning and a chair nobody hurries you out of.\n\nTwice a month, a sit-down coffee in the ₹150-₹250 band; the rest of the week it is canteen chai and nothing bought.\n\nKnows Third Wave is cheaper than Starbucks and that CCD is nearly empty now. Does NOT know what single-estate or roast date means, and does NOT know a home brewer costs less over a year.\n\nWants the place, not the beverage — somewhere presentable to sit for an hour. Rejects paying Starbucks money for a takeaway cup with nowhere to sit.\n\nMet a friend at Third Wave on a Saturday afternoon, ordered one cold coffee and stayed nearly two hours.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 25,
+            "age_max": 25,
+            "income_lpa_min": 5.5,
+            "income_lpa_max": 5.5,
+            "geography": "Bengaluru / tier-1",
+            "occupation_hint": "sells and fits mobile phone plans at a carrier's showroom counter in Jayanagar",
+            "household_hint": "not married; shares a two-room place with three others from his hometown"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 28,
+            "age_max": 28,
+            "income_lpa_min": 11.0,
+            "income_lpa_max": 11.0,
+            "geography": "Gurugram / tier-1",
+            "occupation_hint": "processes claims documents at an insurance back office in Udyog Vihar",
+            "household_hint": "married at 21, one son in nursery; her mother-in-law does the school pickup"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 31,
+            "age_max": 31,
+            "income_lpa_min": 3.6,
+            "income_lpa_max": 3.6,
+            "geography": "Jaipur / tier-1",
+            "occupation_hint": "does hair and threading at a small salon in Malviya Nagar, busiest from four onwards",
+            "household_hint": "divorced four years ago, lives with her daughter and her own parents"
+          },
+          "weight": 0.9
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 36,
+            "age_max": 36,
+            "income_lpa_min": 7.2,
+            "income_lpa_max": 7.2,
+            "geography": "Lucknow / tier-1",
+            "occupation_hint": "runs a two-man printing and lamination shop off Aminabad, opens after eleven",
+            "household_hint": "three children, the eldest thirteen; his wife runs the house and helps at the shop counter unpaid"
+          },
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "skeptic_protein_on_everything",
+      "vector": {
+        "category_relationship": "lapsed",
+        "brand_stance": "hostile",
+        "price_orientation": "value_calculator",
+        "decision_driver": "habit",
+        "category_involvement": "low",
+        "prior_experience_valence": "burned",
+        "channel_behavior": "marketplace",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=afternoon_dip stance=skeptic region=a25-40_0-100_t1",
+      "anchor": "Bought into the healthy-snack pitch once during a fitness phase, ate two bars, found the rest still in the cupboard months later past date.\n\nNow buys almost nothing in the afternoon; if anything, namkeen by weight from the farsan shop or whatever is in the tin at home.\n\nKnows the word protein is now on chips, biscuits and water. Does NOT know whether the number on any pack is verified, and does NOT know what these bars are actually made of beyond 'dates and something'.\n\nWants food that is food. Rejects paying near a hundred rupees for a wrapped bar when the same money is a proper plate at the stall downstairs.\n\nThrew out an unopened half-box of Yogabar bars bought on Amazon during a January gym phase; went back to bhujia with the afternoon chai.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 39,
+            "age_max": 39,
+            "income_lpa_min": 6.0,
+            "income_lpa_max": 6.0,
+            "geography": "Indore / tier-1",
+            "occupation_hint": "operates a CNC lathe on the second shift at an auto-parts unit in Pithampur",
+            "household_hint": "married at 23, four children; his wife's parents live in the same house"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 35,
+            "age_max": 35,
+            "income_lpa_min": 4.4,
+            "income_lpa_max": 4.4,
+            "geography": "Nagpur / tier-1",
+            "occupation_hint": "runs the house — cooking, the bank errands, her father-in-law's dialysis trips twice a week",
+            "household_hint": "two sons in school; her husband drives a school van and is out from six to five"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 32,
+            "age_max": 32,
+            "income_lpa_min": 18.0,
+            "income_lpa_max": 18.0,
+            "geography": "Mumbai / tier-1",
+            "occupation_hint": "site engineer on a residential tower project in Wadala, mostly out on the deck",
+            "household_hint": "not married; lives with his widowed mother in Kurla and eats what she cooks"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 40,
+            "age_max": 40,
+            "income_lpa_min": 2.2,
+            "income_lpa_max": 2.2,
+            "geography": "Kolkata / tier-1",
+            "occupation_hint": "works the vegetable patch her family leases on the Rajarhat fringe and sells the surplus herself",
+            "household_hint": "first child at 17, now married and gone; a younger son still at home doing nothing much"
+          },
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "label": "purist_home_food_only_afternoon",
+      "vector": {
+        "category_relationship": "never",
+        "brand_stance": "hostile",
+        "price_orientation": "unspecified",
+        "decision_driver": "identity",
+        "category_involvement": "low",
+        "prior_experience_valence": "burned",
+        "channel_behavior": "offline_first",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=afternoon_dip stance=purist region=a25-40_0-100_t1",
+      "anchor": "Grew up on food cooked at home twice a day; a stomach infection after eating outside once turned a preference into a rule that nothing packaged enters the afternoon.\n\nBuys almost nothing in the afternoon; carries roasted chana or last night's thepla, and drinks chai made at home before leaving.\n\nKnows biscuits and namkeen by sight and price at the kirana. Does NOT know what a protein bar contains or costs. Does NOT know Blinkit or Zepto sell food at all.\n\nWants food that was cooked by a person, not sealed in a factory. Rejects anything with a shelf life longer than a week, however healthy the pack claims.\n\nTurned down a colleague's Yogabar at the counter last week and ate the guava brought from the fruit cart instead.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 33,
+            "age_max": 33,
+            "income_lpa_min": 2.1,
+            "income_lpa_max": 2.1,
+            "geography": "Kanpur / tier-1",
+            "occupation_hint": "Packs and seals detergent pouches on piece-rate at a small unit near Panki, six days a week",
+            "household_hint": "Four children, the eldest thirteen; her husband loads trucks and is gone before she wakes"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 38,
+            "age_max": 38,
+            "income_lpa_min": 3.4,
+            "income_lpa_max": 3.4,
+            "geography": "Jaipur / tier-1",
+            "occupation_hint": "Bar-bender on building sites in Mansarovar, moves between contractors every few months",
+            "household_hint": "Wife and three children live in the village; he shares a room with two other men from the same block"
+          },
+          "weight": 0.9
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 29,
+            "age_max": 29,
+            "income_lpa_min": 1.6,
+            "income_lpa_max": 1.6,
+            "geography": "Patna / tier-1",
+            "occupation_hint": "Works the family's vegetable patch on the edge of Danapur and helps at the cart, takes nothing for it and would not call it a job",
+            "household_hint": "Married at eighteen, two sons in the government school; her mother-in-law cannot walk to the toilet alone"
+          },
+          "weight": 0.8
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 27,
+            "age_max": 27,
+            "income_lpa_min": 4.2,
+            "income_lpa_max": 4.2,
+            "geography": "Coimbatore / tier-1",
+            "occupation_hint": "Runs a lathe on the second shift at a pump components workshop in Peelamedu",
+            "household_hint": "Never married; lives with his parents and a younger sister who is finishing her nursing course"
+          },
+          "weight": 0.7
+        }
+      ]
+    },
+    {
+      "label": "pragmatist_whatever_fills_till_dinner",
+      "vector": {
+        "category_relationship": "regular",
+        "brand_stance": "neutral",
+        "price_orientation": "value_calculator",
+        "decision_driver": "function",
+        "category_involvement": "low",
+        "prior_experience_valence": "mixed",
+        "channel_behavior": "offline_first",
+        "life_stage": "family"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=afternoon_dip stance=pragmatist region=a25-40_0-100_t1",
+      "anchor": "Dinner is at ten and lunch was at one; the afternoon gap is a hunger problem, not a health project, and it gets solved with whatever is at the counter.\n\nBuys most working days at the shop by the gate, ten to twenty rupees, chosen on what actually stops the hunger till dinner.\n\nKnows exactly which packs feel filling and which vanish in three bites. Does NOT know what 'whey' is. Does NOT read anything on the back of a pack.\n\nWants to not be hungry at six. Rejects small expensive packs that leave the stomach the same — the price is fine only if it ends the hunger.\n\nBought a ₹18 Dairy Milk on Tuesday, was hungry again by five, went back for a vada pav from the cart.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 31,
+            "age_max": 31,
+            "income_lpa_min": 3.8,
+            "income_lpa_max": 3.8,
+            "geography": "Surat / tier-1",
+            "occupation_hint": "Feeds cloth into an embroidery machine at a mill unit in Katargam, twelve-hour shifts",
+            "household_hint": "Wife and two small children; his younger brother sleeps in the same room and has not found work since February"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 26,
+            "age_max": 26,
+            "income_lpa_min": 2.4,
+            "income_lpa_max": 2.4,
+            "geography": "Nagpur / tier-1",
+            "occupation_hint": "Cleans and cooks in three flats in Dharampeth, moving between them through the day",
+            "household_hint": "Had her first daughter at nineteen and a son two years later; her husband drives an auto on the night shift"
+          },
+          "weight": 0.9
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 36,
+            "age_max": 36,
+            "income_lpa_min": 9.5,
+            "income_lpa_max": 9.5,
+            "geography": "Hyderabad / tier-1",
+            "occupation_hint": "Handles the counter and billing at a tyre and battery shop in Kukatpally",
+            "household_hint": "Three children in a Telugu-medium school; his wife's parents live in the same two-room house"
+          },
+          "weight": 0.9
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 39,
+            "age_max": 39,
+            "income_lpa_min": 14.0,
+            "income_lpa_max": 14.0,
+            "geography": "Pune / tier-1",
+            "occupation_hint": "Back-office reconciliation team lead at a bank branch in Kothrud",
+            "household_hint": "Never married; her widowed father lives with her and is alone in the flat all day"
+          },
+          "weight": 0.7
+        }
+      ]
+    },
+    {
+      "label": "gifter_office_round_afternoon",
+      "vector": {
+        "category_relationship": "occasional",
+        "brand_stance": "favorable",
+        "price_orientation": "quality_first",
+        "decision_driver": "social_proof",
+        "category_involvement": "medium",
+        "prior_experience_valence": "positive",
+        "channel_behavior": "quick_commerce",
+        "life_stage": "early_career"
+      },
+      "provisional": false,
+      "notes": "generated: occasion=afternoon_dip stance=gifter region=a25-40_0-100_t1",
+      "anchor": "Being the one who feeds the group in the dead part of the afternoon bought a place in it; the buying is the point and the eating barely registers.\n\nOrders for six or seven people two or three times a month, hundred to four hundred rupees, always a shareable format nobody has to explain.\n\nKnows which flavours the team will fight over and what arrives fastest. Does NOT know what any of it costs per gram. Does NOT know which brands are considered healthy.\n\nWants something that opens on a desk and gets passed around. Rejects single-serve health bars — one bar for one person makes it a private thing, not a round.\n\nGot a KitKat multipack and a big Lay's on Instamart at four when a colleague's result came through, opened both on the shared table.",
+      "demographic_bundles": [
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 28,
+            "age_max": 28,
+            "income_lpa_min": 11.0,
+            "income_lpa_max": 11.0,
+            "geography": "Bengaluru / tier-1",
+            "occupation_hint": "Field sales for a paint company, covers dealer counters across Rajajinagar on a two-wheeler",
+            "household_hint": "Never married; shares a flat with two colleagues and sends money to his mother in Davangere"
+          },
+          "weight": 1.0
+        },
+        {
+          "point": {
+            "gender": "female",
+            "age_min": 34,
+            "age_max": 34,
+            "income_lpa_min": 7.2,
+            "income_lpa_max": 7.2,
+            "geography": "Ahmedabad / tier-1",
+            "occupation_hint": "Supervises the packing line at a snack unit in Naroda and signs off the shift register",
+            "household_hint": "Two daughters, the elder in class nine; her husband works in Muscat and comes home once a year"
+          },
+          "weight": 0.9
+        },
+        {
+          "point": {
+            "gender": "male",
+            "age_min": 25,
+            "age_max": 25,
+            "income_lpa_min": 4.8,
+            "income_lpa_max": 4.8,
+            "geography": "Lucknow / tier-1",
+            "occupation_hint": "Cuts and colours at a men's salon in Gomti Nagar, busiest from four onward",
+            "household_hint": "Recently married, no children; lives above the shop with his wife and his father who has stopped working"
+          },
+          "weight": 0.8
+        }
+      ]
+    }
+  ]
+}
