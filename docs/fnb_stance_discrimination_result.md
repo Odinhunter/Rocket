@@ -131,3 +131,69 @@ buying** — the defect that would have made it a waste does not exist.
 ⚠ **Still not tested:** the other 20 moments, panel seating at 176-cell scale, and whether
 discrimination survives when the panel spans *moments* rather than one. **64 agents at one moment is
 not a rate and never was.**
+
+---
+---
+
+# ⚠⚠ AMENDMENT, 2026-08-22 — THE USER CHALLENGED THE HEADLINE AND HALF OF IT DOES NOT SURVIVE
+
+**Three challenges, all correct.** *"If 100 people buy something, probably 2 of them are gonna be
+gifters."* · *"People rarely behave exactly the same way every single day."* · *"I don't think 7 of
+8 would buy at restock — that seems like almost everyone."*
+
+## ✅ WHAT SURVIVES — THE OBJECTION MAP
+
+**The six distinct fix-directions stand** (distribution · price/channel · urgency · missing CTA ·
+prior experience · format). They are read off transcripts, they are qualitative, and **none of the
+three challenges touches them.** ⭐ Different stances DO raise different objections to the same ad.
+That finding is intact.
+
+## ❌ WHAT DOES NOT — THE 7-OF-8 BUY-INTENT NUMBER
+
+⚠⚠ **`buy_at_restock` IS THE NULL HYPOTHESIS FOR AN EXISTING CUSTOMER, NOT AN AD EFFECT.**
+
+| agent | cycle_position | said |
+|---|---|---|
+| 0 | ⚠ **`just_bought`** | `buy_at_restock` |
+| 25 | ⚠ **`just_bought`** | `buy_at_restock` |
+| 8, 39 | `running_low` | `buy_at_restock` — ⚠ they would restock anyway |
+| 22, 42, 58 | `mid_cycle` | `buy_at_restock` |
+| 31 | `mid_cycle` | `nothing` |
+
+⭐⭐ **Two of the seven had JUST BOUGHT A BOX.** And the upgrader's own anchor **names The Whole
+Truth by brand and price** (*"₹104 for a 52g bar… you order another box on Zepto"*). So this is
+**RETENTION being counted as CONVERSION** — `decision.py:120` scores `buy_at_restock` as buy-intent,
+and for a customer already on a subscription cadence the ad had to persuade nobody.
+
+⚠ **AND THE RULER WAS PROBABLY WRONG ANYWAY.** The run's own classifier called this ad
+`awareness_informer` — *"no price, no offer, no CTA"* — and `v2_4_purpose_layer` gates the informer
+purpose. **Buy-intent was not the right measure for this creative.**
+
+⭐ **THE ASSESSOR CAUGHT WHAT THE METRIC MISSED.** Pain P1 says the interest is *"consistently
+deferred to an indefinite future restock the ad never converts."* **The diagnosis layer was right
+and the headline number was wrong** — `panel_discrimination_measured` a second time.
+
+## ⚠⚠ AND AN UNCONTROLLED CONFOUND ON THE ZEROS
+
+Every persona was told: *"An ad for **international food and drink** lands…"* — the category slug
+`fnb_world` rendered into persona-facing prose, the renderer reading *"world"* as *"international"*.
+**This is Indian F&B and The Whole Truth is an Indian D2C brand.** ⚠ Framing it as foreign plausibly
+inflates the price-and-not-for-me objections that four of eight gave. **The 0-of-56 cannot be
+cleanly attributed.** ⭐ My slug choice in `#71`; fix before the region.
+
+## ⭐⭐⭐ AND THE STRUCTURAL FINDING UNDERNEATH ALL THREE
+
+**The panel outputs a STEP FUNCTION — 0% for seven stances, 87.5% for one. Real markets have
+tails.** The user's *"2 in 100 buyers are gifters"* is the correct objection: **dispositions are
+acting as deterministic filters rather than propensities.**
+
+⚠ **And the chaos vector — which exists to supply that variance — cannot, because it is rendered as
+a TRAIT.** It is baked into the cached biography, which makes it a second description of *who the
+person is*, redundant with the disposition. **Two trait layers cannot produce day-to-day variance;
+they only co-describe.** Measured here: within the only stance that acted, **impulsive, moderate AND
+deliberate all bought** — chaos did not predict action even where action existed.
+
+⭐⭐ **THE FIX SHAPE ALREADY EXISTS IN THIS CODEBASE** — `cycle_position` is a per-exposure SAMPLED
+STATE, excluded from `persona_core_hash` and `segment_key`, riding the uncached context, with a
+spec-declarable mix reported beside the headline. **Chaos has none of that and should have all of
+it.** Design proposal: `docs/chaos_as_circumstance_proposal.md`.
