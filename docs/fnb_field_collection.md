@@ -165,24 +165,17 @@ types — if the table nudges someone into our categories, we've collected our o
 
 | Age | City | What fills her day | Who's at home | Veg / non-veg | Was yesterday normal? |
 |---|---|---|---|---|---|
-|  |  |  |  |  |  |
+| 46 | Mumbai | cooking, cleaning, helping the kids study, and doing refular household stuff | her husband, 2 kids (M15, F18), and her husbands mother | Vegetarian | Yes |
 
 | # | Time | What she had | Where | Bought / made / given | With anyone? | Nearly had instead? |
 |---|---|---|---|---|---|---|
-| 1 |  |  |  |  |  |  |
-| 2 |  |  |  |  |  |  |
-| 3 |  |  |  |  |  |  |
-| 4 |  |  |  |  |  |  |
-| 5 |  |  |  |  |  |  |
-| 6 |  |  |  |  |  |  |
-| 7 |  |  |  |  |  |  |
-| 8 |  |  |  |  |  |  |
-| 9 |  |  |  |  |  |  |
-| 10 |  |  |  |  |  |  |
-| 11 |  |  |  |  |  |  |
-| 12 |  |  |  |  |  |  |
-| 13 |  |  |  |  |  |  |
-| 14 |  |  |  |  |  |  |
+| 1 | 9AM | Poha with fruit and chai | at home | Made by her | with family | nearly had upma instead |
+| 2 | 12:30PM | 2 rotis with sabji, and dahi | at home | Made by her | by herself | nearly had rice and Rajma instead |
+| 3 | 3PM | Chai with biscuit and khaari | at home | made by her, and bought from supermarket | by herself | nothing instead |
+| 4 | 5PM | bread with Jam, maggi | at home | made by her, and bought from quick commerce - blinkit, zepto | by herself | nearly had sandwich instead |
+| 5 | 6PM | bread, paneer, pasta, vegetables and fruits | bought from nearby grocery store | bought from supermarket | by herself | nearly bought tacos and pizza bases instead |
+| 6 | 8PM | roti sabji | at home | made by herself | with family | nearly had pav bhaji instead |
+
 
 **Anything she bought or cooked for someone else yesterday:**
 
@@ -192,24 +185,15 @@ types — if the table nudges someone into our categories, we've collected our o
 
 | Age | City | The work, and shift timings | Who's at home | Veg / non-veg | Was yesterday normal? |
 |---|---|---|---|---|---|
-|  |  |  |  |  |  |
+| 32 | delhi | working the day shift from 9AM to 7PM at a construction site | his mother, wife and kids live in the village | non-veg | yes |
 
 | # | Time | What he/she had | Where | Bought / made / given | With anyone? | Nearly had instead? |
 |---|---|---|---|---|---|---|
-| 1 |  |  |  |  |  |  |
-| 2 |  |  |  |  |  |  |
-| 3 |  |  |  |  |  |  |
-| 4 |  |  |  |  |  |  |
-| 5 |  |  |  |  |  |  |
-| 6 |  |  |  |  |  |  |
-| 7 |  |  |  |  |  |  |
-| 8 |  |  |  |  |  |  |
-| 9 |  |  |  |  |  |  |
-| 10 |  |  |  |  |  |  |
-| 11 |  |  |  |  |  |  |
-| 12 |  |  |  |  |  |  |
-| 13 |  |  |  |  |  |  |
-| 14 |  |  |  |  |  |  |
+| 1 | 8AM | chai, with buiscuits, and aloo patty | nearby snack shop | bought | with fellow labourers | samosa, chicken patty |
+| 2 | 2PM | Roti Sabji meal with frooti provided by boss | construction site | given | with other labourers | nothing else |
+| 3 | 5PM | chai with biscuits | nearby snack shop | bought | with fellow labourers | packet of chips/kurkure |
+| 4 | 8PM | rice with dal, sprite | bhojanalay | bought | alone | nothing else |
+
 
 **Was there a canteen? Did food come from home? Any stretch of the day with nothing at all:**
 
@@ -219,24 +203,14 @@ types — if the table nudges someone into our categories, we've collected our o
 
 | Age | City | Studying / working at | Who's at home | Veg / non-veg | Was yesterday normal? |
 |---|---|---|---|---|---|
-|  |  |  |  |  |  |
+| 19F | Bangalore | Studying | Mom, Dad and brother | Veg | Yes |
 
 | # | Time | What they had | Where | Bought / made / given | With anyone? | Nearly had instead? |
 |---|---|---|---|---|---|---|
-| 1 |  |  |  |  |  |  |
-| 2 |  |  |  |  |  |  |
-| 3 |  |  |  |  |  |  |
-| 4 |  |  |  |  |  |  |
-| 5 |  |  |  |  |  |  |
-| 6 |  |  |  |  |  |  |
-| 7 |  |  |  |  |  |  |
-| 8 |  |  |  |  |  |  |
-| 9 |  |  |  |  |  |  |
-| 10 |  |  |  |  |  |  |
-| 11 |  |  |  |  |  |  |
-| 12 |  |  |  |  |  |  |
-| 13 |  |  |  |  |  |  |
-| 14 |  |  |  |  |  |  |
+| 1 | 9AM | a fruit and protein cereal | at home | bought | with brother and mom | nearly had a protein bar and smoothie bowl instead |
+| 2 | 1PM | vegetable salad, rice with chole | at college | given by mom | with college friends | nearly had fried rice and protein bar frem college canteen instead |
+| 3 | 3PM | green tea and protein chips | at college canteen | bought | with college friends | nearly had vada pav and chaat |
+| 4 | 7:30PM | mexican paneer burrito | at home | ordered from zomato/swiggy | with family | nearly had pizza and mexican rice bowl instead |
 
 **Anything ordered on an app, anything after 10pm, and who paid:**
 
@@ -246,24 +220,14 @@ types — if the table nudges someone into our categories, we've collected our o
 
 | Age | City | What fills their day | Who's at home | Veg / non-veg | Was yesterday normal? |
 |---|---|---|---|---|---|
-|  |  |  |  |  |  |
+| 26 | Pune | content creator making gaming and chess content | 2 friend room mates | non-veg | yes |
 
 | # | Time | What they had | Where | Bought / made / given | With anyone? | Nearly had instead? |
 |---|---|---|---|---|---|---|
-| 1 |  |  |  |  |  |  |
-| 2 |  |  |  |  |  |  |
-| 3 |  |  |  |  |  |  |
-| 4 |  |  |  |  |  |  |
-| 5 |  |  |  |  |  |  |
-| 6 |  |  |  |  |  |  |
-| 7 |  |  |  |  |  |  |
-| 8 |  |  |  |  |  |  |
-| 9 |  |  |  |  |  |  |
-| 10 |  |  |  |  |  |  |
-| 11 |  |  |  |  |  |  |
-| 12 |  |  |  |  |  |  |
-| 13 |  |  |  |  |  |  |
-| 14 |  |  |  |  |  |  |
+| 1 | 1PM | chicken burger, amul masti chaas, momos, and brownie | at home | bought from zomato, and big basket whererver the most discounts are | with room mates | nearly had mutton biryani, lays chips and doughnut |
+| 2 | 4PM | frappacino from starbucks | at starbucks | bought | alone | nearly had cooler from chaayos instead |
+| 3 | 9PM | pizza and red bull, and a superyou protein bar | at friend's home | bought | wwith friend | nearly had taco bell tacos and quasedillas and diet coke instead |
+| 4 | 2AM (next day) | maggi with chips | at home | bought from zepto/blinkit and made at home | alone | nearly ordered pasta and friend from zomato |
 
 **If any "healthy" product came up at all — even as something they refused — write it down:**
 
@@ -273,26 +237,17 @@ types — if the table nudges someone into our categories, we've collected our o
 
 | Age | City | What fills their day | Who's at home | Veg / non-veg | Was yesterday normal? |
 |---|---|---|---|---|---|
-|  |  |  |  |  |  |
+| 45 | surat | going to the temple and then the factory where he works as the suporvisor | his mother, wife, and 2 sons | veg | yes |
 
 **What the doctor told them to change, and roughly when:**
 
 | # | Time | What they had | Where | Bought / made / given | With anyone? | Nearly had instead? |
 |---|---|---|---|---|---|---|
-| 1 |  |  |  |  |  |  |
-| 2 |  |  |  |  |  |  |
-| 3 |  |  |  |  |  |  |
-| 4 |  |  |  |  |  |  |
-| 5 |  |  |  |  |  |  |
-| 6 |  |  |  |  |  |  |
-| 7 |  |  |  |  |  |  |
-| 8 |  |  |  |  |  |  |
-| 9 |  |  |  |  |  |  |
-| 10 |  |  |  |  |  |  |
-| 11 |  |  |  |  |  |  |
-| 12 |  |  |  |  |  |  |
-| 13 |  |  |  |  |  |  |
-| 14 |  |  |  |  |  |  |
+| 1 | 8AM | tea with khaari and biscuts, along with paratha and medicines after | at home with family | made by wife | with sons | nearly had samosas instead of paratha |
+| 2 | 12AM | khichdi and packet of khakra and jalebi packed by wife | at factory | given by wife | with factory workers | this is the only option |
+| 3 | 5PM | chai with fafda | at chai tapri outside factory | bouught | with other factory supervisors | nearly had patra or khandvi instead |
+| 4 | 8PM | khaman dhokla, pakoda, kadhi and rice and maedicines after | at home | made by wife | with family | average indian meal |
+
 
 **What they stopped eating, and what took its place:**
 
