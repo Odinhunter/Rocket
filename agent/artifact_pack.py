@@ -17,25 +17,47 @@ constant. load_pack(category) imports it.
 from __future__ import annotations
 
 import importlib
-from dataclasses import asdict, dataclass, field
+import re
+from dataclasses import asdict, dataclass, field, replace
 
 from agent.vectors import ChaosDistribution
+
+# Tokeniser for `cut_to_moments`. Keeps accented and possessive brand tokens
+# together — Nescafé, Haldiram's, Lay's — so they match their price anchors.
+_WORD_RE = re.compile(r"[A-Za-z0-9&'éÉ]+")
 
 
 @dataclass
 class BrandLandscapeEntry:
-    """One brand in the category and where it sits."""
+    """One brand in the category and where it sits.
+
+    ⭐⭐ `moments` IS THE SUBSCRIPTION LIST — added 2026-08-21 for the F&B demand
+    map. A brand does not belong to a category any more; it competes in MOMENTS,
+    and Parle-G, a protein bar and a cup of Bru all meet at the afternoon dip
+    because that is where they meet in life. Values are `FNB_MAP` keys.
+
+    ⚠ DELIBERATELY LOWERCASE snake_case, and that is load-bearing, not cosmetic.
+    `render._vocab_tokens` builds the invented-brand guardrail from every
+    TitleCase token in this object, so anything TitleCase added here WIDENS the
+    set of brand names a persona may invent without being caught. Moment keys
+    add none.
+
+    ⚠ Empty by default and `from_dict` tolerates its absence, so every pack
+    written before the map still loads unchanged.
+    """
 
     name: str
     tier: str  # e.g. "mass" / "mass-premium" / "premium" / "d2c-disruptor"
     note: str
+    moments: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict) -> "BrandLandscapeEntry":
-        return cls(name=data["name"], tier=data["tier"], note=data["note"])
+        return cls(name=data["name"], tier=data["tier"], note=data["note"],
+                   moments=list(data.get("moments", [])))
 
 
 @dataclass
@@ -203,6 +225,82 @@ class CategoryArtifactPack:
             sources=[dict(s) for s in data.get("sources", [])],
             open_questions=list(data.get("open_questions", [])),
         )
+
+
+def cut_to_moments(pack: CategoryArtifactPack,
+                   moments: list[str] | set[str]) -> CategoryArtifactPack:
+    """The world pack, narrowed to the moments actually in play.
+
+    ⭐⭐ WHY THIS EXISTS. The F&B map is built once per market and is deliberately
+    wide — all of food and beverage. But no brand ever faces the whole map: it
+    subscribes to the handful of moments it competes in, and a persona reasoning
+    about the 4pm dip has no business being handed a list of gifting hampers and
+    infant formula. The map's own proposal puts it plainly: *"a 200-brand list
+    would just become a menu."*
+
+    ⚠⚠ AND THE SHARPER REASON, WHICH IS A GUARDRAIL ONE. `render._vocab_tokens`
+    builds the invented-brand check out of every TitleCase token in the pack, so
+    a wider brand list literally makes it EASIER for a persona to name something
+    fabricated without being caught. Cutting the world to the moments in play
+    tightens that check at the same time as it shortens the prompt.
+
+    ⚠⚠ NOT WIRED INTO GENERATION, AND THAT IS DELIBERATE — 2026-08-21. Two
+    documented mechanics forbid it there:
+
+      1. `generate_audience._build` puts pack + grid + region in a CACHED prefix
+         because they "never change across batches of one generation". Cutting
+         per batch would change that prefix every batch and throw the cache away.
+      2. `_cells()` walks moment-major on purpose, so a batch deliberately spans
+         several moments; one-moment batches are the near-duplicate anti-pattern
+         its own docstring warns about.
+
+    ⭐ So the shape that shipped is: **subscribed per moment, whole world at
+    generation, cut available at read time** — where a panel IS assembled for one
+    ad and one set of moments. Pure function, no mutation, `replace`-based like
+    `packs/health_nutrition_snacking_bev.py`, so "only the brand list differs" is
+    true by construction rather than by a claim about a copy.
+
+    ⚠ FAIL-OPEN ON UNSUBSCRIBED BRANDS. A brand with an empty `moments` list is
+    KEPT, never dropped — silently deleting a brand because its author forgot to
+    subscribe it would shrink the world invisibly, which is exactly the class of
+    bug that produced the SuperYou failure. A pack that intends to be cut should
+    assert its own brands are all subscribed; `tests/test_fnb_world.py` does.
+    """
+    wanted = set(moments)
+    kept = [b for b in pack.brand_landscape
+            if not b.moments or (set(b.moments) & wanted)]
+    kept_names = {b.name for b in kept}
+    dropped = [b for b in pack.brand_landscape if b.name not in kept_names]
+
+    # A price anchor for a brand no longer in the world is incoherent — "₹425 for
+    # a Starbucks frappuccino" in a pack with no Starbucks invites the persona to
+    # name it anyway, and `render` would then flag a brand the pack itself
+    # suggested. Anchors naming no dropped brand survive: they are the price
+    # architecture, not brand facts.
+    #
+    # ⚠ MATCHING ON THE FULL BRAND NAME DOES NOT WORK, and a test caught it: the
+    # brand is "Starbucks India" while the anchor reads "Starbucks tall
+    # Americano", so the substring never matches. Match on TOKENS instead, and
+    # subtract the tokens of surviving brands so a shared word cannot over-drop —
+    # cutting "Amul Masti Chaas" must not also delete the "Amul Gold Tricone"
+    # anchor when the Amul brand itself survives.
+    # ⚠ Match on the brand's HEAD token, not on every token it contains. Matching
+    # every token over-drops through generic words: "Britannia Marie Gold" would
+    # take the "Amul Gold Butterscotch Tricone" anchor with it on the word "Gold".
+    # The head is the brand a price anchor is actually about.
+    def _head(name: str) -> str:
+        for w in _WORD_RE.findall(name):
+            if len(w) > 2 and w[0].isupper():
+                return w
+        return ""
+
+    def _tokens(text: str) -> set[str]:
+        return {w for w in _WORD_RE.findall(text) if len(w) > 2 and w[0].isupper()}
+
+    exclusive = {_head(b.name) for b in dropped} - {_head(b.name) for b in kept} - {""}
+    prices = [pp for pp in pack.price_points
+              if not (_tokens(pp.item) | _tokens(pp.channel)) & exclusive]
+    return replace(pack, brand_landscape=kept, price_points=prices)
 
 
 def load_pack(category: str) -> CategoryArtifactPack:

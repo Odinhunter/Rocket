@@ -584,7 +584,11 @@ FNB_MAP = {
         "chai — made at home, or ₹10-₹20 at a stall; the single most common thing "
         "in an Indian day and the default in at least four of these moments",
         "Parle-G / Britannia Marie, Good Day, 50-50 — ₹5-₹40 biscuit packs",
-        "khaari, rusk, fafda, khakra, namkeen — ₹10-₹50, regional and everyday",
+        "khaari, rusk, fafda, khakra, dhokla, pakoda, thepla, chakli, murukku — ₹10-₹50, "
+        "regional and everyday, usually bought loose by weight from a farsan shop or a "
+        "bakery with no brand and no date on it",
+        "jalebi, mithai and the local halwai's sweets — bought by weight, and the thing "
+        "a wife packs into a lunch tiffin without anybody calling it a treat",
         "canteen samosa, vada pav, aloo patty, momos — ₹10-₹40, hot and immediate",
         "Cadbury Dairy Milk, KitKat, Snickers — ₹10-₹100 impulse chocolate",
         "Lay's / Kurkure / Bingo — ₹20 chips",
@@ -1093,7 +1097,16 @@ category.\
 
 
 def _pack_brief(pack) -> str:
-    brands = "\n".join(f"  - {b.name} ({b.tier}) — {b.note}" for b in pack.brand_landscape)
+    # ⭐ `[moment moment]` is the brand's SUBSCRIPTION — which moments it actually
+    # competes in. Lowercase snake_case on purpose: `render._vocab_tokens` builds
+    # the invented-brand guardrail from TitleCase tokens, so these add none.
+    # ⚠ Packs written before the F&B map have empty `moments`, so their brief is
+    # byte-identical to the pre-2026-08-21 version. Pinned by test.
+    brands = "\n".join(
+        f"  - {b.name} ({b.tier}) — {b.note}"
+        + (f"  [{' '.join(b.moments)}]" if b.moments else "")
+        for b in pack.brand_landscape
+    )
     prices = "\n".join(f"  - {p.item}: {p.price_inr} [{p.channel}]" for p in pack.price_points)
     return (
         f"THE BRANDS THAT EXIST IN THIS MARKET (use ONLY these):\n{brands}\n\n"
