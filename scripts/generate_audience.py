@@ -297,7 +297,302 @@ SNACKING_GRID = {
     ],
 }
 
-GRIDS = {"snacking": SNACKING_GRID}
+# --------------------------------------------------------------------------
+# THE F&B DEMAND MAP — 22 moments, all of food & beverage, built once per market.
+#
+# ⭐⭐ USER DECISION 2026-08-21 (session 47): THE MAP REPLACES THE GRID. Settled
+# on the five real days in `docs/fnb_real_events.md` — on the 34 items a
+# snacking-and-nutrition grid actually claims, SNACKING_GRID placed 3 and this
+# map placed 29.
+#
+# ⚠⚠ TRANSCRIBED, NOT AUTHORED. Every `question` below is VERBATIM from the
+# published map (artifact e6332193-5226-40ac-916f-89ccb9f6cbc8), and every
+# `competes_with` starts from that card's own "instead" list. ⚠ Do not rewrite a
+# question from memory — a name-only reconstruction has already put Stock-up in
+# the wrong band once.
+#
+# ⭐⭐⭐ WHY `question` IS A FIELD AND NOT A COMMENT. The single biggest finding of
+# the five real days is that SNACKING_GRID's cells fail because they are written
+# as VIGNETTES: "the 4pm dip AT A DESK" threw out three real people's afternoon
+# chai (none of the three was at a desk); "wants something SWEET" threw out Maggi
+# at 2am; "LEAVING LATE, will not sit down" threw out four sat-down breakfasts.
+# Incidental scene-setting silently becomes an exclusion criterion.
+#   The questions are what won 29-3. If they stayed in a doc, the generator would
+# never see them and we would reproduce the defect at 176-cell scale. So the
+# question IS the definition; `moment` is examples and carries no filter.
+# See memory `cell_is_a_question_not_a_vignette`.
+#
+# ⚠ ONE DELIBERATE DEVIATION FROM THE PUBLISHED MAP, and it is the only one:
+# `at_home_tea_or_snack` replaces the published `Evening tea`, whose question was
+# "is the HOUSEHOLD SITTING DOWN TOGETHER with tea?". The published pair cut on
+# two DIFFERENT AXES — the afternoon dip on LOCATION (away from home), evening
+# tea on COMPANY — which left a hole at "at home + alone" that took 5 of one
+# housewife's 12 items. Re-cut on location alone. ✓ Verified against all 52 real
+# items: it catches those five and wrongly catches nothing.
+#
+# ⚠ OPEN, RECORDED, NOT DECIDED: dinner has two cells (at home / brought in);
+# lunch has one, though a delivered lunch behaves identically to a delivered
+# dinner. Split both or merge both — the current cut is inconsistent.
+# --------------------------------------------------------------------------
+
+FNB_MAP = {
+    "market": "Indian urban food and beverage",
+    # ⭐ `band` drives tie-break 1 (event beats clock) and tie-break 2 (clock
+    # beats habit). It is a real property of the moment, not a display grouping.
+    "occasions": [
+        # ---- THE CLOCK: triggered by time of day, and the day is a sequence ----
+        {
+            "key": "first_cup", "band": "clock",
+            "question": "Is this the first thing consumed today, before any food?",
+            "moment": "the first thing of the day, before any food",
+            "competes_with": "chai, filter coffee, instant coffee, green tea, "
+                             "hot water and lemon, or nothing until breakfast",
+            "decided_by": "habit, who else is awake, what is already in the house",
+            "channel": "the kitchen at home, the tea stall on the way out",
+        },
+        {
+            "key": "breakfast_sat_down", "band": "clock",
+            "question": "Is a morning meal being eaten at a table?",
+            "moment": "a morning meal eaten sitting down",
+            "competes_with": "poha, upma, idli, paratha, cereal, oats, bread and egg, "
+                             "last night's leftovers",
+            "decided_by": "what the household eats, who cooked, how much time there is",
+            "channel": "the home kitchen, the monthly grocery order",
+        },
+        {
+            "key": "breakfast_in_motion", "band": "clock",
+            "question": "Is morning food being eaten standing, travelling, or at a desk?",
+            "moment": "morning food taken standing, on the way, or at a desk",
+            "competes_with": "a banana, biscuit and chai at the stall, a packaged bar, "
+                             "a bought sandwich, an aloo patty, skipping it",
+            "decided_by": "one hand, no crumbs, whether it lasts until lunch",
+            "channel": "the stall outside, a station kiosk, the desk drawer",
+        },
+        {
+            "key": "mid_morning_break", "band": "clock",
+            "question": "Is this the pause at work or college before lunch?",
+            "moment": "the pause at work or college between breakfast and lunch",
+            "competes_with": "canteen chai and biscuit, a vending machine, something "
+                             "brought from home, black coffee alone, nothing at all",
+            "decided_by": "whether the break exists, who is going, what is nearby",
+            "channel": "the office pantry, the college canteen, the cart outside",
+        },
+        {
+            "key": "midday_meal", "band": "clock",
+            "question": "Is this lunch, wherever it came from?",
+            "moment": "lunch, from any source",
+            "competes_with": "tiffin from home, a canteen thali, ordered in, a food "
+                             "court, a colleague's box, a meal the employer provides",
+            "decided_by": "what was packed or provided, price, how long the break is",
+            "channel": "home tiffin, the canteen, a delivery app, the bhojanalay",
+        },
+        {
+            "key": "afternoon_dip", "band": "clock",
+            "question": "Is this the 3-6pm energy trough, away from home?",
+            # ⚠⚠ "away from home", NEVER "at a desk". The desk wording is exactly
+            # what cost SNACKING_GRID three real people: a building site, a chai
+            # tapri and a college canteen are all this moment and none is a desk.
+            "moment": "the mid-afternoon trough, somewhere that is not home",
+            "competes_with": "chai and biscuit, coffee, namkeen, chocolate, fruit, "
+                             "a samosa or vada pav, fafda, a protein bar, nothing",
+            "decided_by": "speed, what the stall or canteen sells, who else is going",
+            "channel": "the canteen, the tea stall outside, the office pantry, a cafe",
+        },
+        {
+            "key": "at_home_tea_or_snack", "band": "clock",
+            # ⚠ THE ONE DEVIATION. Published question was "is the household sitting
+            # down together with tea?" — see the header note. Cut on LOCATION so it
+            # is the true partner of `afternoon_dip` and the hole closes.
+            "question": "Is this an at-home tea or snack between lunch and dinner?",
+            "moment": "tea or something to eat at home in the afternoon, alone or with "
+                      "whoever is in",
+            "competes_with": "chai with biscuits or khaari, pakora and fried things, "
+                             "rusk, namkeen, bread and jam, instant noodles, "
+                             "leftover mithai, fruit",
+            "decided_by": "what is in the house, whether anyone else is home, habit",
+            "channel": "the kitchen, the biscuit tin, a ten-minute delivery app",
+        },
+        {
+            "key": "after_school_feed", "band": "clock",
+            "question": "Is an adult deciding what a child eats on getting home?",
+            "moment": "feeding a child as they come in from school",
+            "competes_with": "something home-made, biscuits, malted milk, fruit, "
+                             "a packaged snack the child asked for",
+            "decided_by": "what the child will actually eat, whether it counts as food",
+            "channel": "the kitchen, the household stock-up, the shop downstairs",
+        },
+        {
+            "key": "evening_out_of_home", "band": "clock",
+            "question": "Is this being bought and eaten outside, before dinner?",
+            "moment": "something bought and eaten outside in the evening",
+            "competes_with": "chaat, vada pav, momos, fresh juice, ice cream, "
+                             "cinema popcorn, a cafe order",
+            "decided_by": "who is there, what the street is selling, the mood",
+            "channel": "the street cart, the market, a cafe, the cinema counter",
+        },
+        {
+            "key": "dinner_at_home", "band": "clock",
+            "question": "Is this the main cooked evening meal?",
+            "moment": "the main cooked meal of the evening",
+            "competes_with": "roti-sabzi, rice-dal, khichdi, whatever was cooked",
+            "decided_by": "who cooks, what the household eats, what is in the fridge",
+            "channel": "the home kitchen, the weekly shop",
+        },
+        {
+            "key": "dinner_brought_in", "band": "clock",
+            "question": "Is the evening meal ordered or eaten out?",
+            # ⚠ Holds two opposite economies and the description must not pick one:
+            # a family's Friday Zomato order AND a migrant worker eating dal-chawal
+            # at a bhojanalay every night because he has no kitchen.
+            "moment": "the evening meal ordered in or eaten out — by choice or because "
+                      "there is no kitchen",
+            "competes_with": "Swiggy or Zomato, the restaurant downstairs, a bhojanalay "
+                             "or mess, takeaway on the way home, a friend's house",
+            "decided_by": "cost, whether anyone cooked, what is open, who is paying",
+            "channel": "a delivery app, the eatery on the corner, a friend's kitchen",
+        },
+        {
+            "key": "late_night", "band": "clock",
+            "question": "Is this after 10pm, unplanned, and usually alone?",
+            # ⚠⚠ NOT "wants something sweet". That wording cost SNACKING_GRID a real
+            # 2am plate of Maggi and chips.
+            "moment": "after 10pm, unplanned, usually on your own",
+            "competes_with": "instant noodles, chips, ice cream, chocolate, "
+                             "leftover mithai, an app order, nothing",
+            "decided_by": "what is in the cupboard, what will arrive in ten minutes",
+            "channel": "quick commerce, the kitchen cupboard, a late delivery app",
+        },
+        {
+            "key": "bedtime_cup", "band": "clock",
+            "question": "Is a drink being had to end the day or help someone sleep?",
+            "moment": "a drink that ends the day, for yourself or for someone else",
+            "competes_with": "malted milk, plain or haldi doodh, herbal tea, nothing",
+            "decided_by": "routine, whether it is for a child, whether it helps sleep",
+            "channel": "the kitchen, the monthly grocery order",
+        },
+        # ---- THE EVENT: triggered by the calendar or by life. Unordered. ----
+        {
+            "key": "journey", "band": "event",
+            "question": "Is a journey the reason this is being bought or packed?",
+            "moment": "a journey — packed for it, or bought because of it",
+            "competes_with": "theplas packed from home, station snacks, the airport "
+                             "counter, a highway dhaba, biscuits and namkeen for the bag",
+            "decided_by": "portability, shelf life, what the counter has, captive pricing",
+            "channel": "packed at home, the station, the airport store, a highway stop",
+        },
+        {
+            "key": "hosting", "band": "event",
+            "question": "Is food being put out because someone else is in the house?",
+            # ⚠ Written from the HOST's side. The GUEST has no cell in this map —
+            # a real gap found on the five days, recorded, not yet fixed.
+            "moment": "putting food out because someone has come over",
+            "competes_with": "namkeen, mithai, a chocolate box, cold drinks, tea service, "
+                             "something ordered in for everyone",
+            "decided_by": "what looks right in front of a guest, what is in the tin",
+            "channel": "the household stock-up, the sweet shop, a delivery app",
+        },
+        {
+            "key": "festival_and_gifting", "band": "event",
+            "question": "Is this bought for someone else, because of an occasion?",
+            "moment": "buying for someone else because the calendar says so",
+            "competes_with": "mithai boxes, dry fruit, chocolate hampers, "
+                             "corporate gift packs",
+            "decided_by": "what it says about the giver, price bracket, presentation",
+            "channel": "the sweet shop, a supermarket gifting aisle, online hampers",
+        },
+        {
+            "key": "celebration", "band": "event",
+            "question": "Is there a reason to treat — a result, a promotion, a match?",
+            "moment": "a reason to treat, alone or as a group",
+            "competes_with": "cake, chocolate, ice cream, eating out, a round for "
+                             "the office, a spread arranged by an employer",
+            "decided_by": "the size of the occasion, who is paying, what is shared",
+            "channel": "a bakery, a restaurant, a delivery app, the office pantry",
+        },
+        {
+            "key": "recovery_and_care", "band": "event",
+            "question": "Is someone unwell, pregnant, elderly or convalescing?",
+            "moment": "food for someone who is unwell, pregnant, elderly or recovering",
+            "competes_with": "khichdi, ORS, prescribed nutrition, home remedies, "
+                             "what the doctor said, plain food",
+            "decided_by": "what the doctor said, what will stay down, what is gentle",
+            "channel": "the kitchen, the pharmacy, a prescription",
+        },
+        {
+            "key": "fitness_session", "band": "event",
+            "question": "Is this immediately before or after exercise?",
+            "moment": "the window either side of exercise",
+            "competes_with": "a whey shake, eggs, a banana, an electrolyte, "
+                             "dal-chawal at home, nothing",
+            "decided_by": "protein per serving, timing, what the trainer said",
+            "channel": "the gym counter, specialist online, the gym bag",
+        },
+        # ---- THE STANDING HABIT: runs regardless of clock or calendar ----
+        {
+            "key": "daily_regimen", "band": "habit",
+            "question": "Is this taken on a schedule, whether or not anyone is hungry?",
+            # ⚠ NOT "a habit someone has DECIDED to keep". A doctor decides some of
+            # these, and that wording put a real prescription outside the cell.
+            "moment": "something taken on a schedule — chosen by them or prescribed",
+            "competes_with": "a powder, gummies, a multivitamin, a prescribed tablet, "
+                             "a high-protein drink, \"I'd rather just eat properly\"",
+            "decided_by": "routine, whether it seems to work, cost per day, "
+                          "whether a doctor said so",
+            "channel": "a subscription, specialist online, the pharmacy, the kitchen",
+        },
+        {
+            "key": "hydration", "band": "habit",
+            "question": "Is this drunk for thirst rather than as part of a moment?",
+            "moment": "drinking for thirst, not as part of anything else",
+            "competes_with": "water, buttermilk, coconut water, a cold drink, juice, "
+                             "an electrolyte, nimbu pani",
+            "decided_by": "heat, what is cold and nearby, price",
+            "channel": "the fridge, a shop counter, a street cart, the water bottle",
+        },
+        {
+            "key": "household_stock_up", "band": "habit",
+            "question": "Is this a purchase for later, by and for several people?",
+            "moment": "the weekly or monthly shop — buying for other people too",
+            "competes_with": "biscuit packs, namkeen, cereal, staples, "
+                             "whatever the children will actually eat",
+            "decided_by": "price per unit, family acceptance, what keeps",
+            "channel": "the supermarket, online grocery, the local kirana, quick commerce",
+        },
+    ],
+    # ⚠ HEADING DELIBERATELY DIFFERENT FROM SNACKING_GRID'S. Its heading reads
+    # "WHAT THEY ACTUALLY BUY MOST OF THE TIME", and the five real days showed
+    # that four of five people ate substantial food they did NOT buy — a boss, a
+    # mother, a wife, a host. One man chose 2 of his 14 items. A grid that asks
+    # only about buying cannot see most of the food.
+    "alternatives_heading": "WHAT USUALLY WINS THESE MOMENTS — nameable, real, and "
+                            "often not bought by the person who eats it:",
+    "everyday_alternatives": [
+        "chai — made at home, or ₹10-₹20 at a stall; the single most common thing "
+        "in an Indian day and the default in at least four of these moments",
+        "Parle-G / Britannia Marie, Good Day, 50-50 — ₹5-₹40 biscuit packs",
+        "khaari, rusk, fafda, khakra, namkeen — ₹10-₹50, regional and everyday",
+        "canteen samosa, vada pav, aloo patty, momos — ₹10-₹40, hot and immediate",
+        "Cadbury Dairy Milk, KitKat, Snickers — ₹10-₹100 impulse chocolate",
+        "Lay's / Kurkure / Bingo — ₹20 chips",
+        "Maggi and other instant noodles — ₹15-₹30, and the 2am default",
+        "Amul buttermilk, Frooti, Sprite, Coke, fresh lime — ₹10-₹40 cold drinks",
+        "filter coffee, instant coffee, a ₹250 cafe frappe at the other end",
+        "Amul / Kwality Walls ice cream — ₹40-₹80",
+        "a banana or an apple from the fruit cart — ₹10-₹20",
+        "home food someone else cooked or packed — a tiffin, a thali, a spread the "
+        "employer laid on; costs the eater nothing and still wins the moment",
+        "nothing at all — waiting it out until the next meal",
+    ],
+    # Unchanged from SNACKING_GRID. A stance is category-independent by design:
+    # what changes per moment is what they are skeptical OF.
+    "stances": [
+        "loyalist", "switcher", "upgrader", "aspirant", "skeptic",
+        "purist", "pragmatist", "gifter",
+    ],
+}
+
+
+GRIDS = {"snacking": SNACKING_GRID, "fnb": FNB_MAP}
 
 
 # --------------------------------------------------------------------------
@@ -798,17 +1093,56 @@ def _pack_brief(pack) -> str:
 
 
 def _grid_brief(grid: dict) -> str:
+    """Render the demand grid for the prompt.
+
+    ⚠⚠ TWO SHAPES, ONE FUNCTION, AND THE OLD SHAPE MUST NOT MOVE. `SNACKING_GRID`
+    has no `question` and no `band`, so every branch below is opt-in and its brief
+    is byte-identical to the pre-2026-08-21 version. That matters because
+    `tests/test_generation_prompt.py` reads the ASSEMBLED prompt as one artifact —
+    every audit defect it was written for lived in the seams between `_SYSTEM`,
+    the schema and this function, and each module's own tests passed throughout.
+
+    ⭐⭐ WHY THE QUESTION IS EMITTED AT ALL. Five real days (`#68`) showed every
+    `SNACKING_GRID` failure was one shape: incidental scene-setting in `moment`
+    acting as an exclusion criterion — "at a desk", "wants something sweet",
+    "leaving late". The discriminating QUESTION is what routed 29 of 34 items
+    where the grid routed 3. If it stayed in a doc the generator would never see
+    it. So when a grid carries questions, the prompt says plainly that the
+    question is the definition and the prose is only colour.
+    """
     out = [f"THE DEMAND SPACE — {grid['market']}.",
            "An occasion is a MOMENT, not a person. Each one names what the buyer would",
            "otherwise have bought. That alternative is the thing your type is deciding",
            "against, and it is usually NOT another product in this category.\n"]
+    if any(o.get("question") for o in grid["occasions"]):
+        out.append("⚠ EACH MOMENT IS DEFINED BY ITS QUESTION — the line after the key is only")
+        out.append("an example of what it often looks like. Never treat that example as a")
+        out.append("filter. A moment belongs to anyone the QUESTION is true of, wherever they")
+        out.append("are and whatever their income: the afternoon trough is a building site and")
+        out.append("a tea stall as much as an office, and a late-night plate is as often")
+        out.append("savoury as sweet.\n")
+    if any(o.get("band") for o in grid["occasions"]):
+        out.append("Moments carry a BAND. (clock) is triggered by the time of day, (event) by")
+        out.append("the calendar or by life, (habit) runs in the background regardless of")
+        out.append("either. One person holds moments from all three bands at once.\n")
     for o in grid["occasions"]:
-        out.append(f"[{o['key']}]  {o['moment']}")
+        band = f"  ({o['band']})" if o.get("band") else ""
+        out.append(f"[{o['key']}]{band}  {o['moment']}")
+        if o.get("question"):
+            out.append(f"    DEFINED BY             : {o['question']}")
         out.append(f"    instead they might buy : {o['competes_with']}")
         out.append(f"    what decides it        : {o['decided_by']}")
         out.append(f"    where                  : {o['channel']}\n")
-    out.append("WHAT THEY ACTUALLY BUY MOST OF THE TIME — nameable, real, and usually")
-    out.append("the thing that wins the occasion:")
+    # ⚠ SNACKING_GRID's heading is "WHAT THEY ACTUALLY BUY MOST OF THE TIME", and
+    # the five real days showed four of five people ate substantial food they did
+    # not buy — a boss, a mother, a wife, a host; one man chose 2 of his 14 items.
+    # A grid that asks only about BUYING cannot see most of the food. Overridable
+    # per grid rather than rewritten here, so the old grid's prompt does not move.
+    if grid.get("alternatives_heading"):
+        out.append(grid["alternatives_heading"])
+    else:
+        out.append("WHAT THEY ACTUALLY BUY MOST OF THE TIME — nameable, real, and usually")
+        out.append("the thing that wins the occasion:")
     out += [f"  - {a}" for a in grid["everyday_alternatives"]]
     return "\n".join(out)
 
