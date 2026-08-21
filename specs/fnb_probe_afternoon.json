@@ -1,0 +1,107 @@
+{
+  "demographics": [
+    {
+      "gender": "any",
+      "age_min": 25,
+      "age_max": 40,
+      "income_lpa_min": 1.5,
+      "income_lpa_max": 18.5,
+      "geography": "tier-1",
+      "occupation_hint": "",
+      "household_hint": ""
+    }
+  ],
+  "disposition_labels": [
+    "loyalist_tapri_chai_break",
+    "switcher_whatever_is_cold",
+    "upgrader_desk_afternoon_protein",
+    "aspirant_cafe_chair_afternoon",
+    "skeptic_protein_on_everything",
+    "purist_home_food_only_afternoon",
+    "pragmatist_whatever_fills_till_dinner",
+    "gifter_office_round_afternoon"
+  ],
+  "context_envelope": [
+    {
+      "label": "commute_scroll",
+      "vector": {
+        "attention_level": "low",
+        "device_posture": "commute",
+        "intent_state": "killing_time",
+        "energy_state": "drained",
+        "social_setting": "public"
+      }
+    },
+    {
+      "label": "pre_purchase_research",
+      "vector": {
+        "attention_level": "high",
+        "device_posture": "desk",
+        "intent_state": "actively_shopping",
+        "energy_state": "alert",
+        "social_setting": "alone"
+      }
+    },
+    {
+      "label": "late_night_wind_down",
+      "vector": {
+        "attention_level": "low",
+        "device_posture": "lying_down",
+        "intent_state": "killing_time",
+        "energy_state": "drained",
+        "social_setting": "alone"
+      }
+    },
+    {
+      "label": "weekend_afternoon_browse",
+      "vector": {
+        "attention_level": "medium",
+        "device_posture": "couch",
+        "intent_state": "passive_browse",
+        "energy_state": "neutral",
+        "social_setting": "alone"
+      }
+    }
+  ],
+  "chaos_distribution": {
+    "weighted": [
+      {
+        "profile": {
+          "label": "impulsive",
+          "vector": {
+            "decision_velocity": "impulsive",
+            "suggestibility": "high",
+            "consistency": "erratic",
+            "risk_tolerance": "seeking"
+          }
+        },
+        "weight": 0.25
+      },
+      {
+        "profile": {
+          "label": "moderate",
+          "vector": {
+            "decision_velocity": "moderate",
+            "suggestibility": "medium",
+            "consistency": "variable",
+            "risk_tolerance": "balanced"
+          }
+        },
+        "weight": 0.45
+      },
+      {
+        "profile": {
+          "label": "deliberate",
+          "vector": {
+            "decision_velocity": "deliberate",
+            "suggestibility": "low",
+            "consistency": "steady",
+            "risk_tolerance": "averse"
+          }
+        },
+        "weight": 0.3
+      }
+    ]
+  },
+  "panel_size": 64
+}
