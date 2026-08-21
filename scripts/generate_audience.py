@@ -298,7 +298,7 @@ SNACKING_GRID = {
 }
 
 # --------------------------------------------------------------------------
-# THE F&B DEMAND MAP — 22 moments, all of food & beverage, built once per market.
+# THE F&B DEMAND MAP — 21 moments, all of food & beverage, built once per market.
 #
 # ⭐⭐ USER DECISION 2026-08-21 (session 47): THE MAP REPLACES THE GRID. Settled
 # on the five real days in `docs/fnb_real_events.md` — on the 34 items a
@@ -330,9 +330,10 @@ SNACKING_GRID = {
 # housewife's 12 items. Re-cut on location alone. ✓ Verified against all 52 real
 # items: it catches those five and wrongly catches nothing.
 #
-# ⚠ OPEN, RECORDED, NOT DECIDED: dinner has two cells (at home / brought in);
-# lunch has one, though a delivered lunch behaves identically to a delivered
-# dinner. Split both or merge both — the current cut is inconsistent.
+# ⭐⭐ SECOND DELIBERATE DEVIATION, DECIDED BY THE USER 2026-08-21: the published
+# map's two dinner cells are MERGED into one `evening_meal`, because it split
+# dinner by provenance while leaving lunch whole. So this map is 21 moments, not
+# the published 22. Full reasoning at the cell itself.
 # --------------------------------------------------------------------------
 
 FNB_MAP = {
@@ -431,25 +432,38 @@ FNB_MAP = {
             "channel": "the street cart, the market, a cafe, the cinema counter",
         },
         {
-            "key": "dinner_at_home", "band": "clock",
-            "question": "Is this the main cooked evening meal?",
-            "moment": "the main cooked meal of the evening",
-            "competes_with": "roti-sabzi, rice-dal, khichdi, whatever was cooked",
-            "decided_by": "who cooks, what the household eats, what is in the fridge",
-            "channel": "the home kitchen, the weekly shop",
-        },
-        {
-            "key": "dinner_brought_in", "band": "clock",
-            "question": "Is the evening meal ordered or eaten out?",
-            # ⚠ Holds two opposite economies and the description must not pick one:
-            # a family's Friday Zomato order AND a migrant worker eating dal-chawal
-            # at a bhojanalay every night because he has no kitchen.
-            "moment": "the evening meal ordered in or eaten out — by choice or because "
-                      "there is no kitchen",
-            "competes_with": "Swiggy or Zomato, the restaurant downstairs, a bhojanalay "
+            # ⭐⭐ USER DECISION 2026-08-21: the two published dinner cells
+            # (`Dinner at home` / `Dinner brought in`) are MERGED into one. The
+            # published map split dinner by provenance and left lunch whole,
+            # though a delivered lunch behaves exactly like a delivered dinner —
+            # the Pune content creator's 1pm Zomato order is the case. Asked to
+            # split lunch or merge dinner, the user merged.
+            #
+            # ⭐ The question is now source-agnostic and deliberately MIRRORS
+            # `midday_meal`'s ("wherever it came from"), which is the consistency
+            # the split was failing.
+            #
+            # ⚠ WHAT THE MERGE COSTS, STATED SO IT IS NOT FORGOTTEN: provenance
+            # stops being visible in the cell. That is acceptable ONLY because
+            # WHO PROVIDED THIS needs its own axis anyway — four of five real
+            # people ate substantial food they did not buy, and no cell in either
+            # map can express it. See `docs/fnb_real_events.md` finding 4.
+            #
+            # ⚠ It also absorbs, rather than fixes, finding 11: this cell holds a
+            # family's Friday Zomato order AND a migrant worker eating dal-chawal
+            # at a bhojanalay because he has no kitchen. Necessity and indulgence
+            # in one cell. The description below must never pick one of them.
+            "key": "evening_meal", "band": "clock",
+            "question": "Is this the main evening meal, however it arrived?",
+            "moment": "the main meal of the evening — cooked at home, ordered in, or "
+                      "eaten out, by choice or because there is no kitchen",
+            "competes_with": "roti-sabzi, rice-dal, khichdi, whatever was cooked, "
+                             "Swiggy or Zomato, the restaurant downstairs, a bhojanalay "
                              "or mess, takeaway on the way home, a friend's house",
-            "decided_by": "cost, whether anyone cooked, what is open, who is paying",
-            "channel": "a delivery app, the eatery on the corner, a friend's kitchen",
+            "decided_by": "who cooks, cost, what is open, who is paying, "
+                          "whether there is a kitchen at all",
+            "channel": "the home kitchen, a delivery app, the eatery on the corner, "
+                       "a friend's kitchen",
         },
         {
             "key": "late_night", "band": "clock",

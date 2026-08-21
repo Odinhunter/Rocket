@@ -1,4 +1,4 @@
-"""The F&B demand map — 22 moments — and the seam that carries it into the prompt.
+"""The F&B demand map — 21 moments — and the seam that carries it into the prompt.
 
 ⭐⭐ WHY THIS FILE EXISTS. The user settled decision 3 on 2026-08-21: the map
 replaces the 8-occasion grid. The evidence is `docs/fnb_real_events.md` — five
@@ -48,8 +48,11 @@ REGION = Region(gender="any", age_min=25, age_max=40, tier="tier-1")
 # Shape
 # --------------------------------------------------------------------------
 
-def test_the_map_is_twenty_two_moments_in_three_bands():
-    """22 unique keys, banded 13 clock / 6 event / 3 habit.
+def test_the_map_is_twenty_one_moments_in_three_bands():
+    """21 unique keys, banded 12 clock / 6 event / 3 habit.
+
+    ⭐ 21, not the published 22: the user merged the two dinner cells on
+    2026-08-21. See `evening_meal` for why.
 
     ⚠ The band is not decoration — it drives the map's own tie-break order
     (event beats clock; clock beats habit), so a mis-banded moment routes
@@ -57,10 +60,14 @@ def test_the_map_is_twenty_two_moments_in_three_bands():
     band once, which is why the counts are pinned rather than just the total.
     """
     occ = MAP["occasions"]
-    assert len(occ) == 22
-    assert len({o["key"] for o in occ}) == 22, "duplicate moment key"
+    assert len(occ) == 21
+    assert len({o["key"] for o in occ}) == 21, "duplicate moment key"
+    keys = {o["key"] for o in occ}
+    # ⚠ The merge, pinned: neither published dinner cell may come back.
+    assert "evening_meal" in keys
+    assert not {"dinner_at_home", "dinner_brought_in"} & keys
     bands = [o["band"] for o in occ]
-    assert bands.count("clock") == 13
+    assert bands.count("clock") == 12
     assert bands.count("event") == 6
     assert bands.count("habit") == 3
     assert set(bands) == {"clock", "event", "habit"}
@@ -173,7 +180,7 @@ def test_the_map_names_beverages_in_its_competitive_sets():
               "juice", "cold drink", "electrolyte", "milk", "water")
     named = [o["key"] for o in MAP["occasions"]
              if any(d in o["competes_with"].lower() for d in drinks)]
-    assert len(named) >= 11, f"only {len(named)} of 22 moments name a drink: {named}"
+    assert len(named) >= 10, f"only {len(named)} of 21 moments name a drink: {named}"
     # The four where a drink is the whole moment must be among them.
     for key in ("first_cup", "hydration", "bedtime_cup", "afternoon_dip"):
         assert key in named, f"{key} must name a beverage in its competitive set"
@@ -228,11 +235,45 @@ def test_the_old_grids_prompt_did_not_move():
     assert brief.startswith("THE DEMAND SPACE — Indian urban snacking and nutrition.")
 
 
-def test_the_map_is_registered_and_costs_one_hundred_and_seventy_six_cells():
-    """⚠ 22 x 8 = 176 against the old 64. This is the number that sets the spend
-    (~$5-6 per region against ~$1.59), so it is pinned rather than assumed."""
+def test_the_map_is_registered_and_costs_one_hundred_and_sixty_eight_cells():
+    """⚠ 21 x 8 = 168 against the old 64. This is the number that sets the spend,
+    so it is pinned rather than assumed. ⚠⚠ Do NOT quote the old $1.59 — that was
+    the 64-cell run, which decision 3 supersedes."""
     assert GRIDS["fnb"] is FNB_MAP
-    assert len(MAP["occasions"]) * len(MAP["stances"]) == 176
+    assert len(MAP["occasions"]) * len(MAP["stances"]) == 168
     # The stance grammar is deliberately unchanged — a stance is category- and
     # moment-independent by design. See `docs/stance_vs_modifier_test.md`.
     assert MAP["stances"] == SNACKING_GRID["stances"]
+
+
+def test_the_evening_meal_question_is_source_agnostic_like_lunch():
+    """⭐⭐ THE POINT OF THE MERGE (user decision, 2026-08-21).
+
+    The published map split dinner by provenance — cooked at home vs ordered in —
+    while leaving lunch whole, though a delivered lunch behaves exactly like a
+    delivered dinner. Asked to split lunch or merge dinner, the user merged. So
+    the evening question must mirror the midday one: it asks WHETHER this is the
+    meal, never WHERE it came from.
+
+    ⚠ Mutation-proved by restoring "Is this the main COOKED evening meal?", which
+    fails here on `cooked`.
+    """
+    evening = _question("evening_meal").lower()
+    midday = _question("midday_meal").lower()
+    for source_word in ("cooked", "ordered", "at home", "brought in", "delivered"):
+        assert source_word not in evening, (
+            f"the evening meal question narrows on {source_word!r}: {evening!r}"
+        )
+    # Both meals ask the same shape of question.
+    assert "however it arrived" in evening
+    assert "wherever it came from" in midday
+
+
+def test_the_merge_did_not_quietly_drop_either_dinners_competition():
+    """⚠ A merge that loses half its competitive set is a deletion wearing a
+    merge's clothes. Both economies must survive in one cell: a family's Zomato
+    order AND a migrant worker's bhojanalay."""
+    competes = next(o["competes_with"] for o in MAP["occasions"]
+                    if o["key"] == "evening_meal").lower()
+    for survivor in ("roti-sabzi", "rice-dal", "zomato", "bhojanalay", "takeaway"):
+        assert survivor in competes, f"{survivor!r} lost in the merge"

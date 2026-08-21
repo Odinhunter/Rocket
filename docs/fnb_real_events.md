@@ -675,3 +675,42 @@ dinner** — split both or merge both.
 | **2** | *was there a canteen* | ⭐ Answered by the rows: **no canteen, the boss provides** |
 
 ⭐ **All six are factual, on-sheet questions and none of them requires a new interview design.**
+
+---
+
+# ⚠ ADDENDUM 2026-08-21 — THE MAP IS NOW 21 MOMENTS, AND WHAT THAT DOES TO EVERYTHING ABOVE
+
+**Everything above was routed against the PUBLISHED 22-moment map and is left exactly as it was.**
+The user then settled decision 3 (*the map replaces the grid*, built as `#69`) and decision 4's
+open question, making **two** changes. ⭐ **Recorded here rather than applied upward, so the
+routing record keeps its provenance.**
+
+| change | why | effect on the numbers above |
+|---|---|---|
+| `Evening tea` → **`at_home_tea_or_snack`**, re-cut on **location** | Finding 3 — two neighbours cutting on different axes left a hole at *at home + alone* | ⭐⭐ **The five unplaceable items (3f-3j) NOW ROUTE.** So against the shipped map it is **52 of 52**, and the *"5 placed by neither"* headline is a fact about the **published** map, not the built one |
+| ⭐ `Dinner at home` + `Dinner brought in` → **`evening_meal`**, one source-agnostic cell (**user's call**) | The published map split dinner by provenance but left lunch whole, though 6a is a delivered lunch behaving exactly like a delivered dinner | **No routing changes.** Nobody in the five days occupied both cells, so **every per-person moment count is unchanged (4·4·4·4·5)** |
+
+### ⭐ THE COUNTS RESTATED AGAINST THE SHIPPED 21-MOMENT MAP
+
+| | published 22 | **shipped 21** |
+|---|---|---|
+| all 52 items | 47 | ⭐ **52** |
+| the 34 in-scope items *(grid places 3)* | 29 | ⭐ **34** |
+| items placed by neither | 5 | **0** |
+| ⚠ **moments never observed** | 11 of 22 | **11 of 21** — ⭐ *unchanged, and `11 − 7 unobservable = 4 that count` still holds* |
+| busiest cells | Midday meal (6 of 6) | **Midday meal AND evening meal, 6 of 6 each** |
+
+⚠⚠ **DO NOT QUOTE "52 of 52" AS IF IT WERE A TEST RESULT.** The re-cut was designed *from* these
+52 items, so the map now scores full marks on **its own training data**. ⭐ **The honest headline
+stays `3 vs 29`** — that comparison was made before either change and is the only one where the
+map had not seen the answers. **The next five days are the first real test of the 21.**
+
+### ⚠ WHAT THE MERGE ABSORBS RATHER THAN FIXES
+
+**Finding 11 said `Dinner brought in` held two opposite economies** — a family's Friday Zomato
+order and a migrant labourer eating dal-chawal at a bhojanalay every night because he has no
+kitchen. ⭐ **The merge does not resolve that; it makes it explicit and deliberate.** Both halves
+are pinned in the cell's competitive set by test, so neither can quietly disappear.
+⚠ **And provenance is no longer visible in the cell at all** — acceptable *only* because
+**finding 4 already says WHO PROVIDED THIS needs its own axis**, which belongs to neither map.
+⭐ The merge did not create that debt; it just stops pretending one cell was paying it.
