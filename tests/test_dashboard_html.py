@@ -621,7 +621,16 @@ def test_breadth_chip_reaches_both_problem_surfaces_with_its_denominator() -> No
 
 def test_provisional_dispositions_and_engine_read_reach_methodology() -> None:
     html = _html(_report(provisional_dispositions=["skeptic_new_thing"]))
-    assert "PROVISIONAL DISPOSITIONS" in html and "skeptic new thing" in html
+    # ⚠⚠ WAS `and "skeptic new thing" in html` — THE FOURTH TEST FOUND
+    # RATIFYING THIS DEFECT (after :1204 here, test_cycle_position and
+    # test_server_runs:386). It REQUIRED the humanised slug on the customer's
+    # methodology block, so the fix broke the suite and looked like a
+    # regression. The row still has to be there; it now reads as a buyer type.
+    assert "PROVISIONAL DISPOSITIONS" in html
+    assert "skeptic · new thing" in html
+    assert "skeptic new thing" not in html, (
+        "the humanised slug is back on the methodology block"
+    )
     assert "MIXED" in html and "76/100" in html
     print("  provisional dispositions + engine read reach methodology ✓")
 

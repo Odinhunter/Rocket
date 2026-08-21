@@ -23,6 +23,8 @@ pydantic. validate() raises ValueError on a bad value.
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import InitVar, asdict, dataclass, field
 from typing import Literal
 
@@ -326,6 +328,41 @@ def stance_of(disposition_label: str) -> str:
 def unknown_stance_labels(labels: list[str]) -> list[str]:
     """Labels whose prefix is not a known stance — the offline guard's input."""
     return sorted({lab for lab in labels if not stance_of(lab)})
+
+
+_IDENTIFIER_IN_PROSE = re.compile(
+    r"\b(?:" + "|".join(sorted(KNOWN_STANCES)) + r")_[a-z0-9_]+\b"
+)
+
+
+def readable_identifiers(text: str, display_names: dict[str, str] | None = None) -> str:
+    """Rewrite any `<stance>_<anchor>` identifier the MODEL wrote into prose.
+
+    ⚠⚠ A DIFFERENT MECHANISM FROM THE REST OF THIS CLASS, AND A WORSE ONE.
+    Everywhere else the identifier leaked because OUR template interpolated it.
+    Here the L2/L4 models were handed raw labels and wrote them into their own
+    sentences, so the customer's report reads:
+
+        PREVALENCE  Widespread across aspirant_cafe_culture and
+                    loyalist_starbucks_regular in every context
+
+    Measured 2026-08-22 across `runs/`: **47 runs**, in `prevalence`,
+    `bet_ranking`, `why`, `friction_summary`, `pain`, `change` and `quote` —
+    including the $3.85 probe from the same day, whose rendered page I had
+    already read and called clean. I checked the identifiers I knew about.
+
+    ⭐ Applied at the RENDER seam rather than in the prompt, deliberately:
+    it is deterministic, testable offline, and it repairs all 47 runs that are
+    already on disk. The prompt-side fix (hand L4 display names, never labels)
+    is the deeper one and needs a paid run to verify — see the report.
+
+    ⚠ It matches only a KNOWN STANCE followed by an underscore, so the ordinary
+    word "loyalist" in a sentence is untouched; `loyalist_tapri_chai` is not.
+    """
+    names = display_names or {}
+    return _IDENTIFIER_IN_PROSE.sub(
+        lambda m: disposition_display(m.group(0), names.get(m.group(0), "")), text
+    )
 
 
 def disposition_display(label: str, display_name: str = "") -> str:

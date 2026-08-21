@@ -37,7 +37,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from agent.artifact_pack import market_name_for            # noqa: E402
 from agent.vectors import (                                # noqa: E402
-    KNOWN_STANCES, disposition_display, stance_of,
+    KNOWN_STANCES, disposition_display, readable_identifiers, stance_of,
 )
 
 # Reuse the rendering fixtures rather than build a second, drifting copy.
@@ -151,3 +151,56 @@ def test_no_category_slug_reaches_the_rendered_page() -> None:
     assert market_name_for(slug) in text, (
         "the prose market name must be there in its place"
     )
+
+
+# --------------------------------------------------------------------------
+# The identifiers the MODEL wrote, which is a different leak from ours
+# --------------------------------------------------------------------------
+
+def test_a_label_the_model_wrote_into_its_own_prose_is_rewritten() -> None:
+    """⚠⚠ A DIFFERENT MECHANISM AND A WORSE ONE. Everywhere else in this file
+    the identifier leaked because OUR template interpolated it. Here L2/L4 were
+    handed raw labels and wrote them into their own sentences, so a real
+    customer report reads:
+
+        PREVALENCE  Widespread across aspirant_cafe_culture and
+                    loyalist_starbucks_regular in every context
+
+    Measured across `runs/` on 2026-08-22: **47 runs**, in prevalence,
+    bet_ranking, why, friction_summary, pain, change and quote — including the
+    $3.85 probe from that morning, whose page I had already read and called
+    clean. I checked the identifiers I knew about, which is the failure this
+    whole file is named for."""
+    out = readable_identifiers(
+        "Widespread across aspirant_cafe_culture and loyalist_starbucks_regular"
+    )
+    assert "aspirant_cafe_culture" not in out
+    assert "aspirant · cafe culture" in out and "loyalist · starbucks regular" in out
+
+
+def test_an_ordinary_stance_word_in_a_sentence_is_left_alone() -> None:
+    """⭐ THE PRECISION HALF. The rewrite requires a known stance FOLLOWED BY AN
+    UNDERSCORE, so model prose that simply uses the word — "disqualifies the
+    highest-value within-target loyalist at comprehension" — is untouched. A
+    rewrite that mangled English prose would be a worse defect than the one it
+    fixes."""
+    for prose in ("the loyalist is not touched, nor is a loyalist customer",
+                  "disqualifies the highest-value within-target loyalist",
+                  "an aspirant who trades up"):
+        assert readable_identifiers(prose) == prose
+
+
+def test_the_escape_funnel_is_where_it_happens() -> None:
+    """⭐⭐ THE CLASS FIX, AND WHY IT IS NOT ANOTHER CALL SITE. Every previous
+    fix in this class went to one site each, which is why the defect kept
+    reappearing wherever nobody had a failing test. `_e()` is documented as the
+    funnel every model-generated string passes through, and all of its call
+    sites are visible text — never an id, class or data- attribute — so one
+    substitution there covers every rendered surface, including ones added
+    after this was written."""
+    from agent.dashboard_html import _e
+
+    assert _e("across skeptic_lapsed_protein today") == \
+        "across skeptic · lapsed protein today"
+    # still escapes, which is its original job
+    assert _e("<b>&</b>") == "&lt;b&gt;&amp;&lt;/b&gt;"

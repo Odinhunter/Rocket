@@ -87,7 +87,7 @@ import html
 from pathlib import Path
 
 from agent.artifact_pack import market_name_for
-from agent.vectors import disposition_display
+from agent.vectors import disposition_display, readable_identifiers
 from agent.read_model import (
     FUNNEL_STAGE_ORDER, HEADLINE_CAVEAT, OUT_OF_TARGET_ONLY_NOTE,
     SEGMENT_CAVEAT, VERDICT_CAVEAT, Glance, ReadModel, client_pain_text,
@@ -203,8 +203,26 @@ _MAX_CYCLE_DOTS = 40
 
 def _e(text: object) -> str:
     """Escape for HTML text. Everything model-generated goes through here —
-    an LLM-authored pain or quote can contain < > &."""
-    return html.escape(str(text if text is not None else ""), quote=True)
+    an LLM-authored pain or quote can contain < > &.
+
+    ⭐⭐ AND SINCE EVERYTHING MODEL-GENERATED GOES THROUGH HERE, THIS IS ALSO
+    WHERE ENGINE IDENTIFIERS STOP. The L2/L4 models are handed raw disposition
+    labels and write them into their own prose — measured across 47 runs on
+    2026-08-22, in `prevalence`, `bet_ranking`, `why`, `pain`, `change` and
+    `quote`. The customer's methodology block read "Widespread across
+    aspirant_cafe_culture and loyalist_starbucks_regular in every context".
+
+    ⚠ THE PREVIOUS FIXES IN THIS CLASS ALL WENT TO ONE CALL SITE EACH, which is
+    why the defect kept reappearing on a surface nobody had a failing test for.
+    All 64 `_e()` call sites are visible text — spans and divs, never an id,
+    class or data- attribute — so one substitution here covers every rendered
+    surface at once, including ones added later.
+
+    ⚠ Only a KNOWN STANCE followed by an underscore is rewritten, so the
+    ordinary word "loyalist" in a sentence is untouched."""
+    return html.escape(
+        readable_identifiers(str(text if text is not None else "")), quote=True
+    )
 
 
 def _data_uri(path: Path) -> str | None:
@@ -1343,8 +1361,14 @@ def _how_it_was_made(m: ReadModel) -> str:
     # collapsed block — which is the duplication this change exists to remove,
     # reproduced in miniature.
     if m.report.provisional_dispositions:
+        # ⚠⚠ WAS humanize(d) — i.e. label.replace("_", " "), the exact defect,
+        # on the customer's own methodology block. It survived #81 and survived
+        # my "render the page and read it" pass, because the run I rendered has
+        # no provisional dispositions so the branch never executed. One real run
+        # does: the Starbucks read shows three of them.
+        # ⭐ A surface you cannot see firing is not a surface you have checked.
         rows.append(("PROVISIONAL DISPOSITIONS",
-                     ", ".join(humanize(d)
+                     ", ".join(disposition_display(d)
                                for d in m.report.provisional_dispositions)))
     if m.funnel_note:
         rows.append(("PROJECTED FUNNEL", m.funnel_note))
