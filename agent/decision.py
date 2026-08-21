@@ -175,8 +175,40 @@ _SCALE_BLOCKING_FLAGS = frozenset({
 })
 
 
+# ⚠⚠ THE `<stance>_<anchor>` LABEL CONVENTION IS LOAD-BEARING RUNTIME LOGIC, NOT
+# a naming style. `stance_of` below is the ONLY place a stance is recovered, and
+# two decisions depend on it: which personas form the retain frame, and which
+# may be crowned RETARGET champion. A label that leads with anything else parses
+# to an unknown stance and drops out of BOTH — silently, failing closed.
+# ⭐ It is not currently possible to recover the stance any other way:
+# `NamedDisposition` carries no stance field, though the generator emits one per
+# type. Until it does, this set IS the contract, and
+# `tests/test_stance_labels_are_parseable.py` asserts every shipped label meets
+# it — offline, so a bad label is caught before it can silently disappear.
+_ACQUISITION_STANCES = frozenset({
+    "loyalist", "switcher", "upgrader", "aspirant",
+    "skeptic", "purist", "pragmatist", "gifter",
+})
+KNOWN_STANCES = _ACQUISITION_STANCES | _EXISTING_CUSTOMER_STANCES
+
+
+def stance_of(disposition_label: str) -> str:
+    """The stance a label encodes, or "" when it encodes none we know.
+
+    ⚠ Returning "" rather than raising is deliberate — a live run must not die
+    on one odd label — but "" is a DATA BUG, not a valid stance. The offline
+    test is what stops it reaching a run."""
+    head = disposition_label.split("_", 1)[0]
+    return head if head in KNOWN_STANCES else ""
+
+
+def unknown_stance_labels(labels: list[str]) -> list[str]:
+    """Labels whose prefix is not a known stance — the offline guard's input."""
+    return sorted({lab for lab in labels if not stance_of(lab)})
+
+
 def _is_existing_customer(disposition_label: str) -> bool:
-    return disposition_label.split("_", 1)[0] in _EXISTING_CUSTOMER_STANCES
+    return stance_of(disposition_label) in _EXISTING_CUSTOMER_STANCES
 
 
 def _existing_customer_labels(transcripts: list[AgentTranscript]) -> list[str]:
