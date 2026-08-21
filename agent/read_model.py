@@ -39,6 +39,7 @@ from pathlib import Path
 from agent.grounding import attribute_quotes_to_agents
 from agent.purpose import resolve_purpose
 from agent.schema import Report
+from agent.vectors import disposition_display
 
 # ---- Shared presentation vocabulary -------------------------------------
 # Imported by batch_run.py (terminal) and agent/dashboard_html.py (client HTML).
@@ -289,7 +290,7 @@ def headline_metric_line(d) -> str:
     tail = (f"  —  {d.target_action_num} of {d.target_action_denom}"
             if d.target_action_denom else "")
     if preset.name == "direct_sell":
-        who = (humanize(", ".join(d.within_dispositions))
+        who = (", ".join(disposition_display(x) for x in d.within_dispositions)
                if d.within_dispositions else "your target")
         return f"  {rate} of your target ({who}) would buy{tail}."
     if preset.name == "cold_hook":
@@ -498,10 +499,15 @@ class ConsumerTypeResponse:
     within_target: bool
     glance: Glance = field(default_factory=Glance)
     next_steps: dict[str, int] = field(default_factory=dict)
+    # ⭐ The customer-facing name authored by the generator, when the library
+    # carries one. Empty for every library authored before 2026-08-22, in which
+    # case `disposition_display` renders the label as a structured identifier
+    # rather than as fake English.
+    display_name: str = ""
 
     @property
     def label(self) -> str:
-        return humanize(self.disposition)
+        return disposition_display(self.disposition, self.display_name)
 
     @property
     def n(self) -> int:
@@ -638,8 +644,33 @@ class PanelResponse:
         )
 
 
+def display_names_from_panel(run_dir: Path) -> dict[str, str]:
+    """`{disposition_label: display_name}` for this run, read from panel.json.
+
+    ⭐ This is what makes `NamedDisposition.display_name` a LIVE field rather
+    than a placeholder: the panel snapshot already carries the whole disposition
+    object per agent, so an authored customer-facing name reaches the read with
+    no new plumbing and no migration. Libraries authored before 2026-08-22 carry
+    none and simply yield {}, which `disposition_display` handles by rendering
+    the label as a structured identifier.
+
+    ⚠ Never raises — a read of an older or partial run must still render."""
+    try:
+        agents = json.loads((run_dir / "panel.json").read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    out: dict[str, str] = {}
+    for a in agents if isinstance(agents, list) else []:
+        disp = a.get("disposition") or {}
+        name = (disp.get("display_name") or "").strip()
+        if name and disp.get("label"):
+            out[disp["label"]] = name
+    return out
+
+
 def build_panel_response(
-    segment_distributions: dict, within_dispositions: list[str]
+    segment_distributions: dict, within_dispositions: list[str],
+    display_names: dict[str, str] | None = None,
 ) -> PanelResponse:
     """Roll the L3 segment distributions up to one row per consumer type.
 
@@ -649,13 +680,15 @@ def build_panel_response(
     so the types that actually did something lead their group.
     """
     wanted = set(within_dispositions)
+    names = display_names or {}
     by: dict[str, ConsumerTypeResponse] = {}
     for seg_key, dist in (segment_distributions or {}).items():
         disp = _disposition_of_segment(seg_key)
         row = by.get(disp)
         if row is None:
             row = by[disp] = ConsumerTypeResponse(
-                disposition=disp, within_target=disp in wanted
+                disposition=disp, within_target=disp in wanted,
+                display_name=names.get(disp, ""),
             )
         for action, k in ((dist or {}).get("counts", {}) or {}).items():
             row.glance.add(str(action), int(k))
@@ -892,7 +925,7 @@ class ReadModel:
 
     @property
     def within_label(self) -> str:
-        return (humanize(", ".join(self.within_dispositions))
+        return (", ".join(disposition_display(x) for x in self.within_dispositions)
                 if self.within_dispositions else "your target")
 
     @property
@@ -1229,7 +1262,7 @@ def build_read_model(run_dir: str | Path) -> ReadModel:
             rate = (f"{d.champion_action_rate:.0%}"
                     if d.champion_action_rate is not None else "a higher rate")
             model.champion_line = (
-                f"But the {humanize(d.champion_disposition)} — whom you are NOT "
+                f"But the {disposition_display(d.champion_disposition)} — whom you are NOT "
                 f"targeting — acts at {rate}. Right ad, wrong person."
             )
         elif d.decision in ("ITERATE", "REBUILD") and preset.audience_frame == "narrow":
@@ -1253,6 +1286,8 @@ def build_read_model(run_dir: str | Path) -> ReadModel:
         dists = l3.get("segment_behavioral_distributions", {}) or {}
         if model.within_dispositions:
             model.glance = within_target_glance(dists, model.within_dispositions)
-        model.panel = build_panel_response(dists, model.within_dispositions)
+        model.panel = build_panel_response(
+            dists, model.within_dispositions, display_names_from_panel(run_dir)
+        )
 
     return model

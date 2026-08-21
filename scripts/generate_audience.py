@@ -651,6 +651,18 @@ def _tool(grid: dict) -> dict:
                                 "description": "<stance>_<2-3 word anchor key>, snake_case, "
                                                "e.g. skeptic_lapsed_protein. No brand names.",
                             },
+                            "display_name": {
+                                "type": "string",
+                                "description": "WHAT A MARKETER READS for this buyer "
+                                               "type, on a screen they pay for. 3-7 "
+                                               "ordinary words naming the PERSON, not "
+                                               "the stance: 'Desk worker who traded up "
+                                               "from biscuits', 'Buys the office round "
+                                               "at four'. ⚠ Never the label with its "
+                                               "underscores removed, never a stance word "
+                                               "on its own, no brand names. Sentence "
+                                               "case, no trailing full stop.",
+                            },
                             "occasion": {
                                 "type": "string",
                                 "enum": [o["key"] for o in grid["occasions"]],
@@ -912,7 +924,8 @@ def _tool(grid: dict) -> dict:
                                 },
                             },
                         },
-                        "required": ["label", "occasion", "stance", "l1_context",
+                        "required": ["label", "display_name", "occasion", "stance",
+                                     "l1_context",
                                      "l2_category", "l3_knowledge", "l4_stance",
                                      "l5_behavior", "bundles",
                                      *sorted(_VALID_DISPOSITION)],
@@ -1315,6 +1328,7 @@ def _to_disposition(t: dict, region: Region) -> NamedDisposition:
     )
     return NamedDisposition(
         label=t["label"],
+        display_name=t.get("display_name", ""),
         vector=DispositionVector(**{d: t[d] for d in _VALID_DISPOSITION}),
         anchor=anchor,
         notes=notes_for(t["occasion"], t["stance"], region.key),

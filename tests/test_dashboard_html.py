@@ -1081,7 +1081,15 @@ def test_panel_table_shows_out_of_target_types_the_headline_hides() -> None:
     responded'. Out-of-target rows, their counts and their next steps must all
     reach the page."""
     html = _panel_html(["enthusiast_macros_lifter"], _PANEL_DISTS)
-    assert "enthusiast macros lifter" in html and "skeptic lapsed protein" in html
+    # ⚠ These used to assert "enthusiast macros lifter" — the raw label with its
+    # underscores swapped for spaces, i.e. engine vocabulary wearing the grammar
+    # of English. A buyer type is now rendered as `stance · anchor`, which reads
+    # as the compound identifier it actually is. See
+    # agent/vectors.disposition_display.
+    assert "enthusiast · macros lifter" in html
+    assert "skeptic · lapsed protein" in html
+    assert "enthusiast macros lifter" not in html, \
+        "the bare humanised slug must not come back"
     assert "TARGET" in html, "the in-target row must be marked"
     assert "3 would mention it to someone" in html, \
         "an out-of-target next step must reach the page — it is word of mouth"
@@ -1201,7 +1209,13 @@ def test_retarget_champion_line_renders_and_handles_null_rate() -> None:
                   champion_action_rate=None)
     html = _html(_report(d))
     assert "Right ad, wrong person" in html
-    assert "switcher results chaser" in html
+    # ⚠⚠ THIS ASSERTION USED TO RATIFY THE DEFECT. It pinned
+    # "switcher results chaser" — a raw disposition label, humanised, sitting as
+    # the grammatical SUBJECT of a sentence a paying customer reads. It was the
+    # last test in the suite still asserting engine vocabulary as correct
+    # customer-facing output, and it made fixing the bug look like a regression.
+    assert "switcher · results chaser" in html
+    assert "switcher results chaser" not in html
     assert "None" not in html.split("Right ad, wrong person")[1][:200]
     print("  RETARGET champion line renders, null rate handled ✓")
 

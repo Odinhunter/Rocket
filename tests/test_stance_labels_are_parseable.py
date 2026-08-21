@@ -25,8 +25,9 @@ import pytest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))
 
-from agent.decision import (                                     # noqa: E402
-    KNOWN_STANCES, _is_existing_customer, stance_of, unknown_stance_labels,
+from agent.decision import _is_existing_customer                  # noqa: E402
+from agent.vectors import (                                      # noqa: E402
+    ACQUISITION_STANCES, KNOWN_STANCES, stance_of, unknown_stance_labels,
 )
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -90,3 +91,63 @@ def test_stance_of_rejects_rather_than_guesses() -> None:
 @pytest.mark.parametrize("stance", sorted(KNOWN_STANCES))
 def test_each_known_stance_round_trips(stance: str) -> None:
     assert stance_of(f"{stance}_some_anchor_here") == stance
+
+
+# --------------------------------------------------------------------------
+# The gap this file originally had
+# --------------------------------------------------------------------------
+
+# ⚠⚠ ONE REAL VIOLATION, INSTALLED AND ACCEPTED. `doctor_triggered_vitamin`
+# (health_wellness_demo) puts a TRIGGER in the stance slot. It is listed here
+# rather than renamed because renaming a label in an installed library moves the
+# panel version and breaks any saved audience naming it — a bigger risk than the
+# violation. It parses to no stance, so it is simply never treated as an existing
+# customer, which happens to be correct for it.
+# ⭐ The point of naming it: a NEW violation must fail, and this one must not
+# quietly license others.
+KNOWN_CONVENTION_VIOLATIONS = {"doctor_triggered_vitamin"}
+
+
+def _installed_library_labels() -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for path in sorted(glob.glob(str(ROOT / "runs" / "*" / "*" / "entities" / "library.json"))):
+        try:
+            data = json.loads(pathlib.Path(path).read_text())
+        except (json.JSONDecodeError, OSError):
+            continue
+        labels = [d["label"] for d in data.get("dispositions", []) if "label" in d]
+        if labels:
+            out[str(pathlib.Path(path).parent.parent.name)] = labels
+    return out
+
+
+def test_every_installed_library_label_parses_too() -> None:
+    """⚠⚠ THE GAP THE FIRST DRAFT OF THIS FILE HAD, AND IT HID A REAL DEFECT.
+
+    It checked only `generated_audience*.json` and passed — while FIVE installed
+    dispositions across three brand libraries used `enthusiast`, a stance the
+    canonical vocabulary in `docs/disposition_protocol_v2.md` §12 lists and the
+    first draft of `KNOWN_STANCES` had omitted. They parsed to nothing, silently.
+
+    ⭐ A guard that checks the easy half of the data is a guard that reports
+    success it has not earned."""
+    installed = _installed_library_labels()
+    assert installed, "no installed libraries found — this guard would be vacuous"
+    bad: dict[str, list[str]] = {}
+    for brand, labels in installed.items():
+        unknown = [x for x in unknown_stance_labels(labels)
+                   if x not in KNOWN_CONVENTION_VIOLATIONS]
+        if unknown:
+            bad[brand] = unknown
+    assert not bad, f"labels that parse to no stance: {bad}"
+
+
+def test_the_vocabulary_matches_the_documented_nine() -> None:
+    """⭐ `docs/disposition_protocol_v2.md` §12 names nine stances and closes with
+    *"No code validation enforces this — convention is documentation-only through
+    v1 launch."* This IS that validation, and it is why the file exists."""
+    assert ACQUISITION_STANCES == {
+        "loyalist", "switcher", "upgrader", "aspirant", "skeptic",
+        "purist", "enthusiast", "pragmatist", "gifter",
+    }, "drifted from docs/disposition_protocol_v2.md §12"
+    assert len(ACQUISITION_STANCES) == 9

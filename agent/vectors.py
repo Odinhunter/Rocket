@@ -272,6 +272,84 @@ class DispositionVector:
         return cls(**{dim: data[dim] for dim in _VALID_DISPOSITION})
 
 
+# --------------------------------------------------------------------------
+# Stance vocabulary and customer-facing naming.
+#
+# ⚠⚠ A DISPOSITION LABEL IS `<stance>_<anchor_key>` AND THAT IS RUNTIME LOGIC,
+# not a naming style. `stance_of` is the ONLY place a stance is recovered, and
+# two decisions depend on it (which personas form the retain frame; which may be
+# crowned RETARGET champion). It lives here, in the lowest layer, because both
+# `decision.py` and `read_model.py` need it and duplicating the vocabulary would
+# let the two drift apart silently.
+# --------------------------------------------------------------------------
+
+# ⚠⚠ THE CANONICAL NINE, from `docs/disposition_protocol_v2.md` §12. Whose last
+# line reads: "No code validation enforces this — convention is
+# documentation-only through v1 launch." That sentence is why this constant now
+# exists: a documented convention with no enforcement is a convention that drifts.
+# ⭐ A first draft of this list omitted `enthusiast` and silently unparsed FIVE
+# installed dispositions across three brand libraries.
+ACQUISITION_STANCES = frozenset({
+    "loyalist", "switcher", "upgrader", "aspirant", "skeptic",
+    "purist", "enthusiast", "pragmatist", "gifter",
+})
+# The v2.4 retain extension — NOT in the canonical nine, added when retain/
+# win-back scoring needed an existing-customer frame (`docs/v2_4` §4.5).
+EXISTING_CUSTOMER_STANCES = frozenset({"loyalist", "lapsed", "subscriber", "winback"})
+KNOWN_STANCES = ACQUISITION_STANCES | EXISTING_CUSTOMER_STANCES
+
+
+def stance_of(disposition_label: str) -> str:
+    """The stance a label encodes, or "" when it encodes none we know.
+
+    ⚠ Returning "" rather than raising is deliberate — a live run must not die
+    on one odd label — but "" is a DATA BUG, not a valid stance. The offline
+    test `tests/test_stance_labels_are_parseable.py` is what stops it reaching a
+    paid run."""
+    head = disposition_label.split("_", 1)[0]
+    return head if head in KNOWN_STANCES else ""
+
+
+def unknown_stance_labels(labels: list[str]) -> list[str]:
+    """Labels whose prefix is not a known stance — the offline guard's input."""
+    return sorted({lab for lab in labels if not stance_of(lab)})
+
+
+def disposition_display(label: str, display_name: str = "") -> str:
+    """What a CUSTOMER should read for a buyer type. Never the raw label.
+
+    ⚠⚠ WHY THIS IS NOT `humanize()`. `read_model.humanize` is `replace("_"," ")`
+    and is correct for genuinely word-like slugs (contexts, actions, levers).
+    Applied to a disposition label it produces *"upgrader desk afternoon
+    protein"* — engine vocabulary wearing the grammar of English, which on
+    2026-08-22 was the single most important sentence on a real customer page:
+    *"88% of your target (upgrader desk afternoon protein) would buy."*
+
+    ⭐ Two behaviours, and neither is a placeholder:
+      1. A `display_name` authored by the generator wins outright. New audiences
+         carry one (it is in the emit schema), so this improves as libraries are
+         regenerated rather than requiring a migration.
+      2. Otherwise the label is rendered as what it IS — a stance and an anchor
+         key, separated so it reads as a compound identifier rather than as a
+         sentence. That is the project's own established answer to this class:
+         strip engine vocabulary from prose, keep it as DATA
+         (`test_dashboard_html.py::test_engine_scoping_vocabulary_never_reaches_the_page`).
+
+    ⚠ It deliberately does NOT invent English for the anchor key. "desk
+    afternoon protein" is a filename, and dressing a filename up as a phrase is
+    how this defect got here."""
+    if display_name.strip():
+        return display_name.strip()
+    if not label:
+        return ""
+    stance = stance_of(label)
+    if not stance:
+        # unknown shape — show it whole rather than guessing at a split
+        return label.replace("_", " ")
+    rest = label[len(stance) + 1:].replace("_", " ").strip()
+    return f"{stance} · {rest}" if rest else stance
+
+
 @dataclass
 class NamedDisposition:
     """A library disposition: a named, coherent point in DispositionVector
@@ -295,6 +373,12 @@ class NamedDisposition:
     provisional: bool = False
     notes: str = ""
     anchor: str = ""
+    # ⭐ What a CUSTOMER reads for this buyer type. Empty on every library
+    # authored before 2026-08-22; `disposition_display()` then falls back to a
+    # structured rendering of the label rather than to fake English. New
+    # audiences carry one — it is in the generator's emit schema — so customer
+    # naming improves as libraries are regenerated, with no migration step.
+    display_name: str = ""
     demographic_bundles: list["DemographicBundle"] = field(default_factory=list)
     # §2.3 — the sub-category this disposition was AUTHORED FOR, as free-text
     # product words ("collagen", "biotin", "hair supplement"). A library is one
@@ -341,6 +425,12 @@ class NamedDisposition:
         # because the library really did change.
         if self.authored_for:
             out["authored_for"] = list(self.authored_for)
+        # ⚠ SAME REASON, SAME RULE. Emitting `"display_name": ""` unconditionally
+        # would shift `panel.compute_panel_version` for every library on disk and
+        # announce a composition change that did not happen. A library only moves
+        # when a disposition really gains a customer-facing name.
+        if self.display_name:
+            out["display_name"] = self.display_name
         return out
 
     @classmethod
@@ -356,6 +446,7 @@ class NamedDisposition:
                 for b in data.get("demographic_bundles", [])
             ],
             authored_for=list(data.get("authored_for") or []),
+            display_name=data.get("display_name", ""),
         )
 
 

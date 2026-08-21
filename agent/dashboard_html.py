@@ -86,6 +86,8 @@ import base64
 import html
 from pathlib import Path
 
+from agent.artifact_pack import market_name_for
+from agent.vectors import disposition_display
 from agent.read_model import (
     FUNNEL_STAGE_ORDER, HEADLINE_CAVEAT, OUT_OF_TARGET_ONLY_NOTE,
     SEGMENT_CAVEAT, VERDICT_CAVEAT, Glance, ReadModel, client_pain_text,
@@ -561,7 +563,10 @@ def _run_header(m: ReadModel, embed_image: bool, base_dir: Path) -> str:
                 f"</details>"
             )
 
-    bits = [b for b in (_sentence_case(m.category),
+    # ⚠ This is the run header — the first line under the ad, on every read.
+    # `_sentence_case(m.category)` put "Fnb world" there. Found only by grepping
+    # the RENDERED page after fixing the methodology block; the tests were green.
+    bits = [b for b in (market_name_for(m.category),
                         (m.generated_at or "")[:10],
                         f"Panel — {m.panel_size} simulated consumers" if m.panel_size
                         else "") if b]
@@ -993,7 +998,7 @@ def _problem_map(m: ReadModel) -> str:
 def _quotes(quotes) -> str:
     out = []
     for q in quotes or []:
-        cite = " · ".join(p for p in (humanize(getattr(q, "disposition", "")),
+        cite = " · ".join(p for p in (disposition_display(getattr(q, "disposition", "")),
                                       humanize(getattr(q, "context", ""))) if p)
         attr = f"— {cite} · simulated" if cite else "— simulated"
         out.append(f'<div class="rk-quote"><div class="q">“{_e(q.quote)}”</div>'
@@ -1312,7 +1317,9 @@ def _how_it_was_made(m: ReadModel) -> str:
     if m.declared_targeting:
         rows.append(("DECLARED TARGETING", m.declared_targeting))
     if m.category:
-        rows.append(("CATEGORY", _sentence_case(m.category)))
+        # ⚠ `_sentence_case(m.category)` rendered the SLUG — "Fnb world" — in the
+        # customer's own methodology block. `market_name_for` is the prose half.
+        rows.append(("CATEGORY", market_name_for(m.category)))
     rows.append(("AD JOB", m.purpose_label))
     rows.append(("ENGINE READ",
                  f"{m.report.verdict} · confidence {m.report.confidence}/100"))

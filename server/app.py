@@ -24,6 +24,7 @@ from fastapi.responses import (
 )
 from fastapi.staticfiles import StaticFiles
 
+from agent.artifact_pack import market_name_for
 from agent.config import (
     SUPPORTED_IMAGE_SUFFIXES, build_run_config, default_asset_label)
 from agent.progress import phase_view
@@ -325,8 +326,11 @@ def create_app(
         label because a brand profile carries no display name of its own, and
         "which research library is behind this" is the one thing about the
         choice a customer might actually want to check."""
+        # ⚠ `_humanise(b.category)` showed the customer "Whole truth fnb — Fnb
+        # world". The brand id is genuinely a name and stays humanised; the
+        # category is an identifier and gets its prose form.
         return [(b.brand_profile_id,
-                 f"{_humanise(b.brand_profile_id)} — {_humanise(b.category)}")
+                 f"{_humanise(b.brand_profile_id)} — {market_name_for(b.category)}")
                 for b in brands]
 
     def _new_read_form(answers: dict | None = None, *, error: str = "",
@@ -659,7 +663,8 @@ def create_app(
         if prep.config.category not in VALIDATED_CATEGORIES:
             rows.append(("CHECK", "We haven't validated this category yet",
                          f"There is no hand-built, validated disposition library "
-                         f"for {prep.config.category!r}. The engine will not fail "
+                         f"for {market_name_for(prep.config.category)}. The engine "
+                         f"will not fail "
                          "gracefully: every persona classifies “outside” and the "
                          "read comes out confident and wrong.", False))
         # `stops` is retained at 0 so `review_page`'s counter line never

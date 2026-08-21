@@ -38,6 +38,9 @@ from agent.schema import (
 )
 from agent.synthesis_l2 import compute_behavioral_distribution
 from agent.synthesis_types import TargetClassification
+from agent.vectors import (
+    EXISTING_CUSTOMER_STANCES, KNOWN_STANCES, stance_of, unknown_stance_labels,
+)
 
 # Bump on any change to the decision logic so the calibration log can separate
 # pre/post regimes (stamped into run.json).
@@ -164,7 +167,7 @@ def action_by_disposition(
 # such personas before retain can be scored (see docs/v2_4 §4.5). Until then a
 # retain run finds none and is honestly dormant (INCONCLUSIVE), never scoring
 # cold prospects as if they were existing customers.
-_EXISTING_CUSTOMER_STANCES = frozenset({"loyalist", "lapsed", "subscriber", "winback"})
+_EXISTING_CUSTOMER_STANCES = EXISTING_CUSTOMER_STANCES
 
 # ⚠⚠ EVERY coherence guard that must stop a SCALE. Adding a guard means adding
 # its flag HERE — the SCALE branch reads this set, not individual names. F2
@@ -175,38 +178,10 @@ _SCALE_BLOCKING_FLAGS = frozenset({
 })
 
 
-# ⚠⚠ THE `<stance>_<anchor>` LABEL CONVENTION IS LOAD-BEARING RUNTIME LOGIC, NOT
-# a naming style. `stance_of` below is the ONLY place a stance is recovered, and
-# two decisions depend on it: which personas form the retain frame, and which
-# may be crowned RETARGET champion. A label that leads with anything else parses
-# to an unknown stance and drops out of BOTH — silently, failing closed.
-# ⭐ It is not currently possible to recover the stance any other way:
-# `NamedDisposition` carries no stance field, though the generator emits one per
-# type. Until it does, this set IS the contract, and
-# `tests/test_stance_labels_are_parseable.py` asserts every shipped label meets
-# it — offline, so a bad label is caught before it can silently disappear.
-_ACQUISITION_STANCES = frozenset({
-    "loyalist", "switcher", "upgrader", "aspirant",
-    "skeptic", "purist", "pragmatist", "gifter",
-})
-KNOWN_STANCES = _ACQUISITION_STANCES | _EXISTING_CUSTOMER_STANCES
-
-
-def stance_of(disposition_label: str) -> str:
-    """The stance a label encodes, or "" when it encodes none we know.
-
-    ⚠ Returning "" rather than raising is deliberate — a live run must not die
-    on one odd label — but "" is a DATA BUG, not a valid stance. The offline
-    test is what stops it reaching a run."""
-    head = disposition_label.split("_", 1)[0]
-    return head if head in KNOWN_STANCES else ""
-
-
-def unknown_stance_labels(labels: list[str]) -> list[str]:
-    """Labels whose prefix is not a known stance — the offline guard's input."""
-    return sorted({lab for lab in labels if not stance_of(lab)})
-
-
+# ⚠ The stance vocabulary and `stance_of` live in `agent/vectors.py`, the layer
+# that defines what a disposition IS — `read_model` needs them too, and two
+# copies of a vocabulary is exactly how the generator and the scorer drift apart
+# without anyone noticing. Re-exported here so existing importers keep working.
 def _is_existing_customer(disposition_label: str) -> bool:
     return stance_of(disposition_label) in _EXISTING_CUSTOMER_STANCES
 

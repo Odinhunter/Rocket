@@ -28,6 +28,7 @@ load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
+from agent.vectors import disposition_display
 from agent.config import RunConfig, build_run_config, default_asset_label
 from agent.purpose import DEFAULT_PURPOSE, PURPOSE_ORDER, resolve_purpose
 from agent.read_model import (
@@ -170,7 +171,7 @@ def _print_decision_headline(report: Report) -> None:
                           f"({c['num']} of {c['denom']})")
             print("  (The headline above blends these at the panel's sampled cycle mix.)")
         if d.decision == "RETARGET" and d.champion_disposition:
-            print(f"  But the {_humanize(d.champion_disposition)} — whom you are NOT "
+            print(f"  But the {disposition_display(d.champion_disposition)} — whom you are NOT "
                   f"targeting — acts at {d.champion_action_rate:.0%}. Right ad, wrong person.")
             print(f"  {_SEGMENT_CAVEAT}")
         elif d.decision in ("ITERATE", "REBUILD") and preset.audience_frame == "narrow":
