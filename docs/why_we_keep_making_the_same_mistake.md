@@ -138,12 +138,35 @@ memory file, so it is applied every time instead of when someone remembers.**
 
 ---
 
+# ✅ CLOSED — `#78`, `#79`, `#80`. **750 tests green.**
+
+| was | now | proved by |
+|---|---|---|
+| **identifier-as-prose** — `fnb_world` read to personas as *"international food and drink"* | `market_name` on all 8 packs, `market_name_for()` as the one prose call site, 4 model-facing sites routed through it. ⭐ The cycle-line interpolation **deleted, not re-valued** — a market description is not a mass noun either, and the persona's own core already names what they stock | 34 tests, 3 mutations: pack forgets the name · pack "fixes" it with the humanised slug · interpolation returns |
+| ⚠⚠ **F1** — a brand's own loyalist crowned RETARGET champion, telling the customer *"Right ad, wrong person"* about people who already buy from them | existing-customer stances excluded from champion candidacy | mutation: remove the filter → the loyalist wins again |
+| ⚠⚠ **F2** — retain SCALEs on reorders nobody engaged with | `_reorder_without_engagement`, keyed on the metric retain actually headlines, **and SCALE now gates on a SET of blocking flags** | 2 mutations, plus a control proving an engaged reorder still SCALEs |
+| **a test asserting the bug as correct** | rewritten to assert the law | the fix turned the suite red first, which is how the bug had survived |
+| **dead code with a green test** — `compose_persona_prompt`, third-person, header no persona ever saw | deleted, and the paid smoke test stopped spending money asserting it | — |
+| **the label convention was runtime logic with nothing enforcing it** | `stance_of()` / `KNOWN_STANCES` / `unknown_stance_labels()` + a seam test that the generator and the decision layer still share a vocabulary | mutation: drop a stance → 2 tests fail |
+
+⚠ **TWO HONEST NOTES.** A 4th mutation showed my first F1 fix carried a retain
+opt-out that **changed no outcome** — retain already recasts the map, so the knob
+could never act. **Deleted rather than kept as configuration that cannot do
+anything**, and the test docstring now says what it really proves. And mid-fix I
+added a guard flag that no branch read — *the exact shape of F2* — caught by the
+mutation run before commit, which is why SCALE now reads the flag SET.
+
+⭐ **One correction to the audit:** `tests/test_purpose_retain.py` does **not**
+pin F2. Its agents use `tap_cta`, so they genuinely engaged; the test never
+*covered* the defect rather than ratifying it. Only `test_dashboard_html.py:1204`
+ratifies a defect, and it is still open below.
+
 # WHAT IS LEFT, IN ORDER
 
 | # | change | why now |
 |---|---|---|
-| 1 | ⚠⚠ **A counterfactual guard.** At scoring time, check whether a disposition's anchor names the advertised brand; exclude those from champion candidacy and from `retain` SCALE, or report them as retention | **Fixes F1 and F2 together.** They are one absence, not two bugs |
-| 2 | ⚠ **Fix `tests/test_purpose_retain.py` and `test_dashboard_html.py:1204`** — both pin defects | Until they change, the fixes above look like regressions |
+| 1 | ⚠ **`test_dashboard_html.py:1204`** asserts `"switcher results chaser"` — a humanised slug — as correct customer-facing output | It is the last test still ratifying a defect, and it blocks item 2 |
+| 2 | **Disposition `display_name`.** The customer still reads `gifter_office_round_afternoon` on the pre-commit screen (`app_html.py:1109`, underscores intact) and *"the gifter office round afternoon acts at 34%"* in the read | Same class as `#78`, customer-facing half — the half a paying customer actually sees |
 | 3 | **Content preflight.** We already refuse to spend without `preflight_cost.py`. Add the twin: render one persona + one context against the real pack, print, confirm. `$0.01` | Would have caught this week's live bug before `$3.85` |
 | 4 | **Collect the smoke tier.** Give the five paid smokes pytest functions behind a `paid` marker → `pytest -m paid`, ~`$1.13`, one command | The tier exists and nothing runs it |
 | 5 | **Seam tests for L2, L4, assess** | The three prompts that write the customer's report have zero |
