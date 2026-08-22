@@ -271,7 +271,7 @@ def synthesize_segment(
 
     client = anthropic.Anthropic(max_retries=5)
     model = config.model_versions["l2"]
-    user_payload = _build_user_payload(segment_label, transcripts, config)
+    call = build_l2_call(segment_label, transcripts, config)
 
     response = call_with_telemetry(
         client,
@@ -279,10 +279,10 @@ def synthesize_segment(
         model=model,
         max_tokens=2000,
         temperature=config.temperatures["l2"],
-        system=_L2_SYSTEM,
-        messages=[{"role": "user", "content": user_payload}],
-        tools=[_L2_TOOL],
-        tool_choice={"type": "tool", "name": "emit_disposition_summary"},
+        system=call["system"],
+        messages=[{"role": "user", "content": call["user"]}],
+        tools=call["tools"],
+        tool_choice=call["tool_choice"],
     )
 
     tool_input = _extract_tool_use(response, "emit_disposition_summary")
@@ -290,6 +290,34 @@ def synthesize_segment(
     # The R7 distribution is computed in Python — never from the model.
     summary.behavioral_distribution = compute_behavioral_distribution(transcripts)
     return summary
+
+
+def build_l2_call(
+    segment_label: str,
+    transcripts: list[AgentTranscript],
+    config: RunConfig,
+) -> dict:
+    """EVERYTHING L2 sends the model, assembled in one place.
+
+    ⚠ THIS EXISTS SO A TEST CAN READ WHAT PRODUCTION ACTUALLY SENDS. The
+    review found `render.compose_persona_prompt` — a prompt assembler with
+    ZERO production callers, whose ordering a passing test asserts, and whose
+    header no persona has ever seen. A test that assembles the prompt its own
+    way tests a phantom. `synthesize_segment` consumes this function and
+    nothing else, so covering it covers the API call.
+
+    ⚠ The tool schema is part of the artifact, not a footnote: it carries
+    per-field descriptions the model reads as instructions. The one seam test
+    this repo already had (`test_generation_prompt`) joined only the system
+    blocks and the user turn, so an exemplar re-added in a schema description
+    was invisible to the test written to catch exactly that.
+    """
+    return {
+        "system": _L2_SYSTEM,
+        "user": _build_user_payload(segment_label, transcripts, config),
+        "tools": [_L2_TOOL],
+        "tool_choice": {"type": "tool", "name": "emit_disposition_summary"},
+    }
 
 
 # ---- Internals ----

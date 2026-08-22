@@ -545,6 +545,40 @@ def _drop_unverifiable(pain_map: list[Pain], strengths: list[Strength], corpus: 
 # ---- Public entry point ----
 
 
+_RETRY_SUFFIX_TEMPLATE = (
+    "\n\nYour previous output was rejected: __FEEDBACK__\n"
+    "Return ONE corrected JSON object matching the schema exactly. "
+    "Every evidence quote must be an EXACT substring of the reactions "
+    "above — copy, do not paraphrase. No prose, no fences."
+)
+
+
+def build_assess_call(
+    tc: TargetClassification,
+    corpus: str,
+    *,
+    is_retry: bool = False,
+    feedback: str = "",
+) -> dict:
+    """EVERYTHING the assess pass sends the model, assembled in one place.
+    `assess_reactions` consumes this and nothing else.
+
+    ⚠ The retry turn used to be an f-string INLINE in the call loop, which
+    made it unreachable from a test without re-typing it — and a re-typed
+    prompt is a phantom (see build_l2_call). Pass `feedback` to build the turn
+    a retry actually sends.
+
+    ⚠ This is the ONLY prompt in the stack that carries the raw reaction
+    corpus, and grounding is checked against that same corpus: every evidence
+    quote must be an exact substring of it. A transcript silently dropped here
+    does not just lose a voice — it makes that voice's quotes unverifiable.
+    """
+    user = _build_assess_payload(tc, corpus)
+    if is_retry:
+        user += _RETRY_SUFFIX_TEMPLATE.replace("__FEEDBACK__", feedback)
+    return {"system": _ASSESS_SYSTEM, "user": user}
+
+
 def assess_reactions(
     transcripts: list[AgentTranscript],
     target_classification: TargetClassification,
@@ -561,7 +595,6 @@ def assess_reactions(
     provisional = list(provisional_dispositions or [])
     cls = _classification_map(target_classification)
     corpus = build_corpus(transcripts, cls)
-    base_payload = _build_assess_payload(target_classification, corpus)
     n_contexts = len({t.context_label for t in transcripts})
     flags = compute_methodology_flags(
         target_classification, confidence_signals, provisional, n_contexts
@@ -572,16 +605,10 @@ def assess_reactions(
 
     last_feedback, last_raw = "", ""
     for attempt in range(max_attempts):
-        if attempt > 0:
-            user_text = (
-                base_payload
-                + f"\n\nYour previous output was rejected: {last_feedback}\n"
-                "Return ONE corrected JSON object matching the schema exactly. "
-                "Every evidence quote must be an EXACT substring of the reactions "
-                "above — copy, do not paraphrase. No prose, no fences."
-            )
-        else:
-            user_text = base_payload
+        call = build_assess_call(
+            target_classification, corpus,
+            is_retry=attempt > 0, feedback=last_feedback,
+        )
 
         response = call_with_telemetry(
             client,
@@ -589,8 +616,8 @@ def assess_reactions(
             model=model,
             retries=attempt,
             max_tokens=8000,
-            system=_ASSESS_SYSTEM,
-            messages=[{"role": "user", "content": user_text}],
+            system=call["system"],
+            messages=[{"role": "user", "content": call["user"]}],
         )
         raw = _extract_text(response)
         last_raw = raw

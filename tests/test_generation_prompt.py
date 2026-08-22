@@ -28,6 +28,7 @@ middle age, marriage, children or a small town.
 from __future__ import annotations
 
 import pathlib
+import json
 import sys
 
 import pytest
@@ -49,11 +50,22 @@ MIXED = Region(gender="any", age_min=30, age_max=45, tier="tier-2")
 
 
 def assembled(region: Region) -> str:
-    """Every word the model is sent, in one string — system blocks and the user
-    turn together. ⚠ The seams are the point; testing a block alone is what let
-    the tripled exemplars through."""
+    """Every word the model is sent, in one string — system blocks, the user
+    turn, AND THE TOOL SCHEMA. ⚠ The seams are the point; testing a block alone
+    is what let the tripled exemplars through.
+
+    ⚠⚠ THE SCHEMA WAS MISSING UNTIL 2026-08-22, and its absence was the exact
+    blind spot this file names in `test_no_exemplar_is_stated_twice_in_the_whole
+    _prompt`: that test lists the `occupation_hint` SCHEMA DESCRIPTION as one of
+    the three places an exemplar lived, while the string it searched joined only
+    the system blocks and the user turn. The tool is a separate argument at the
+    call site, so an exemplar re-added in a field description was invisible to
+    the test written to catch exactly that (review §5). Same fix, same shape, as
+    `tests/test_report_prompt_seams.py::_assembled`.
+    """
     system, user = _build(GRID, PACK, _cells(GRID, 5), [], region)
-    return "\n".join(b["text"] for b in system) + "\n" + user
+    return ("\n".join(b["text"] for b in system) + "\n" + user
+            + "\n" + json.dumps(_tool(GRID), ensure_ascii=False))
 
 
 # --------------------------------------------------------------------------

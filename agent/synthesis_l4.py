@@ -515,18 +515,15 @@ def synthesize_memo(
         )
     client = anthropic.Anthropic(max_retries=5)
     model = config.model_versions["l4"]
-    user_payload = _build_user_payload(
-        l3_summary, target_classification, funnel_projection, config,
-        audience_match,
-    )
     pool_size = len(l3_summary.representative_quotes)
 
     last_feedback, last_raw = "", ""
     for attempt in range(max_attempts):
-        if attempt > 0:
-            user_text = user_payload + _retry_suffix(last_feedback, last_raw)
-        else:
-            user_text = user_payload
+        call = build_l4_call(
+            l3_summary, target_classification, funnel_projection, config,
+            audience_match,
+            is_retry=attempt > 0, feedback=last_feedback, prior_raw=last_raw,
+        )
 
         response = call_with_telemetry(
             client,
@@ -534,8 +531,8 @@ def synthesize_memo(
             model=model,
             retries=attempt,
             max_tokens=8000,
-            system=_L4_SYSTEM,
-            messages=[{"role": "user", "content": user_text}],
+            system=call["system"],
+            messages=[{"role": "user", "content": call["user"]}],
         )
         raw = _extract_text(response)
         last_raw = raw
@@ -572,6 +569,38 @@ def synthesize_memo(
         f"L4 synthesis failed after {max_attempts} attempts. "
         f"Last feedback: {last_feedback}. Raw output head: {last_raw[:500]!r}"
     )
+
+
+def build_l4_call(
+    l3_summary: L3Summary,
+    target_classification: TargetClassification,
+    funnel_projection: FunnelProjection,
+    config: RunConfig,
+    audience_match=None,
+    *,
+    is_retry: bool = False,
+    feedback: str = "",
+    prior_raw: str = "",
+) -> dict:
+    """EVERYTHING L4 sends the model, assembled in one place — including the
+    retry turn. `synthesize_memo` consumes this and nothing else.
+
+    ⚠ THE RETRY TURN IS PART OF THE ARTIFACT AND IS THE HALF NOBODY LOOKS AT.
+    On attempt 2+ this appends the model's OWN prior bad output (up to 8,000
+    characters) back into the prompt. Pass `feedback`/`prior_raw` to build the
+    turn a retry actually sends; a happy-path fixture never exercises it, which
+    is how a branch stays untested while looking covered.
+
+    See build_l2_call for why the assembler is a function rather than inline
+    code in the call loop.
+    """
+    user = _build_user_payload(
+        l3_summary, target_classification, funnel_projection, config,
+        audience_match,
+    )
+    if is_retry:
+        user += _retry_suffix(feedback, prior_raw)
+    return {"system": _L4_SYSTEM, "user": user}
 
 
 def _validate_bet_ranking(report: Report) -> None:
