@@ -234,13 +234,30 @@ restored, a renamed paid call, and the raw label back on the pre-commit screen.
 
 # WHAT IS LEFT, IN ORDER
 
-Items 1, 2, 3, 4, 6, 7, 8 are ✅ closed (`#81`, `#82`). What remains:
+Items 1, 2, 3, 4, 6, 7, 8 are ✅ closed (`#81`, `#82`). **Item 5 and F3 closed 2026-08-22
+in `#85` and `#84`.** What remains:
 
 | # | change | why now |
 |---|---|---|
-| 5 | **Seam tests for L2, L4, assess** | The three prompts that WRITE the customer's report have zero test references. Every defect this week was invisible to piece-level tests and obvious in assembled output — and these three surfaces have neither |
-| — | **F3: the funnel projection does not split in/out of target** | Named in the review as the third counterfactual gap; `#80` closed F1 and F2. Memory `out_of_target_response_bimodal` says any panel-wide aggregate MUST split, and this one still does not |
+| — | ⭐ **The prompt-side half of `#83`** | The render-seam fix repairs all 47 runs on disk, but L4 is still handed raw disposition labels. Handing it `display_name`s is the deeper fix and **needs a paid run to verify** |
 | — | **`display_name` is required of the generator but absent from all 7 installed libraries** | They fall back to `stance · anchor`, which is correct and readable, so this is not urgent — but the authored name is the better surface and only new libraries will have it |
+| — | ⚠ **`_L2_TOOL` has no `strict: true`** | Found while writing the seam tests. `scripts/generate_audience.py:634` carries it with a comment explaining why it is load-bearing (*"a non-strict schema is a request, not a contract"* — one batch emitted five types with no vector axes at all despite every field being `required`). L2's forced tool schema does not. ⚠ **NOT changed:** `strict` requires `additionalProperties: false` at every object level, and getting that wrong fails on a PAID call. It is a one-line change plus a schema sweep, and it wants a `--paid` run behind it |
+
+### ✅ WHAT `#84` AND `#85` CLOSED
+
+| | |
+|---|---|
+| ⭐⭐ **`#84` — F3, the last panel-wide aggregate that pooled** | The split is computed in **L3**, where disposition labels are DATA — deriving it in L3.5 would mean parsing `segment_label` strings, the defect class `#80` just closed. `within` is membership of `tc.within_target_labels()`, **byte-for-byte the rule `decision.within_target_action_rate` uses**, so the funnel and the headline can never disagree about who the target is; **ambiguous falls outside in both**. ⚠ Either side is **None at n=0**: `_funnel_rates` on an empty distribution returns baseline × a floor multiplier with a 100%-wide band — a confident number about nobody. ⭐ `_validate_funnel_projection` now validates **every** `SegmentProjection` on the object rather than only `by_segment`, and enforces **within + outside == population** as an integer identity. ⭐ Only ONE production surface renders funnel numbers (`batch_run._print_report`) — the HTML read withholds them by design (`FUNNEL_WITHHELD_NOTE`), so the blast radius was one file. |
+| ⭐⭐ **`#85` — one assembler per prompt, and the tool schema is part of the artifact** | `build_l2_call` / `build_l4_call` / `build_assess_call` are what the real call sites consume and what the tests read. ⚠ **The class half:** `test_generation_prompt.assembled()` joined the system blocks and the user turn but **not the tool schema** — while its own `test_no_exemplar_is_stated_twice_in_the_whole_prompt` names the `occupation_hint` **schema description** as one of three places an exemplar lived. **The test written to catch that defect could not see the place it named.** Both assemblers now read system + user + schema; the existing 24 tests pass unchanged, so nothing is hiding there today. ⭐ assess's retry turn was an f-string **inline in the call loop** — unreachable from a test without re-typing it, and a re-typed prompt is a phantom. Extracted and proved byte-identical. |
+
+⭐⭐ **TWO NEW VACUOUS SHAPES, BOTH CAUGHT BEFORE COMMIT AND BOTH MINE:**
+1. ⚠ **A test that measures the code against the code.** The retry-cap test read
+   `_PRIOR_RAW_MAX_CHARS` from the module — so the mutation that raised the constant raised the
+   test's own bar with it and went **uncaught**. Fixed by pinning the literal `8000`.
+2. ⚠ **A source-slice that runs to end-of-file.** The wiring test sliced from the caller's `def`
+   to EOF and asked whether the assembler's name appeared — it always did, on the assembler's
+   **own `def` line** further down. It would have passed on a codebase where the wiring did not
+   exist. Rewritten with `ast`.
 
 **And two process rules, free:**
 
