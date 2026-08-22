@@ -195,6 +195,42 @@ def call_with_telemetry(
     return response
 
 
+def _rate_table() -> dict[str, tuple[float, float, float, float]]:
+    """Per-million-token USD rates: (input, output, cache_read, cache_write).
+
+    ⚠ A FUNCTION, NOT A LOCAL DICT, so a test can read the SAME table
+    production prices against. It lived inside `telemetry_summary` until
+    2026-08-22, which meant the only way to check it was to re-type it —
+    and a re-typed table cannot tell you a model is missing from the real
+    one. See tests/test_every_model_is_priced.py.
+
+    ⚠⚠ EVERY MODEL THE ENGINE CAN CALL MUST HAVE A ROW. An unpriced model
+    contributes nothing to the total, so its calls report as $0.00 — which
+    is how a $5-8 generation path came to have a cost meter reading zero.
+    """
+    return {
+        "claude-sonnet-4-6": (3.0, 15.0, 0.3, 3.75),
+        # Opus 4.7 / 4.8 are $5/$25 per MTok (cache read 0.1x input, write 1.25x
+        # @ 5-min TTL). The prior (15,75) on opus-4-7 was a stale Opus-3-era rate,
+        # 3x too high — it overcounted target_id (and any opus layer) in every run.
+        "claude-opus-4-7": (5.0, 25.0, 0.5, 6.25),
+        "claude-opus-4-8": (5.0, 25.0, 0.5, 6.25),
+        # ⚠⚠ ADDED 2026-08-22, AND ITS ABSENCE MADE THIS METER READ ZERO ON THE
+        # PATH THAT SPENDS THE MOST. `scripts/generate_audience.py` runs on
+        # claude-opus-5 (MODEL, line 124) — a $5-8 region generation reported
+        # $0.00 here because an unpriced model contributes nothing to the total.
+        # ⭐ Opus 5 is $5/$25 per MTok, cache read 0.1x input, cache write 1.25x
+        # at the 5-minute TTL — the same rates as 4.7/4.8, which is exactly why
+        # nobody noticed the row was missing.
+        "claude-opus-5": (5.0, 25.0, 0.5, 6.25),
+        # Sonnet 5 is $3/$15 list. ⚠ An introductory $2/$10 runs to 2026-08-31;
+        # the list rate is used here deliberately, so this OVER-states rather
+        # than under-states during the intro window. Nothing in the engine uses
+        # it today — it is here so a future switch cannot silently read zero.
+        "claude-sonnet-5": (3.0, 15.0, 0.3, 3.75),
+    }
+
+
 def telemetry_summary(
     run_id: str,
     *,
@@ -217,14 +253,7 @@ def telemetry_summary(
 
     # Per-million-token cost estimates (USD); update as pricing changes.
     # (in_rate, out_rate, cache_read_rate, cache_write_5m_rate)
-    rates = {
-        "claude-sonnet-4-6": (3.0, 15.0, 0.3, 3.75),
-        # Opus 4.7 / 4.8 are $5/$25 per MTok (cache read 0.1x input, write 1.25x
-        # @ 5-min TTL). The prior (15,75) on opus-4-7 was a stale Opus-3-era rate,
-        # 3x too high — it overcounted target_id (and any opus layer) in every run.
-        "claude-opus-4-7": (5.0, 25.0, 0.5, 6.25),
-        "claude-opus-4-8": (5.0, 25.0, 0.5, 6.25),
-    }
+    rates = _rate_table()
 
     lines = ["=" * 78, "TELEMETRY SUMMARY", "=" * 78]
     grand_in, grand_out, grand_cost = 0, 0, 0.0
