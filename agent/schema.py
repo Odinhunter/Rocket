@@ -473,6 +473,16 @@ class FunnelProjection:
     # Run-level stage→observable mapping + input gating. Empty on legacy runs.
     provided_inputs: list[str] = field(default_factory=list)
     stage_meta: list[FunnelStageMeta] = field(default_factory=list)
+    # ⚠ THE SPLIT `overall` DOES NOT MAKE. `overall` pools the whole panel; on a
+    # narrow ad the out-of-target majority swamps the in-target signal and the
+    # pooled convert rate reads as a collapse on a creative that worked. These
+    # two carry the same reactions split on target membership — read
+    # `within_target` as the answer, `overall` as the panel arithmetic.
+    # Either is None when its side of the panel produced no parsed signal
+    # (n=0): a projection off an empty distribution is baseline x a floor
+    # multiplier, which is a confident number about nobody. None on legacy runs.
+    within_target: SegmentProjection | None = None
+    outside_target: SegmentProjection | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -484,6 +494,12 @@ class FunnelProjection:
             "calibration_note": self.calibration_note,
             "provided_inputs": list(self.provided_inputs),
             "stage_meta": [m.to_dict() for m in self.stage_meta],
+            "within_target": (
+                self.within_target.to_dict() if self.within_target else None
+            ),
+            "outside_target": (
+                self.outside_target.to_dict() if self.outside_target else None
+            ),
         }
 
     @classmethod
@@ -503,6 +519,14 @@ class FunnelProjection:
             stage_meta=[
                 FunnelStageMeta.from_dict(m) for m in data.get("stage_meta", [])
             ],
+            within_target=(
+                SegmentProjection.from_dict(data["within_target"])
+                if data.get("within_target") else None
+            ),
+            outside_target=(
+                SegmentProjection.from_dict(data["outside_target"])
+                if data.get("outside_target") else None
+            ),
         )
 
 
@@ -911,25 +935,63 @@ def _validate_funnel_rates(fr: "FunnelRates", where: str) -> None:
         raise SchemaError(f"{where}: FunnelRates.basis must be non-empty")
 
 
+def _validate_segment_projection(seg: "SegmentProjection", where: str) -> None:
+    """Validate ONE SegmentProjection. Called for every one on the object — the
+    per-segment list AND the two target-split projections. ⚠ Keep it that way:
+    a validator that walks only `by_segment` leaves any projection added later
+    unchecked, which is how a defect reaches a customer surface unseen."""
+    if not seg.segment_label:
+        raise SchemaError(f"{where} has empty segment_label")
+    _validate_funnel_rates(seg.funnel_rates, f"{where}[{seg.segment_label}]")
+    for action in seg.behavioral_distribution.counts:
+        if action not in _VALID_BEHAVIORAL_ACTIONS:
+            raise SchemaError(
+                f"behavioral_distribution for {seg.segment_label!r} has "
+                f"unknown action {action!r}"
+            )
+    for step in seg.behavioral_distribution.next_step_counts:
+        if step not in _VALID_NEXT_STEPS:
+            raise SchemaError(
+                f"behavioral_distribution for {seg.segment_label!r} has "
+                f"unknown next_step {step!r}"
+            )
+
+
 def _validate_funnel_projection(fp: "FunnelProjection") -> None:
     _validate_funnel_rates(fp.overall, "funnel_projection.overall")
     for seg in fp.by_segment:
-        if not seg.segment_label:
-            raise SchemaError("funnel_projection segment has empty segment_label")
-        _validate_funnel_rates(
-            seg.funnel_rates, f"funnel_projection.by_segment[{seg.segment_label}]"
-        )
-        for action in seg.behavioral_distribution.counts:
-            if action not in _VALID_BEHAVIORAL_ACTIONS:
+        _validate_segment_projection(seg, "funnel_projection.by_segment")
+    if fp.within_target:
+        _validate_segment_projection(fp.within_target, "funnel_projection.within_target")
+    if fp.outside_target:
+        _validate_segment_projection(fp.outside_target, "funnel_projection.outside_target")
+    # The target split is an INTEGER IDENTITY against the pooled population:
+    # every parsed signal is on exactly one side of the target line. A drift
+    # here means a persona was counted twice or dropped, so it is a defect and
+    # never a rounding artifact. Skipped when neither side is present (a legacy
+    # projection predating the split).
+    if fp.within_target or fp.outside_target:
+        sides = [s.behavioral_distribution
+                 for s in (fp.within_target, fp.outside_target) if s]
+        pop = fp.population_behavioral_distribution
+        n = sum(d.n for d in sides)
+        if n != pop.n:
+            raise SchemaError(
+                f"funnel_projection target split n={n} != population n={pop.n}"
+            )
+        for field_name, getter in (
+            ("counts", lambda d: d.counts),
+            ("next_step_counts", lambda d: d.next_step_counts),
+        ):
+            summed: dict[str, int] = {}
+            for d in sides:
+                for k, v in getter(d).items():
+                    summed[k] = summed.get(k, 0) + v
+            expected = {k: v for k, v in getter(pop).items() if v}
+            if {k: v for k, v in summed.items() if v} != expected:
                 raise SchemaError(
-                    f"behavioral_distribution for {seg.segment_label!r} has "
-                    f"unknown action {action!r}"
-                )
-        for step in seg.behavioral_distribution.next_step_counts:
-            if step not in _VALID_NEXT_STEPS:
-                raise SchemaError(
-                    f"behavioral_distribution for {seg.segment_label!r} has "
-                    f"unknown next_step {step!r}"
+                    f"funnel_projection target split {field_name} != population "
+                    f"{field_name}: {summed} vs {getter(pop)}"
                 )
     # Stage gating metadata — only enforced when present (legacy/recomputed-
     # without-meta projections leave it empty and skip these checks).

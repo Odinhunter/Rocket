@@ -40,6 +40,7 @@ def synthesize_population(
     Phase 7) — the narrative/diagnosis moved to the assess pass, which reads the
     raw corpus."""
     seg_dists, pop_dist = _compute_behavioral_distributions(l2_summaries)
+    within_dist, outside_dist = _split_by_target(l2_summaries, target_classification)
     return L3Summary(
         robust_themes=[],
         fragile_themes=[],
@@ -50,6 +51,8 @@ def synthesize_population(
         confidence_signals=_compute_confidence_signals(l2_summaries, target_classification),
         segment_behavioral_distributions=seg_dists,
         population_behavioral_distribution=pop_dist,
+        within_target_behavioral_distribution=within_dist,
+        outside_target_behavioral_distribution=outside_dist,
     )
 
 
@@ -75,22 +78,64 @@ def _compute_behavioral_distributions(
     """Deterministic: collect each segment's R7 distribution (keyed by
     segment_label) and sum them into the population distribution."""
     seg_dists: dict[str, BehavioralSignalDistribution] = {}
-    pop_counts: dict[str, int] = {}
-    pop_next_step: dict[str, int] = {}
-    pop_n = 0
     for s in l2_summaries:
         label = s.segment_label or s.disposition_label
-        dist = s.behavioral_distribution
-        seg_dists[label] = dist
-        for action, count in dist.counts.items():
-            pop_counts[action] = pop_counts.get(action, 0) + count
-        for step, count in dist.next_step_counts.items():
-            pop_next_step[step] = pop_next_step.get(step, 0) + count
-        pop_n += dist.n
-    pop_dist = BehavioralSignalDistribution(
-        counts=pop_counts, next_step_counts=pop_next_step, n=pop_n
+        seg_dists[label] = s.behavioral_distribution
+    pop_dist = _sum_distributions(
+        [s.behavioral_distribution for s in l2_summaries]
     )
     return seg_dists, pop_dist
+
+
+def _sum_distributions(
+    dists: list[BehavioralSignalDistribution],
+) -> BehavioralSignalDistribution:
+    """Integer sum of a list of distributions. One place, so the population
+    pool and the target split can never drift apart in how they add up."""
+    counts: dict[str, int] = {}
+    next_step: dict[str, int] = {}
+    n = 0
+    for dist in dists:
+        for action, count in dist.counts.items():
+            counts[action] = counts.get(action, 0) + count
+        for step, count in dist.next_step_counts.items():
+            next_step[step] = next_step.get(step, 0) + count
+        n += dist.n
+    return BehavioralSignalDistribution(
+        counts=counts, next_step_counts=next_step, n=n
+    )
+
+
+def _split_by_target(
+    l2_summaries: list[L2Summary],
+    tc: TargetClassification,
+) -> tuple[BehavioralSignalDistribution, BehavioralSignalDistribution]:
+    """Pool the R7 distributions TWICE: once over within-target segments, once
+    over everything else. L3.5 projects each separately.
+
+    ⚠ Why this exists at all: a panel-wide aggregate that pools in- and
+    out-of-target is the mistake that has cost this project a rebuild twice
+    (docs/v3_out_of_target_response.md; the same warning is written into
+    read_model.next_steps_in_target). On a narrow ad the out-of-target majority
+    swamps the signal — 19 in target converting at 30% against 81 outside at 0%
+    pools to 5.7%, and the customer is told an ad that worked has DROPPED their
+    conversion. The projection is the last unsplit aggregate in the stack.
+
+    `within` is membership of tc.within_target_labels() — BYTE-FOR-BYTE the same
+    rule as decision.within_target_action_rate, so the funnel and the headline
+    metric can never disagree about who the target is. AMBIGUOUS FALLS OUTSIDE,
+    exactly as it does in that headline's denominator. Do not "fix" this into a
+    three-way split on one side only.
+
+    The two returned distributions sum to population_behavioral_distribution by
+    construction — an integer identity, pinned by test.
+    """
+    within_labels = set(tc.within_target_labels())
+    within = [s.behavioral_distribution for s in l2_summaries
+              if s.disposition_label in within_labels]
+    outside = [s.behavioral_distribution for s in l2_summaries
+               if s.disposition_label not in within_labels]
+    return _sum_distributions(within), _sum_distributions(outside)
 
 
 def _compute_confidence_signals(

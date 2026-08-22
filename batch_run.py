@@ -210,27 +210,58 @@ def _print_report(report: Report) -> None:
 
     fp = report.funnel_projection
     if fp is not None:
-        o = fp.overall
         meta_by_key = {m.stage_key: m for m in fp.stage_meta}
-        print("\n" + "-" * 78)
-        print(f"PROJECTED FUNNEL  (overall — basis: {o.basis})")
-        print("-" * 78)
-        for stage, rate, band in (
-            ("stop", o.stop_rate, o.stop_band),
-            ("click", o.click_rate, o.click_band),
-            ("visit", o.visit_rate, o.visit_band),
-            ("convert", o.convert_rate, o.convert_band),
-        ):
-            m = meta_by_key.get(stage)
-            label = f"  {stage:>8}"
-            if m:  # observable mapping (legacy projections have no stage_meta)
-                label += f" → {m.observable_label}"
-            line = (f"{label}: {rate*100:6.3f}%   "
-                    f"[{band[0]*100:.3f}% – {band[1]*100:.3f}%]")
-            if m and m.status == "scenario":
-                need = ", ".join(m.required_inputs) or "its input"
-                line += f"   (SCENARIO — image-only; provide {need} to ground)"
-            print(line)
+
+        def _stage_lines(rates, indent: str = "  ") -> None:
+            for stage, rate, band in (
+                ("stop", rates.stop_rate, rates.stop_band),
+                ("click", rates.click_rate, rates.click_band),
+                ("visit", rates.visit_rate, rates.visit_band),
+                ("convert", rates.convert_rate, rates.convert_band),
+            ):
+                m = meta_by_key.get(stage)
+                label = f"{indent}{stage:>8}"
+                if m:  # observable mapping (legacy projections have no stage_meta)
+                    label += f" → {m.observable_label}"
+                line = (f"{label}: {rate*100:6.3f}%   "
+                        f"[{band[0]*100:.3f}% – {band[1]*100:.3f}%]")
+                if m and m.status == "scenario":
+                    need = ", ".join(m.required_inputs) or "its input"
+                    line += f"   (SCENARIO — image-only; provide {need} to ground)"
+                print(line)
+
+        # ⚠ IN-TARGET LEADS, AND IT IS NAMED SO — the same discipline as
+        # read_model.next_steps_in_target. The pooled `overall` below it is
+        # panel arithmetic, not the answer: on a narrow ad the out-of-target
+        # majority drags the pooled convert rate down and an ad that worked
+        # reads as a collapse. Never print `overall` alone.
+        wt = fp.within_target
+        if wt is not None:
+            print("\n" + "-" * 78)
+            print(f"PROJECTED FUNNEL  (IN TARGET — n={wt.behavioral_distribution.n}, "
+                  f"basis: {wt.funnel_rates.basis})")
+            print("-" * 78)
+            _stage_lines(wt.funnel_rates)
+            ot = fp.outside_target
+            if ot is not None:
+                print(f"\n  Outside target (n={ot.behavioral_distribution.n}) — "
+                      f"who the ad also reached, reported separately and never "
+                      f"folded in:")
+                _stage_lines(ot.funnel_rates, indent="    ")
+            print("\n  Whole panel pooled (in + outside together) — panel "
+                  "arithmetic, not the read:")
+            _stage_lines(fp.overall, indent="    ")
+        else:
+            o = fp.overall
+            print("\n" + "-" * 78)
+            print(f"PROJECTED FUNNEL  (overall — basis: {o.basis})")
+            print("-" * 78)
+            if fp.outside_target is not None:
+                print("  ⚠ NO IN-TARGET SIGNAL — every parsed reaction came from "
+                      "outside the declared")
+                print("    target, so these rates describe people the ad was not "
+                      "aimed at.")
+            _stage_lines(o)
         print(f"\n  {fp.calibration_note}")
         if fp.by_segment:
             convert_meta = meta_by_key.get("convert")

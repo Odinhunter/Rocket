@@ -3,7 +3,17 @@
 A NEW layer between L3 and L4. Deterministic Python, ZERO API calls. It
 turns the R7 behavioral-signal distributions (computed by L2/L3) into a
 projected marketing funnel — stop / click / visit / convert rates — by
-segment and overall.
+segment, by TARGET SPLIT, and overall.
+
+⚠⚠ THE TARGET SPLIT IS NOT OPTIONAL (F3, 2026-08-22). `overall` pools the
+whole panel, and a pooled panel-wide aggregate is the mistake that has cost
+this project a rebuild twice: 19 people in target converting at 30% against
+81 outside converting at 0% pools to 5.7%, and the customer is told an ad
+that worked has DROPPED their conversion. `within_target` / `outside_target`
+carry the same reactions split on target membership; the in-target one is
+the read. The split itself is computed in L3 (where disposition labels are
+data) — this layer only projects what it is handed, so the multiplier table
+below stays fittable without knowing anything about targets.
 
 The honesty contract (user-decided, "Ship heuristic_v1 with bands"):
   - Every rate is a MULTIPLIER on the customer's OWN baseline funnel,
@@ -210,6 +220,12 @@ def project_funnel(
     convert, each a float in 0..1). When None, DEFAULT_BASELINE_FUNNEL is
     used and baseline_source records that explicitly.
 
+    Returns a projection carrying `overall` (the whole panel pooled),
+    `by_segment`, and the TARGET SPLIT — `within_target` / `outside_target`,
+    each None when that side of the panel produced no parsed signal. Read
+    `within_target` as the answer and `overall` as panel arithmetic; see the
+    module docstring for why printing `overall` alone is a defect.
+
     provided_inputs: the creative inputs supplied this run (e.g. "ad_copy",
     "offer" — see RunConfig.provided_inputs()). Drives per-stage gating: a
     stage whose required inputs are all present is "grounded", else
@@ -237,6 +253,24 @@ def project_funnel(
     overall = _funnel_rates(
         l3_summary.population_behavioral_distribution, baseline, source
     )
+
+    def split(dist, label: str) -> SegmentProjection | None:
+        """Project one side of the target split, or None when that side of the
+        panel produced no parsed signal. ⚠ n=0 is NOT projected: _funnel_rates
+        on an empty distribution returns the baseline times a floor multiplier
+        with a 100%-wide band — a confident-looking number about nobody. Both
+        directions are reachable (decision.py raises no_within_target_evidence;
+        an all-in-target panel is ordinary on a broad ad)."""
+        if dist.n <= 0:
+            return None
+        return SegmentProjection(
+            segment_label=label,
+            behavioral_distribution=dist,
+            funnel_rates=_funnel_rates(dist, baseline, source),
+        )
+
+    within = split(l3_summary.within_target_behavioral_distribution, "within target")
+    outside = split(l3_summary.outside_target_behavioral_distribution, "outside target")
     by_segment = [
         SegmentProjection(
             segment_label=label,
@@ -267,4 +301,6 @@ def project_funnel(
         calibration_note=_CALIBRATION_NOTE,
         provided_inputs=sorted(provided),
         stage_meta=stage_meta,
+        within_target=within,
+        outside_target=outside,
     )

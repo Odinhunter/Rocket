@@ -147,6 +147,17 @@ class L3Summary:
     segment_behavioral_distributions: dict[str, BehavioralSignalDistribution] = field(
         default_factory=dict
     )
+    # The SAME reactions pooled twice, split on whether the persona's
+    # disposition is within the declared target. L3.5 projects each separately
+    # so the funnel is never a single pooled number — see _split_by_target in
+    # agent/synthesis_l3.py for why that split is not optional. Both default
+    # empty, so a legacy run.json round-trips unchanged.
+    within_target_behavioral_distribution: BehavioralSignalDistribution = field(
+        default_factory=BehavioralSignalDistribution
+    )
+    outside_target_behavioral_distribution: BehavioralSignalDistribution = field(
+        default_factory=BehavioralSignalDistribution
+    )
 
     def to_dict(self) -> dict:
         return {
@@ -167,6 +178,12 @@ class L3Summary:
                 k: v.to_dict()
                 for k, v in self.segment_behavioral_distributions.items()
             },
+            "within_target_behavioral_distribution": (
+                self.within_target_behavioral_distribution.to_dict()
+            ),
+            "outside_target_behavioral_distribution": (
+                self.outside_target_behavioral_distribution.to_dict()
+            ),
         }
 
     @classmethod
@@ -189,6 +206,16 @@ class L3Summary:
                 k: BehavioralSignalDistribution.from_dict(v)
                 for k, v in data.get("segment_behavioral_distributions", {}).items()
             },
+            within_target_behavioral_distribution=(
+                BehavioralSignalDistribution.from_dict(
+                    data.get("within_target_behavioral_distribution", {})
+                )
+            ),
+            outside_target_behavioral_distribution=(
+                BehavioralSignalDistribution.from_dict(
+                    data.get("outside_target_behavioral_distribution", {})
+                )
+            ),
         )
 
 
