@@ -59,7 +59,7 @@ def _panel_agent() -> PanelAgent:
             occupation_hint="software engineer at a mid-stage SaaS startup",
         ),
         disposition=NamedDisposition(
-            label="office_bru_pragmatist",
+            label="pragmatist_office_bru",
             vector=DispositionVector(
                 category_relationship="regular", brand_stance="neutral",
                 price_orientation="price_first", decision_driver="function",

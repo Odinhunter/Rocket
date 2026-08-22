@@ -6,8 +6,12 @@ Asserts the run goes prepared -> committed -> complete cleanly, the credit
 is debited exactly once at commit, all artifacts land on disk, and the
 Report carries a bet_ranking headline + the L3.5 funnel projection.
 
-Cost: a 6-agent panel (~12 L1 calls) + target_id + 2x L2 + L3 + L4,
-roughly $0.80-1.10.
+⚠⚠ COST: THIS RUNS THE WHOLE PIPELINE **TWICE**, and the old quote here did
+not say so. prepare() + commit() is the first; `RunService.run()` at the foot
+of main() is a second complete prepare + commit for the convenience wrapper.
+So: 2 x (9-agent panel, ~18 L1 calls + target_id + 3x L2 + L3 + L4 + assess +
+prescribe) ≈ **$2.20-2.80**, not the $0.80-1.10 this docstring claimed for
+years. The coverage is real and stays; the number was wrong.
 
 Run: pytest tests/test_run_service_minimal.py --paid   (or: python tests/test_run_service_minimal.py)
 """
@@ -17,6 +21,7 @@ from __future__ import annotations
 import json
 import shutil
 import sys
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -77,15 +82,74 @@ def _chaos() -> ChaosDistribution:
     )
 
 
-def _disposition(label: str, **overrides) -> NamedDisposition:
-    base = dict(
-        category_relationship="regular", brand_stance="neutral",
-        price_orientation="price_first", decision_driver="function",
-        category_involvement="low", prior_experience_valence="neutral",
-        channel_behavior="offline_first", life_stage="early_career",
+# ⚠⚠ THE THREE BUYER TYPES ARE READ OFF DISK, NOT HAND-WRITTEN HERE.
+#
+# Until 2026-08-22 this file rolled its own: `budget_deal_buyer` and
+# `spec_skeptic`, both on one base vector, both with an EMPTY `anchor`, and
+# neither leading with a stance the engine knows. Three separate things were
+# wrong with that, and the first one is fatal:
+#
+#   1. ⚠⚠ `agent/preflight.py` BLOCKS a run whose labels carry no known stance,
+#      at the top of prepare(), with no override flag. Verified offline: this
+#      fixture raised PreflightError. The most expensive test in the tier could
+#      not have reached its first model call. (Session 48 verified the preflight
+#      against 8 packs x 7 installed libraries and never against a test fixture,
+#      because these files were collecting nothing at the time.)
+#   2. An empty `anchor` is a MEASURED realism defect, not a cosmetic one.
+#      `docs/fnb_test_b_result.md` (#64): transplanting people WITHOUT their
+#      anchor made the model contradict a man's own purchase history. The
+#      biography is not enough; the anchor has to travel.
+#   3. Two dispositions on one base vector is a panel that mostly agrees with
+#      itself — `_SYSTEM` rule 3's own failure mode, and against the standing
+#      directive that diversity of OPINION is the deliverable.
+#
+# ⭐ THE FIX IS THE ONE THIS REPO ALREADY WROTE DOWN — vacuous shape 4: copy a
+# real artifact off disk rather than authoring a minimal one. `boat_audio` is
+# the library for THIS AD (assets/boat_ad.png, category personal_audio), with
+# seven convention-compliant types carrying real anchors.
+#
+# ⚠ THE THREE ARE CHOSEN FOR SPREAD, NOT FOR A FLATTERING VERDICT: one
+# favorable, one hostile, one in the middle. ⭐ And the loyalist of the
+# ADVERTISED brand is deliberate — that is the exact F1 shape `#79`/`#80`
+# guards against (a brand's own customer crowned "right ad, wrong person"), so
+# this run is the first time those guards see a real call.
+_SOURCE_LIBRARY = Path("runs/demo/boat_audio/entities/library.json")
+_WANTED = ("loyalist_airdopes", "skeptic_warranty", "pragmatist_urgent_replacement")
+
+
+def _dispositions_from_disk() -> list[NamedDisposition]:
+    """The three real buyer types, re-homed into this test's own account.
+
+    ⚠ READ ONLY. The demo library is client-shaped data the app serves; this
+    test writes exclusively under `_ACCOUNT`, which `_cleanup()` removes.
+    """
+    if not _SOURCE_LIBRARY.exists():
+        raise SystemExit(f"missing source library: {_SOURCE_LIBRARY}")
+    by_label = {
+        d["label"]: d
+        for d in json.loads(_SOURCE_LIBRARY.read_text())["dispositions"]
+    }
+    missing = [w for w in _WANTED if w not in by_label]
+    if missing:
+        raise SystemExit(
+            f"{_SOURCE_LIBRARY} no longer carries {missing}. Pick replacements "
+            f"with the same spread (one favorable, one hostile, one middle) "
+            f"from: {sorted(by_label)}"
+        )
+    out = []
+    for label in _WANTED:
+        d = by_label[label]
+        out.append(NamedDisposition(
+            label=d["label"],
+            vector=DispositionVector(**d["vector"]),
+            anchor=d.get("anchor", ""),
+            notes=d.get("notes", ""),
+        ))
+    assert all(d.anchor for d in out), (
+        "a disposition arrived without its anchor — the anchor is the half "
+        "that carries this person's history (#64)"
     )
-    base.update(overrides)
-    return NamedDisposition(label=label, vector=DispositionVector(**base))
+    return out
 
 
 def _context(label: str, **overrides) -> NamedContext:
@@ -106,14 +170,7 @@ def _setup_entities() -> None:
     ).save()
     DispositionLibrary(
         library_id="lib_1", brand_profile_id=_BRAND, account_id=_ACCOUNT,
-        dispositions=[
-            _disposition("budget_deal_buyer", brand_stance="favorable"),
-            _disposition(
-                "spec_skeptic", brand_stance="skeptical",
-                price_orientation="value_calculator",
-                prior_experience_valence="burned",
-            ),
-        ],
+        dispositions=_dispositions_from_disk(),
     ).save()
 
 
@@ -125,7 +182,7 @@ def _config() -> RunConfig:
                 geography="Bangalore / metro tier-1",
             )
         ],
-        disposition_labels=["budget_deal_buyer", "spec_skeptic"],
+        disposition_labels=list(_WANTED),
         context_envelope=[
             _context("commute_scroll"),
             _context("pre_purchase_research", attention_level="high",
@@ -133,7 +190,25 @@ def _config() -> RunConfig:
             _context("late_night_wind_down", energy_state="drained"),
         ],
         chaos_distribution=_chaos(),
-        panel_size=6,
+        # ⚠⚠ 9, NOT 6, AND THE NUMBER IS LOAD-BEARING. 3 buyer types x 3
+        # contexts x 1 demographic = a grid of 9. `_choose_cells` splits on
+        # panel_size vs grid: at N >= G every cell is filled exactly once and
+        # the panel is 3/3/3. At N < G it does a marginal-coverage pass and then
+        # pads ROUND-ROBIN OVER THE GRID — and the grid is disposition-major, so
+        # the whole remainder lands on whichever type sorts first.
+        #
+        # Measured at panel_size=6: 4 loyalists, 1 skeptic, 1 pragmatist. Two
+        # thirds of the panel would have been the ADVERTISED BRAND'S OWN
+        # CUSTOMER — the `#74`-`#76` shape (a loyalist-heavy sample inflating
+        # the read) rebuilt one level down, in panel composition. Balance here
+        # is neutrality, not a thumb on the scale.
+        #
+        # ⚠ Do not "save money" by dropping back to 6, and do not reorder
+        # _WANTED to fix it — reordering only aims the skew at a different type.
+        # The general defect is recorded in the handoff; it needs
+        # `_choose_cells` to pad over DISPOSITIONS rather than over the grid,
+        # and that is its own change with its own test.
+        panel_size=9,
     )
     return RunConfig(
         asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat minimal"),
@@ -163,7 +238,13 @@ def main() -> None:
         assert not credits.is_committed(prep.run_id, _ACCOUNT, _BRAND), (
             "prepare() debited a credit — it must not"
         )
-        assert len(prep.panel) == 6, f"panel size {len(prep.panel)} != 6"
+        assert len(prep.panel) == 9, f"panel size {len(prep.panel)} != 9"
+        seats = Counter(a.disposition_label for a in prep.panel)
+        assert set(seats.values()) == {3}, (
+            f"the panel is not balanced across the three buyer types: {dict(seats)}. "
+            "At N == grid every cell fills exactly once; anything else means the "
+            "grid moved and the remainder is piling onto whichever type sorts first."
+        )
         assert prep.persona_cores_rendered >= 1
         assert prep.estimated_cost_usd > 0
         rd = run_dir(prep.run_id, account_id=_ACCOUNT, brand_profile_id=_BRAND)
@@ -222,7 +303,8 @@ def main() -> None:
 
 @pytest.mark.paid
 def test_full_creative_read_end_to_end() -> None:
-    """Costs ~$0.80-1.10 of real API calls. Skipped unless --paid is passed.
+    """Costs ~$2.20-2.80 of real API calls — it runs the pipeline TWICE (see
+    the module docstring). Skipped unless --paid is passed.
 
     ⚠ Until 2026-08-22 this file had no `test_` function at all: pytest
     collected zero from it while it sat in tests/ named test_*.py. It was

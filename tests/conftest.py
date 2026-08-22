@@ -29,7 +29,13 @@ from agent import run_service
 # reported success over a suite that silently excluded them.
 #
 #   FIVE ARE PAID (they call the real API): render, runtime, synthesis,
-#   run_service_minimal, target_id_effort — ~$1.93 the lot.
+#   run_service_minimal, target_id_effort.
+#   ⚠⚠ ~$3.50-4.00 THE LOT, not the ~$1.93 quoted until 2026-08-22. The old
+#   number took test_run_service_minimal's own docstring at its word, and that
+#   docstring priced ONE end-to-end run while the test performs TWO (commit,
+#   then RunService.run). Corrected at both sites. This repo quotes costs
+#   honestly on principle — the probe that was quoted $0.30 and cost $0.38 is
+#   written up for the same reason.
 #   TWO WERE FREE AND SIMPLY NEVER RAN: test_panel_resilience.py (guards against
 #   synthesizing a verdict on a gutted panel) and test_l4_homog_guard.py. Both
 #   say "Offline" in their own docstrings. Those are now plain collected tests.
@@ -43,7 +49,7 @@ from agent import run_service
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
         "--paid", action="store_true", default=False,
-        help="run the tests that call the real API and cost real money (~$1.93)",
+        help="run the tests that call the real API and cost real money (~$3.50-4.00)",
     )
 
 

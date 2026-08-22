@@ -34,9 +34,9 @@ from agent.synthesis_types import DispositionTarget, TargetClassification
 
 # A boat-earbuds-style creative. Two segments, two transcripts each.
 _SEGMENTS = {
-    "office_bru_pragmatist::moderate": [
+    "pragmatist_office_bru::moderate": [
         AgentTranscript(
-            agent_id=0, disposition_label="office_bru_pragmatist",
+            agent_id=0, disposition_label="pragmatist_office_bru",
             context_label="commute_scroll", seed_idx=0,
             encoding_text=(
                 "R1 GUT: A ₹1,199 deal price with a brown case, looks like a "
@@ -67,7 +67,7 @@ _SEGMENTS = {
             ),
         ),
         AgentTranscript(
-            agent_id=1, disposition_label="office_bru_pragmatist",
+            agent_id=1, disposition_label="pragmatist_office_bru",
             context_label="pre_purchase_research", seed_idx=0,
             encoding_text=(
                 "R1 GUT: Fine, a budget earbud deal, I've seen fifty of these.\n"
@@ -92,9 +92,9 @@ _SEGMENTS = {
             ),
         ),
     ],
-    "specialty_coffee_enthusiast::deliberate": [
+    "enthusiast_specialty_coffee::deliberate": [
         AgentTranscript(
-            agent_id=2, disposition_label="specialty_coffee_enthusiast",
+            agent_id=2, disposition_label="enthusiast_specialty_coffee",
             context_label="commute_scroll", seed_idx=0,
             encoding_text=(
                 "R1 GUT: Not for me, scrolling past.\n"
@@ -119,7 +119,7 @@ _SEGMENTS = {
             ),
         ),
         AgentTranscript(
-            agent_id=3, disposition_label="specialty_coffee_enthusiast",
+            agent_id=3, disposition_label="enthusiast_specialty_coffee",
             context_label="late_night_wind_down", seed_idx=0,
             encoding_text=(
                 "R1 GUT: Scroll.\n"
@@ -157,11 +157,11 @@ _TARGET = TargetClassification(
     ),
     disposition_classifications=[
         DispositionTarget(
-            disposition_label="office_bru_pragmatist", classification="within",
+            disposition_label="pragmatist_office_bru", classification="within",
             reasoning="price-led functional buyer — exactly the deal-price target",
         ),
         DispositionTarget(
-            disposition_label="specialty_coffee_enthusiast", classification="outside",
+            disposition_label="enthusiast_specialty_coffee", classification="outside",
             reasoning="quality-first identity buyer — not a budget-deal target",
         ),
     ],
@@ -219,13 +219,13 @@ def main() -> None:
     # L4 — strategic memo with bet_ranking headline.
     report = synthesize_memo(
         l3, _TARGET, projection, config,
-        provisional_dispositions=["office_bru_pragmatist"],
+        provisional_dispositions=["pragmatist_office_bru"],
     )
     validate_report(report)
     assert report.bet_ranking, "bet_ranking is empty"
     assert report.funnel_projection is not None, "funnel_projection not attached"
     assert report.funnel_projection.overall.basis == "heuristic_v1"
-    assert "office_bru_pragmatist" in report.provisional_dispositions
+    assert "pragmatist_office_bru" in report.provisional_dispositions
     assert "provisional_disposition_present" in report.methodology_flags, (
         "provisional flag not auto-added"
     )

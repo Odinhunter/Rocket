@@ -48,7 +48,7 @@ def _demo() -> DemographicPoint:
 
 
 def _disposition() -> DispositionVector:
-    # The "office_bru_pragmatist" shape: regular instant user, price-led,
+    # The "pragmatist_office_bru" shape: regular instant user, price-led,
     # function-driven, low involvement, neutral history.
     return DispositionVector(
         category_relationship="regular", brand_stance="neutral",
