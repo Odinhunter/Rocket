@@ -443,6 +443,24 @@ class NamedDisposition:
     # every run at once and mean nothing. Scoping is an authoring act, opted
     # into one disposition at a time.
     authored_for: list[str] = field(default_factory=list)
+    # ⭐ THE MOMENT this buyer type was authored for — one key from the market's
+    # demand map (`afternoon_dip`, `bedtime_cup`, ...). Named `moment` to match
+    # `BrandArtifact.moments`, which is what it joins against.
+    #
+    # ⚠⚠ IT IS WHAT LETS A READ CUT THE WORLD. `artifact_pack.cut_to_moments()`
+    # narrows a 105-brand world to the moments a panel actually occupies —
+    # shorter prompts, and a TIGHTER invented-brand guardrail, since
+    # `render._vocab_tokens` builds that check out of the pack's own brand names.
+    # Without a first-class field the only source was `notes`, a free-text
+    # curator string ("generated: occasion=afternoon_dip ..."), and deriving
+    # behaviour by parsing a display string is the exact defect class `#80`
+    # closed. Do not re-introduce it.
+    #
+    # ⚠ EMPTY MEANS UNDECLARED, AND A SINGLE EMPTY DISABLES THE CUT for the whole
+    # run — see `run_service._moments_in_play`. Every library authored before
+    # 2026-08-22 is empty, so all seven keep the whole world and behave exactly
+    # as before.
+    moment: str = ""
 
     def validate(self) -> None:
         if not self.label or not self.label.strip():
@@ -481,6 +499,12 @@ class NamedDisposition:
         # when a disposition really gains a customer-facing name.
         if self.display_name:
             out["display_name"] = self.display_name
+        # ⚠ SAME RULE A THIRD TIME, AND IT IS LOAD-BEARING. All seven installed
+        # libraries predate `moment`; emitting `"moment": ""` would move every
+        # one of their panel versions and announce a composition change that did
+        # not happen. Pinned by test.
+        if self.moment:
+            out["moment"] = self.moment
         return out
 
     @classmethod
@@ -497,6 +521,7 @@ class NamedDisposition:
             ],
             authored_for=list(data.get("authored_for") or []),
             display_name=data.get("display_name", ""),
+            moment=data.get("moment", ""),
         )
 
 

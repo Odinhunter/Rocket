@@ -124,6 +124,12 @@ class CategoryArtifactPack:
     """
 
     category: str
+    # ⭐ WHICH MOMENTS THIS PACK WAS CUT TO — empty on every authored pack, set
+    # only by `cut_to_moments`. It rides on the pack so the render cache key can
+    # be derived from the SAME OBJECT the persona was shown: a key threaded
+    # separately can disagree with the world, and this one cannot.
+    # ⚠ Not a prompt field. It never reaches a model.
+    cut_moments: tuple[str, ...] = ()
     # ⚠⚠ `category` IS A MACHINE IDENTIFIER AND NOTHING ELSE. It names the module
     # (`packs/<category>.py`), keys the render cache, and gates the install guard.
     # ⭐⭐ IT MUST NEVER REACH A MODEL OR A CUSTOMER. Measured 2026-08-22: the slug
@@ -313,7 +319,11 @@ def cut_to_moments(pack: CategoryArtifactPack,
     exclusive = {_head(b.name) for b in dropped} - {_head(b.name) for b in kept} - {""}
     prices = [pp for pp in pack.price_points
               if not (_tokens(pp.item) | _tokens(pp.channel)) & exclusive]
-    return replace(pack, brand_landscape=kept, price_points=prices)
+    # ⚠ STAMP THE CUT ON THE RESULT. The render cache key is derived from
+    # `pack.cut_moments`, so the world a persona was shown and the key that
+    # stores it come from one object and cannot drift apart.
+    return replace(pack, brand_landscape=kept, price_points=prices,
+                   cut_moments=tuple(sorted(wanted)))
 
 
 def market_name_for(category: str) -> str:

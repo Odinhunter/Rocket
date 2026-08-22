@@ -46,7 +46,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from agent import calibration_log, credits, population
-from agent.artifact_pack import load_pack
+from agent.artifact_pack import cut_to_moments, load_pack
 from agent.preflight import preflight_or_raise
 from agent.config import RunConfig
 from agent.entities import DispositionLibrary
@@ -469,6 +469,35 @@ def _write_run_json(
 # ---- Public API ----
 
 
+def _moments_in_play(dispositions) -> list[str]:
+    """The moments this run's buyer types occupy — or [] meaning "don't cut".
+
+    ⭐⭐ ONE FUNCTION, TWO CALLERS. `prepare()` renders the persona cores and
+    `commit()` renders the reactions; if they derived different worlds the
+    cached cores and the live agents would disagree about what exists. They
+    must not drift, so neither computes this itself.
+
+    ⚠⚠ ALL-OR-NOTHING, AND THAT IS THE SAFE DIRECTION. A cut happens only when
+    EVERY seated disposition declares a moment. One blank means the whole world
+    stays, because a partial cut would delete the brands belonging to the
+    undeclared types — silently shrinking the world for exactly the personas we
+    know least about. Every library authored before 2026-08-22 has no `moment`
+    at all, so all seven behave precisely as they did.
+
+    ⚠ THE UNION, NEVER PER-PERSONA. Contexts are rendered once and shared across
+    dispositions, so a per-persona pack would give two agents sharing a context
+    two different worlds. Per-persona cutting waits for brand subscriptions.
+    """
+    # ⚠ `getattr`, not attribute access, and it is the fail-open rule again:
+    # anything this cannot read a moment from — a None, a stub, a disposition
+    # from a library that predates the field — yields "" and disables the cut.
+    # An unreadable panel must widen the world, never narrow it.
+    moments = [getattr(d, "moment", "") or "" for d in dispositions]
+    if not moments or not all(moments):
+        return []
+    return sorted(set(moments))
+
+
 class RunService:
     """Two-phase orchestrator. prepare() -> confirm -> commit()."""
 
@@ -499,6 +528,27 @@ class RunService:
             config.account_id, config.brand_profile_id
         )
         dispositions = library.resolve(spec.disposition_labels)
+
+        # ⭐⭐ CUT THE WORLD TO THE MOMENTS IN PLAY, BEFORE ANYTHING READS IT.
+        # `packs/fnb_world.py` carries 105 brands, and its own source records
+        # the cost: `render._vocab_tokens` builds the invented-brand guardrail
+        # out of the pack's TitleCase tokens, so a wider world makes that check
+        # WEAKER on every run. Cutting shortens the prompt and tightens the
+        # guard at once.
+        #
+        # ⚠⚠ EVERYTHING THAT SEES THE WORLD MUST SEE THE SAME WORLD — the
+        # preflight, the persona render, the context render, the agent, and the
+        # invented-brand validator. A validator that knows a smaller world than
+        # the prompt handed the persona flags brands the pack itself supplied,
+        # which is the cry-wolf failure `preflight._slug_forms` was rewritten
+        # twice to avoid. So the cut pack replaces `pack` from here down; it is
+        # never a second variable.
+        cut_moments = _moments_in_play(dispositions)
+        if cut_moments:
+            pack = cut_to_moments(pack, cut_moments)
+            _log.info("pack cut to %d moment(s): %s -> %d brands",
+                      len(cut_moments), ",".join(cut_moments),
+                      len(pack.brand_landscape))
 
         # ⭐⭐ CONTENT PREFLIGHT — the last free moment before anything is spent.
         # Deterministic, no model call, and it BLOCKS rather than warns: the six
@@ -679,6 +729,14 @@ class RunService:
     async def _commit_async(prep: RunPreparation, rd: Path) -> tuple[Report, dict]:
         config = prep.config
         pack = load_pack(config.category)
+        # ⚠ THE SAME CUT prepare() APPLIED, derived the same way from the same
+        # function. The panel is the record of who was seated, so the moments
+        # follow from it without re-reading the library.
+        cut_moments = _moments_in_play(
+            [getattr(a, "disposition", None) for a in prep.panel]
+        )
+        if cut_moments:
+            pack = cut_to_moments(pack, cut_moments)
         cache_dir = _render_cache_dir(config)
 
         # ---- L1: bundled-agent fan-out ----

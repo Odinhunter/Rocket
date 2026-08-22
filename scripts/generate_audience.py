@@ -1331,6 +1331,12 @@ def _to_disposition(t: dict, region: Region) -> NamedDisposition:
         display_name=t.get("display_name", ""),
         vector=DispositionVector(**{d: t[d] for d in _VALID_DISPOSITION}),
         anchor=anchor,
+        # ⭐ The moment as DATA, not only inside the notes string. `notes` is a
+        # free-text curator field and stays one; `moment` is what a read joins
+        # against `BrandArtifact.moments` to cut the world. Same value, two
+        # homes — deriving behaviour by parsing the display string is the
+        # defect class `#80` closed.
+        moment=t["occasion"],
         notes=notes_for(t["occasion"], t["stance"], region.key),
         demographic_bundles=[
             DemographicBundle(

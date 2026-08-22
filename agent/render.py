@@ -192,6 +192,7 @@ def persona_core_hash(
     chaos: ChaosVector,
     category: str,
     anchor: str = "",
+    cut_moments: list[str] | None = None,
 ) -> str:
     """Stable hash for a persona core. Identical inputs -> identical hash;
     any vector field change, an anchor change, a category change, or a
@@ -207,12 +208,28 @@ def persona_core_hash(
         "schema_version": VECTOR_SCHEMA_VERSION,
         "prompt_version": RENDER_PROMPT_VERSION,
     }
+    # ⚠⚠ THE CUT WORLD IS PART OF THE INPUT, SO IT MUST BE PART OF THE KEY.
+    # `category` names the pack but says nothing about how much of it the
+    # persona was shown. Without this, a core rendered against the whole
+    # 105-brand world and one rendered against a 3-moment cut share a hash —
+    # the cache serves the wrong world and nothing ever notices.
+    #
+    # ⚠ OMITTED WHEN THERE IS NO CUT, deliberately: every render cached before
+    # 2026-08-22 stays valid, so no library re-renders and no before/after
+    # comparison silently breaks. Only cut reads get their own entries.
+    if cut_moments:
+        payload["cut_moments"] = sorted(cut_moments)
     h.update(json.dumps(payload, sort_keys=True).encode("utf-8"))
     return h.hexdigest()[:16]
 
 
-def context_render_hash(ctx: ContextVector, category: str) -> str:
-    """Stable hash for a rendered context moment."""
+def context_render_hash(ctx: ContextVector, category: str,
+                        cut_moments: list[str] | None = None) -> str:
+    """Stable hash for a rendered context moment.
+
+    ⚠ `cut_moments` for the same reason as `persona_core_hash`: the context
+    writer is handed the pack too, so a cut changes its input. Omitted when
+    absent, so every context cached before 2026-08-22 stays valid."""
     h = hashlib.sha1()
     payload = {
         "context": ctx.to_dict(),
@@ -220,6 +237,8 @@ def context_render_hash(ctx: ContextVector, category: str) -> str:
         "schema_version": VECTOR_SCHEMA_VERSION,
         "prompt_version": RENDER_PROMPT_VERSION,
     }
+    if cut_moments:
+        payload["cut_moments"] = sorted(cut_moments)
     h.update(json.dumps(payload, sort_keys=True).encode("utf-8"))
     return h.hexdigest()[:16]
 
@@ -664,7 +683,8 @@ def render_persona_core(
     demo.validate()
     disposition.validate()
     chaos.validate()
-    key = persona_core_hash(demo, disposition, chaos, pack.category, anchor)
+    key = persona_core_hash(demo, disposition, chaos, pack.category, anchor,
+                            cut_moments=list(pack.cut_moments))
     cached = _cache_load(cache_dir, key)
     if cached is not None:
         return cached
@@ -710,7 +730,8 @@ def render_context(
     """Render a context attention-state into third-person prose. Cached by
     context_render_hash when cache_dir is set."""
     ctx.validate()
-    key = context_render_hash(ctx, pack.category)
+    key = context_render_hash(ctx, pack.category,
+                              cut_moments=list(pack.cut_moments))
     cached = _cache_load(cache_dir, key)
     if cached is not None:
         return cached
