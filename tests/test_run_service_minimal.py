@@ -41,7 +41,7 @@ from agent.entities import (
 )
 from agent.run_service import RunService
 from agent.schema import validate_report
-from agent.telemetry import run_dir, runs_root
+from agent.telemetry import run_dir, runs_root, telemetry_summary
 from agent.vectors import (
     ChaosDistribution,
     ChaosProfile,
@@ -174,7 +174,7 @@ def _setup_entities() -> None:
     ).save()
 
 
-def _config() -> RunConfig:
+def _config(**overrides) -> RunConfig:
     spec = AudienceSpec(
         demographics=[
             DemographicPoint(
@@ -221,6 +221,7 @@ def _config() -> RunConfig:
             "stop_rate": 0.11, "click_rate": 0.018,
             "visit_rate": 0.014, "convert_rate": 0.005,
         },
+        **overrides,
     )
 
 
@@ -264,12 +265,29 @@ def main() -> None:
             f"expected exactly 1 credit debited, got {credits.account_debits(_ACCOUNT)}"
         )
         assert report.bet_ranking, "report has no bet_ranking"
-        assert report.funnel_projection is not None, "no funnel_projection attached"
+
+        # ⚠⚠ THE FUNNEL IS OFF BY DEFAULT (v3 D4) AND THIS ASSERTION USED TO SAY
+        # THE OPPOSITE. It read `is not None`, was written at rocket-2.0.0 when
+        # the projection was always attached, and went stale the day `v3 #7`
+        # gated it off — heuristic_v1 is unfitted, so it is computed and logged
+        # for a future calibration fit but must not reach the customer or move
+        # the prescription. Nobody found out for a year because pytest collected
+        # ZERO functions from this file. ⭐ The first --paid run (2026-08-22)
+        # found it on its first outing, which is the whole argument for the tier.
+        assert report.funnel_projection is None, (
+            "the funnel reached the report with funnel_enabled=False — v3 D4 "
+            "says an unfitted heuristic must not reach the customer"
+        )
         for artifact in (
             "transcripts.json", "l2_summaries.json", "l3_summary.json",
             "l35_projection.json", "committed.marker",
         ):
             assert (rd / artifact).exists(), f"missing artifact: {artifact}"
+        # ⭐ AND IT IS STILL COMPUTED: withheld from the report, persisted for
+        # the calibration fit. "Off" must mean "not shown", never "not recorded".
+        l35 = json.loads((rd / "l35_projection.json").read_text())
+        assert l35["overall"]["basis"] == "heuristic_v1"
+
         run_json = json.loads((rd / "run.json").read_text())
         assert run_json["status"] == "complete"
         assert run_json["report"]["verdict"] == report.verdict
@@ -282,20 +300,47 @@ def main() -> None:
         print("  OK  re-commit did not double-debit the credit")
 
         # --- convenience: RunService.run wires prepare + commit ---
+        # ⭐ AND IT CARRIES THE OTHER HALF OF THE D4 GATE FOR FREE. This test
+        # already paid for a second full run; spending it on the SAME config
+        # tested the same branch twice. With funnel_enabled=True it verifies the
+        # opt-in path — and with it, the in/out-of-target split (`#84`) on a real
+        # call, which no offline fixture can prove.
         _cleanup()
         _setup_entities()
-        report2 = RunService.run(_config())
+        report2 = RunService.run(_config(funnel_enabled=True))
         validate_report(report2)
-        assert report2.funnel_projection is not None
-        print("  OK  RunService.run() (prepare + commit convenience) returned a valid Report")
+        assert report2.funnel_projection is not None, (
+            "funnel_enabled=True did not attach the projection"
+        )
+        fp2 = report2.funnel_projection
+        assert fp2.within_target is not None or fp2.outside_target is not None, (
+            "the projection carries no target split — every parsed signal must "
+            "land on one side of the target line (#84)"
+        )
+        sides = [x for x in (fp2.within_target, fp2.outside_target) if x]
+        assert sum(x.behavioral_distribution.n for x in sides) == (
+            fp2.population_behavioral_distribution.n
+        ), "the target split does not sum to the panel"
+        print("  OK  RunService.run() returned a valid Report; funnel_enabled=True "
+              "attached it")
+        for side in sides:
+            r = side.funnel_rates
+            print(f"      {side.segment_label:>14} (n={side.behavioral_distribution.n}): "
+                  f"convert {r.convert_rate*100:.3f}%  "
+                  f"[{r.convert_band[0]*100:.3f}-{r.convert_band[1]*100:.3f}%]")
+        print(f"      {'whole panel':>14} "
+              f"(n={fp2.population_behavioral_distribution.n}): "
+              f"convert {fp2.overall.convert_rate*100:.3f}%  <- pooled, not the read")
 
         print(f"\n  bet_ranking ({len(report.bet_ranking)} bets):")
         for bet in report.bet_ranking:
             print(f"    - {bet}")
-        fp = report.funnel_projection.overall
-        print(f"  funnel (overall, {fp.basis}): "
-              f"click {fp.click_rate:.4f} [{fp.click_band[0]:.4f}-{fp.click_band[1]:.4f}], "
-              f"convert {fp.convert_rate:.4f}")
+        # ⚠ PRINT THE SPEND BEFORE `finally` DELETES IT. telemetry.jsonl lives
+        # inside the run directory this test removes, so without this the most
+        # expensive test in the tier leaves NO record of what it cost. The first
+        # --paid run could only estimate its own bill.
+        print("\n" + telemetry_summary(
+            prep.run_id, account_id=_ACCOUNT, brand_profile_id=_BRAND))
         print("PASS — run goes prepare -> confirm -> commit; credit debited once.")
     finally:
         _cleanup()
