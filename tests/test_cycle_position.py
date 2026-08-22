@@ -63,6 +63,61 @@ def test_resolve_cycle_mix() -> None:
 
 # ---- the deterministic (uncached) cycle prose ----
 
+# ⚠⚠ THE REGRESSION LIST. Each of these clauses used to follow the supply fact
+# in `_CYCLE_PROSE` and each told the persona what to CONCLUDE about buying. They
+# are pinned by exact string, deliberately — a general "no decision language"
+# detector is the over-broad guard the preflight docstring warns about, and a
+# guard that cries wolf gets bypassed. If a future session "restores" richer
+# cycle prose, these fail.
+_DECISION_CLAUSES = (
+    "not thinking about restocking yet",
+    "well supplied",
+    "no near-term need",
+    "you'll need to restock soon",
+)
+
+
+def test_no_cycle_line_tells_the_person_what_to_decide() -> None:
+    """⭐⭐ THE LINE PLACES THE PERSON; THE PERSON DECIDES WHAT IT MEANS.
+
+    The user caught this on `mid_cycle` 2026-08-22: "doesn't that mean the
+    person will never buy it — completely restricting the purchase gate for
+    someone who might buy". It was all three, and pushing BOTH ways —
+    `running_low` said "you'll need to restock soon", which MANDATES the
+    purchase the run exists to measure. A loyalist told they must restock, on a
+    retention ad, answers "would buy" for a reason that is not the creative:
+    the `#74`-`#76` inflation mechanism, sitting in a template line.
+
+    ⚠ Someone who restocks a half-full cupboard on a good enough offer is a
+    REAL finding. The old wording made it unobservable.
+    """
+    for position in ("just_bought", "mid_cycle", "running_low"):
+        line = _cycle_line(position, "coffee").lower()
+        found = [c for c in _DECISION_CLAUSES if c.lower() in line]
+        assert not found, (
+            f"{position}: the cycle line decides for the person — {found}. "
+            f"State where their supply stands and stop there.\n  {line}"
+        )
+    print("  OK  no cycle line pre-decides the purchase, all 3 positions ✓")
+
+
+def test_every_cycle_line_still_states_where_the_supply_stands() -> None:
+    """The positive control. Deleting the decision clause must not hollow the
+    line out — an empty cycle line would pass the test above trivially, which
+    is vacuous shape 1 (an absence assertion nothing could ever fail)."""
+    stems = {"just_bought": "recently stocked up",
+             "mid_cycle": "partway through",
+             "running_low": "nearly out of"}
+    for position, stem in stems.items():
+        line = _cycle_line(position, "coffee")
+        assert stem in line, f"{position} lost its supply state: {line!r}"
+        assert line.startswith("WHERE THINGS STAND FOR YOU RIGHT NOW: ")
+        assert len(line.split(": ", 1)[1].split()) >= 4, (
+            f"{position} is too thin to place anyone: {line!r}"
+        )
+    print("  OK  all 3 still state the supply position ✓")
+
+
 def test_cycle_line_prose() -> None:
     """⚠⚠ THIS TEST USED TO RATIFY A BUG. Until 2026-08-22 it asserted
     `"recently stocked up on health wellness nutrition"` — i.e. it pinned the

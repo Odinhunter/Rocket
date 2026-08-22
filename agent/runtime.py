@@ -131,9 +131,15 @@ _ENCODING_USER = (
     "after it:\n"
     '{"action": "<scroll_past|linger|tap_cta|save|share>", "reasoning": "<one '
     'short sentence in your own words, about the ad you just saw>"}\n'
-    "This is what your thumb ACTUALLY does in that half-second — scroll on by, "
-    "stop and look, tap through, save it, or send it to someone. Not what you "
-    "might do later; what you do right now. Never a funnel rate or a percentage."
+    # ⚠ ASK A PERSON WHAT THEY DID, NOT WHAT THEIR THUMB DID. This read
+    # "what your thumb ACTUALLY does in that half-second" until 2026-08-22 —
+    # nobody thinks about their own thumb, and a question in the engine's
+    # register invites an answer in the engine's register. Every option, the
+    # right-now-not-later constraint and the no-rates guard are unchanged.
+    "That last line is what you actually do with it in the moment — keep "
+    "scrolling, stop and look, tap it, save it, or send it to someone. What "
+    "happens right then, not what you might do later. Never a funnel rate or "
+    "a percentage."
 )
 
 # The next_step is a single terminal JSON line so it parses deterministically
@@ -319,10 +325,35 @@ def parse_probe_signal(reflection_text: str) -> ProbeSignal | None:
 # the interpolation removes the coupling instead of feeding it a better value,
 # and it is what a real person thinks: "I'm nearly out", not "I'm nearly out of
 # Indian urban food and beverage".
+# ⚠⚠ STATE THE SUPPLY, NEVER THE DECISION. Until 2026-08-22 each of these
+# carried a second clause that told the persona what to CONCLUDE, and the user
+# caught it on the mid_cycle line: "not thinking about restocking yet" is not a
+# fact about the cupboard, it is an instruction not to buy — asked of a panel
+# whose entire job is to tell us whether they would.
+#
+# ⭐⭐ AND IT WAS ALL THREE, PUSHING BOTH WAYS. `just_bought` said "no near-term
+# need" (forecloses) and `running_low` said "you'll need to restock soon"
+# (MANDATES). That second one is the `#74`-`#76` inflation mechanism sitting in
+# a template: a loyalist told they must restock, on a retention ad, produces
+# "would buy" for a reason that has nothing to do with the creative.
+#
+# ⭐ This is the same law the demand map is built on — a cell is a QUESTION, not
+# a vignette; incidental scene-setting acting as an exclusion rule was every
+# single grid failure across 52 real items. The line's job is to place the
+# person, and the person decides what that means. Some people restock a
+# half-full cupboard on a good enough offer. That is a finding, and the old
+# wording made it unobservable.
+#
+# ⚠ The three-way assignment stays DETERMINISTIC and Python-side (see
+# `resolve_cycle_mix` + `_even_spread`). It is not the model's to choose: this
+# line sits in the SAME message as the creative, so a model picking its own
+# state while looking at an appealing ad lets the ad select the audience state
+# that then inflates the ad's own score. And `by_cycle_position` is a counted,
+# reported breakdown — a model-chosen mix is a model-emitted distribution.
 _CYCLE_PROSE = {
-    "just_bought": "you recently stocked up on what you usually buy here — well supplied, with no near-term need.",
-    "mid_cycle": "you are partway through your current supply — not thinking about restocking yet.",
-    "running_low": "you are nearly out of what you usually buy here — you'll need to restock soon.",
+    "just_bought": "you recently stocked up on what you usually buy here.",
+    "mid_cycle": "you are partway through your current supply.",
+    "running_low": "you are nearly out of what you usually buy here.",
 }
 
 
