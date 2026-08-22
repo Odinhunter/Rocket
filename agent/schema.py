@@ -485,7 +485,7 @@ class FunnelProjection:
     outside_target: SegmentProjection | None = None
 
     def to_dict(self) -> dict:
-        return {
+        data = {
             "overall": self.overall.to_dict(),
             "by_segment": [s.to_dict() for s in self.by_segment],
             "population_behavioral_distribution": (
@@ -494,13 +494,20 @@ class FunnelProjection:
             "calibration_note": self.calibration_note,
             "provided_inputs": list(self.provided_inputs),
             "stage_meta": [m.to_dict() for m in self.stage_meta],
-            "within_target": (
-                self.within_target.to_dict() if self.within_target else None
-            ),
-            "outside_target": (
-                self.outside_target.to_dict() if self.outside_target else None
-            ),
         }
+        # ⚠ OMITTED WHEN ABSENT, NEVER SERIALISED AS null. This dict is not
+        # only the run.json record — it is embedded verbatim in the L4 prompt,
+        # and `"within_target": null` there teaches the model there WAS an
+        # in-target split and it came back empty. Absence says "this run has
+        # no split"; a null says something false about a run that does. Same
+        # rule `display_name` follows on the generator's emit (#81), and the
+        # same reason the L4 payload omits audience_match rather than nulling
+        # it. from_dict already treats the key as optional.
+        for key, value in (("within_target", self.within_target),
+                           ("outside_target", self.outside_target)):
+            if value is not None:
+                data[key] = value.to_dict()
+        return data
 
     @classmethod
     def from_dict(cls, data: dict) -> "FunnelProjection":

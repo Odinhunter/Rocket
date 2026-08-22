@@ -298,6 +298,29 @@ def test_the_printed_report_leads_with_in_target_and_names_it() -> None:
     print("  OK  printed report leads with in-target, names both sides ✓")
 
 
+def test_an_absent_split_is_omitted_from_the_record_never_serialised_as_null() -> None:
+    """⚠ THIS DICT IS EMBEDDED VERBATIM IN THE L4 PROMPT, not just written to
+    run.json. `"within_target": null` there teaches the strategist model there
+    WAS an in-target split and it came back empty — a false statement about a
+    run that has one. Absence says "no split on this run". Same rule
+    `display_name` follows on the generator's emit (#81), and the same reason
+    the L4 payload omits `audience_match` rather than nulling it."""
+    tc = _tc(target_buyer="within", bystander="outside")
+    none_in = synthesize_population([_l2("bystander", _dist(10, 0))], tc)
+    d = project_funnel(none_in, _BASELINE).to_dict()
+
+    assert "within_target" not in d, (
+        "an absent in-target split must be OMITTED, not serialised as null"
+    )
+    assert d["outside_target"]["behavioral_distribution"]["n"] == 10
+    assert None not in d.values(), f"a null reached the L4 payload: {d}"
+
+    # And it must survive the round trip as absence, not as a resurrected null.
+    from agent.schema import FunnelProjection
+    assert FunnelProjection.from_dict(d).within_target is None
+    print("  OK  an absent split is omitted from the record, not nulled ✓")
+
+
 def test_a_legacy_projection_still_prints_its_pooled_funnel() -> None:
     """A run.json written before the split has no in-target projection. It must
     still render — and must NOT claim an in-target read it does not have."""
@@ -348,6 +371,7 @@ def main() -> None:
     test_a_side_with_no_signal_is_not_projected_at_all()
     test_ambiguous_falls_outside_exactly_as_the_headline_metric_does()
     test_the_printed_report_leads_with_in_target_and_names_it()
+    test_an_absent_split_is_omitted_from_the_record_never_serialised_as_null()
     test_a_legacy_projection_still_prints_its_pooled_funnel()
     test_a_panel_with_no_in_target_signal_says_so_on_the_page()
     print("PASS — the last unsplit panel-wide aggregate is split.")
