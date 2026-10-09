@@ -31,6 +31,8 @@ import json
 import pathlib
 import sys
 
+import pytest
+
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from agent.artifact_pack import cut_to_moments, load_pack
@@ -87,6 +89,7 @@ def test_an_unreadable_panel_widens_the_world_rather_than_raising() -> None:
     print("  OK  unreadable panel -> no cut, no exception ✓")
 
 
+@pytest.mark.local_data
 def test_every_installed_library_keeps_the_whole_world() -> None:
     """⭐ THE ZERO-REGRESSION CLAIM, CHECKED RATHER THAN ASSERTED. All seven
     libraries on disk predate `moment`, so every one of them must still be
@@ -222,6 +225,7 @@ def test_the_moment_field_is_omitted_when_empty() -> None:
     print("  OK  moment omitted when empty, round-trips when set ✓")
 
 
+@pytest.mark.local_data
 def test_installed_libraries_serialise_byte_identically() -> None:
     """The strongest form of the claim above: re-serialising every disposition
     on disk must reproduce its stored bytes exactly."""

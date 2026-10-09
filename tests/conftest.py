@@ -57,6 +57,11 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers", "paid: calls the real API and spends real money; needs --paid",
     )
+    config.addinivalue_line(
+        "markers",
+        "local_data: reads installed audience libraries under runs/, which are "
+        "local and gitignored. On a fresh clone: pytest -m 'not local_data'",
+    )
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list) -> None:

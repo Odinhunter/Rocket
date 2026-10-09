@@ -116,6 +116,7 @@ def _installed_library_labels() -> dict[str, list[str]]:
     return out
 
 
+@pytest.mark.local_data
 def test_every_installed_library_label_parses_too() -> None:
     """⚠⚠ THE GAP THE FIRST DRAFT OF THIS FILE HAD, AND IT HID A REAL DEFECT.
 

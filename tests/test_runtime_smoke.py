@@ -95,7 +95,7 @@ def _cleanup() -> None:
 def main() -> None:
     print("=== runtime API smoke ===")
     _cleanup()
-    asset_path = Path("assets/boat_ad.png")
+    asset_path = Path("assets/sample_creative.png")
     if not asset_path.exists():
         raise SystemExit(f"missing test asset: {asset_path}")
 

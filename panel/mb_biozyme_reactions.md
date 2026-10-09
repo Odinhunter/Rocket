@@ -1,5 +1,10 @@
 # Panel Reaction Sheet — Ad #1: MuscleBlaze Biozyme (performance / macros whey)
 
+> **Read this first.** Every reaction, score and verdict on this page is synthetic output from an
+> unvalidated research prototype, generated to test the engine itself. It is not a judgement of the
+> brand, its product or how its ad performed. Brand names appear only because the test inputs were
+> real, publicly visible ads.
+
 **Ad type:** performance / spec-led whey.  **Inferred target:** serious macro-tracking lifters.  **Verdict:** MIXED 48/100.
 
 **How to use:** read each persona's reaction; score with `panel/SCORING_RUBRIC.md`. One representative high-attention reaction per persona, each shown in its most natural demographic.

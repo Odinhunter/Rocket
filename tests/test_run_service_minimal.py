@@ -105,7 +105,7 @@ def _chaos() -> ChaosDistribution:
 #
 # ⭐ THE FIX IS THE ONE THIS REPO ALREADY WROTE DOWN — vacuous shape 4: copy a
 # real artifact off disk rather than authoring a minimal one. `boat_audio` is
-# the library for THIS AD (assets/boat_ad.png, category personal_audio), with
+# the library for THIS AD (assets/sample_creative.png, category personal_audio), with
 # seven convention-compliant types carrying real anchors.
 #
 # ⚠ THE THREE ARE CHOSEN FOR SPREAD, NOT FOR A FLATTERING VERDICT: one
@@ -211,7 +211,7 @@ def _config(**overrides) -> RunConfig:
         panel_size=9,
     )
     return RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat minimal"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat minimal"),
         archetype="urban_indian_male_22_30", category="personal_audio",
         account_id=_ACCOUNT, brand_profile_id=_BRAND,
         audience_spec=spec,
@@ -228,8 +228,8 @@ def _config(**overrides) -> RunConfig:
 def main() -> None:
     print("=== run_service minimal end-to-end ===")
     _cleanup()
-    if not Path("assets/boat_ad.png").exists():
-        raise SystemExit("missing test asset: assets/boat_ad.png")
+    if not Path("assets/sample_creative.png").exists():
+        raise SystemExit("missing test asset: assets/sample_creative.png")
     try:
         _setup_entities()
         config = _config()

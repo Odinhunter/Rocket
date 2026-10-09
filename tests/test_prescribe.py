@@ -101,7 +101,7 @@ def _funnel() -> FunnelProjection:
 def _cfg() -> RunConfig:
     from agent.config import AssetSpec
     return RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat"),
         archetype="unspecified",
         category="personal_audio",
     )

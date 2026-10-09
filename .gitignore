@@ -17,3 +17,9 @@ sessions/
 # Creatives uploaded through the operator server — a client's unreleased ad.
 uploads/
 region_review.html
+# Real brands' ad creatives used for local testing stay out of the public repo.
+# Keep them in assets_private/ (or anywhere ignored). assets/sample_creative.png
+# is a fictional stand-in the tests and examples use.
+assets_private/
+assets/*_ad.*
+assets/* ad.*

@@ -176,7 +176,7 @@ _BASELINE = {
 def main() -> None:
     print("=== synthesis chain API smoke (L2 -> L3 -> L3.5 -> L4) ===")
     config = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat Airdopes deal"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat Airdopes deal"),
         archetype="urban_indian_male_22_30", category="personal_audio",
         baseline_funnel=_BASELINE,
     )

@@ -158,7 +158,7 @@ def test_run_json_stamps_all_versions() -> None:
     # spend, the Week-3 comparison) is only attributable if every version the run
     # used is stamped in the persisted record, not just held in a constant.
     cfg = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat"),
         archetype="unspecified", category="personal_audio",
     )
     payload = _run_json_payload(cfg, "rid123", status="complete", report=None)
@@ -184,7 +184,7 @@ def test_run_json_freezes_the_configuration_not_just_its_version_labels() -> Non
     `panel_version` lived only in preparation.json, `funnel_enabled` was a field
     that never serialised at all, and nothing fingerprinted prompt TEXT."""
     cfg = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat"),
         archetype="unspecified", category="personal_audio",
     )
     cfg.panel_version = "abc123def456"
@@ -225,7 +225,7 @@ def test_config_provenance_records_which_inputs_the_run_read() -> None:
     whose disposition library text differs must not look identical in the
     record."""
     cfg = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat"),
         archetype="unspecified", category="personal_audio",
     )
     assert cfg.disposition_version == "auto", "the untouched default changed"
@@ -261,7 +261,7 @@ def test_a_broken_fingerprint_never_costs_a_paid_run() -> None:
     try:
         rs.prompt_fingerprints = lambda: 1 / 0        # noqa: E731
         cfg = RunConfig(
-            asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+            asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat"),
             archetype="unspecified", category="personal_audio",
         )
         payload = _run_json_payload(cfg, "rid123", status="complete", report=None)

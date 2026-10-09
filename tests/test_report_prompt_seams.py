@@ -59,7 +59,7 @@ from agent.synthesis_types import (
 
 def _config(**kw) -> RunConfig:
     base = dict(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat teaser"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat teaser"),
         archetype="unspecified", category="personal_audio",
     )
     base.update(kw)

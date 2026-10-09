@@ -60,7 +60,7 @@ NOTES_SENTINEL = "XYZZY-MARKETER-NOTE-SENTINEL"
 BRAND_SENTINEL = "XYZZY-BRAND-NOTE-SENTINEL"
 COPY_SENTINEL = "XYZZY-AD-HEADLINE-SENTINEL"
 
-_ASSET = Path(__file__).resolve().parent.parent / "assets" / "mb_biozyme_ad.png"
+_ASSET = Path(__file__).resolve().parent.parent / "assets" / "sample_creative.png"
 
 
 def _config(**overrides) -> RunConfig:

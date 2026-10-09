@@ -1,5 +1,10 @@
 # Panel Reaction Sheet — Control: "AI-designed" Functional Protein (Herbyvore)
 
+> **Read this first.** Every reaction, score and verdict on this page is synthetic output from an
+> unvalidated research prototype, generated to test the engine itself. It is not a judgement of the
+> brand, its product or how its ad performed. Brand names appear only because the test inputs were
+> real, publicly visible ads.
+
 **Ad type:** vague-hype / buzzword control — "AI-designed Functional Protein for Longevity. Clinically-inspired. Backed by Nutritional Science." No price, no proof, no ingredient panel.  **Inferred target:** female-leaning clean-wellness longevity aspirant (28–45).  **Verdict:** FAILING 45/100.
 
 **Why this ad exists:** discriminant-validity control. Same hero disposition (`aspirant_clean_label`) that scored MIXED 62 (WN collagen) and MIXED 58 (Whole Truth) on *real* creatives — run here against a buzzword creative to test whether the engine reads creative substance or just category-fit. It flipped the verdict bucket to FAILING.

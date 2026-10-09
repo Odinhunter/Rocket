@@ -28,7 +28,7 @@ from agent.telemetry import (
 
 def test_default_config_is_valid() -> None:
     cfg = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat Airdopes Prime 512"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat Airdopes Prime 512"),
         archetype="urban_indian_male_22_30",
         category="personal_audio",
     )
@@ -42,7 +42,7 @@ def test_default_config_is_valid() -> None:
 
 def test_validate_rejects_over_ceiling() -> None:
     cfg = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="y"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="y"),
         archetype="a", category="c",
         dispositions_per_run=7, contexts_per_run=5, seeds_per_cell=10,
     )
@@ -57,7 +57,7 @@ def test_validate_rejects_over_ceiling() -> None:
 
 def test_validate_rejects_too_many_dispositions() -> None:
     cfg = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="y"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="y"),
         archetype="a", category="c",
         dispositions_per_run=9,
     )
@@ -156,7 +156,7 @@ def test_flat_fallback_when_unset() -> None:
 
 def test_disposition_version_hash() -> None:
     cfg = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="y"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="y"),
         archetype="a", category="c",
     )
     pool = [("d1", "desc1"), ("d2", "desc2")]
@@ -172,12 +172,12 @@ def test_disposition_version_hash() -> None:
 def test_to_dict_serializable() -> None:
     import json
     cfg = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat"),
         archetype="urban_indian_male_22_30",
         category="personal_audio",
     )
     s = json.dumps(cfg.to_dict())
-    assert "boat_ad.png" in s
+    assert "sample_creative.png" in s
     assert PROTOCOL_VERSION in s
     assert "temperatures" in s
     assert "efforts" in s
@@ -186,7 +186,7 @@ def test_to_dict_serializable() -> None:
 
 def test_marketer_led_fields() -> None:
     base = dict(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat"),
         archetype="urban_indian_male_22_30",
         category="personal_audio",
     )
@@ -210,7 +210,7 @@ def test_model_versions_backfills_missing_keys() -> None:
         "target_id": "claude-opus-4-7", "render": "claude-sonnet-4-6",
     }
     c = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat"),
         archetype="unspecified", category="personal_audio",
         model_versions=dict(legacy),
     )
@@ -248,7 +248,7 @@ def test_default_temperatures_match_advisor_schedule() -> None:
 
 def test_temperatures_round_trip_through_to_dict() -> None:
     cfg = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat"),
         archetype="urban_indian_male_22_30",
         category="personal_audio",
     )
@@ -280,7 +280,7 @@ def test_default_efforts_match_advisor_schedule() -> None:
 
 def test_efforts_round_trip_through_to_dict() -> None:
     cfg = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="Boat"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="Boat"),
         archetype="urban_indian_male_22_30",
         category="personal_audio",
     )

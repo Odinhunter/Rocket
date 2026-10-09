@@ -2,7 +2,7 @@
 
 Two-phase run against a composed AudienceSpec:
 
-    python batch_run.py --asset assets/boat_ad.png \\
+    python batch_run.py --asset assets/sample_creative.png \\
         --audience-spec specs/cold_traffic.json \\
         --category personal_audio --account acme --brand-profile boat
 

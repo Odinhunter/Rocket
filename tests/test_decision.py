@@ -427,7 +427,7 @@ def test_synthesize_report_seam() -> None:
         bet_ranking=["b1", "b2", "b3"],
     )
     cfg = RunConfig(
-        asset=AssetSpec(image_path="assets/boat_ad.png", label="X"),
+        asset=AssetSpec(image_path="assets/sample_creative.png", label="X"),
         archetype="unspecified", category="personal_audio",
     )
     l3stub = SimpleNamespace(confidence_signals=None)
